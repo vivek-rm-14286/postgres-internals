@@ -27,7 +27,7 @@ function RefView() {
   const { id } = useParams()
   const table = TABLES.find((t) => t.id === id) ?? TABLES[0]
   const [q, setQ] = useState('')
-  useEffect(() => { document.title = `${table.title} · Reference · Postgres Internals, Visualized`; setQ('') }, [table])
+  useEffect(() => { document.title = `${table.title} · Reference · Postgres, Visualized`; setQ('') }, [table])
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase()
     return s ? table.rows.filter((r) => r.some((c) => c.toLowerCase().includes(s))) : table.rows

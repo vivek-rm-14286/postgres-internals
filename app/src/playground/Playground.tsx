@@ -13,17 +13,19 @@ import { useTheme } from '../app/theme'
 
 interface Props {
   setup: string
+  config?: string[]
   presets: Preset[]
   extensions?: ExtensionName[]
 }
 
 type Status = 'idle' | 'booting' | 'ready' | 'running' | 'failed'
 
-export function Playground({ setup, presets, extensions = [] }: Props) {
+export function Playground({ setup, presets, extensions = [], config = [] }: Props) {
   // Key on content, not identity: a default `[]` is a new array every render and must not rebuild the database.
   const extKey = extensions.join(',')
+  const cfgKey = config.join('\n')
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const engine = useMemo(() => new Engine(extKey ? (extKey.split(',') as ExtensionName[]) : [], setup), [extKey, setup])
+  const engine = useMemo(() => new Engine(extKey ? (extKey.split(',') as ExtensionName[]) : [], setup, cfgKey ? cfgKey.split('\n') : []), [extKey, setup, cfgKey])
   const [status, setStatus] = useState<Status>('idle')
   const [bootError, setBootError] = useState<string | null>(null)
   const [active, setActive] = useState(0)
@@ -132,7 +134,7 @@ function StatusBadge({ status }: { status: Status }) {
   return <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${cls}`}>{label}</span>
 }
 
-function ErrorBox({ message, code, hint, detail }: { message: string; code?: string; hint?: string; detail?: string }) {
+export function ErrorBox({ message, code, hint, detail }: { message: string; code?: string; hint?: string; detail?: string }) {
   return (
     <div className="flex gap-2 bg-dead/10 px-4 py-3 text-sm text-dead">
       <TriangleAlert className="mt-0.5 size-4 shrink-0" />
@@ -163,7 +165,7 @@ function Results({ out }: { out: RunOutput }) {
   )
 }
 
-function ResultTable({ fields, rows }: { fields: string[]; rows: unknown[][] }) {
+export function ResultTable({ fields, rows }: { fields: string[]; rows: unknown[][] }) {
   // EXPLAIN output reads best as preformatted text.
   if (fields.length === 1 && fields[0] === 'QUERY PLAN') {
     return <pre className="overflow-x-auto bg-code px-4 py-3 text-[12.5px] leading-relaxed">{rows.map((r) => formatCell(r[0])).join('\n')}</pre>

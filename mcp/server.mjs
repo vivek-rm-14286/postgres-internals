@@ -10,7 +10,8 @@ import { z } from 'zod'
 
 const DIR = import.meta.dirname
 const load = (f) => JSON.parse(fs.readFileSync(path.join(DIR, 'data', f), 'utf8'))
-const { modules: MODULES, lessons: LESSONS } = load('lessons.json')
+const { tracks: TRACKS = [], modules: MODULES, lessons: LESSONS } = load('lessons.json')
+const { datasets: DATASETS = [], exercises: EXERCISES = [] } = fs.existsSync(path.join(DIR, 'data', 'cookbook.json')) ? load('cookbook.json') : {}
 const REFERENCE = load('reference.json')
 const NOTES = load('notes.json')
 const SITE = 'https://vivek-rm-14286.github.io/postgres-internals/'
@@ -23,7 +24,7 @@ function lessonMarkdown(l) {
   const p = l.production
   return [
     `# ${l.title}`,
-    `Module ${l.module.slice(1)} · ${moduleTitle(l.module)} · lesson ${l.order} · ${l.url}`,
+    `${MODULES.find((m) => m.id === l.module)?.code ?? l.module} · ${moduleTitle(l.module)} · lesson ${l.order} · ${l.url}`,
     `## TL;DR\n${l.tldr.join(' ')}`,
     `## Mechanism (interactive visual on the site)\n**${l.visualizer.title}**: ${l.visualizer.caption}`,
     `## Playground\nSetup:\n\`\`\`sql\n${l.playground.setup.trim()}\n\`\`\`` + (l.playground.extensions?.length ? `\nExtensions: ${l.playground.extensions.join(', ')}` : ''),
@@ -44,6 +45,7 @@ const tokenize = (s) => s.toLowerCase().match(/[a-z0-9_]+(?:\.[a-z0-9_]+)*/g) ??
 const docs = []
 for (const l of LESSONS) docs.push({ id: `lesson:${l.slug}`, kind: 'lesson', title: `${l.title} (lesson ${l.module}/${l.slug})`, text: lessonText(l), boost: 1.4 })
 for (const t of REFERENCE) t.rows.forEach((r, i) => docs.push({ id: `ref:${t.id}:${i}`, kind: 'reference', title: `${r[0]} — ${t.title}`, text: `${t.title}\n` + t.columns.map((c, j) => `${c}: ${r[j] ?? ''}`).join('\n'), boost: 1.2 }))
+for (const e of EXERCISES) docs.push({ id: `exercise:${e.id}`, kind: 'exercise', title: `${e.title.replace(/[*`]/g, '')} (${e.level} exercise, ${e.dataset})`, text: [e.title, e.topic, e.task, e.hint ?? '', e.explanation].join('\n'), boost: 1.1 })
 NOTES.forEach((n, i) => docs.push({ id: `note:${i}`, kind: n.kind === 'docs' ? 'docs' : 'lesson-plan', title: [n.section, n.title].filter((x, j, a) => x && a.indexOf(x) === j).join(' › '), text: n.text, boost: 1 }))
 
 const df = new Map()
@@ -94,6 +96,14 @@ function readDoc(id) {
   if (id.startsWith('ref:')) {
     const [, tid, i] = id.split(':'); const t = REFERENCE.find((x) => x.id === tid); const r = t?.rows[+i]
     return r && `# ${r[0]} (${t.title})\n\n` + t.columns.map((c, j) => `- **${c}**: ${r[j] ?? ''}`).join('\n')
+  }
+  if (id.startsWith('exercise:')) {
+    const e = EXERCISES.find((x) => x.id === id.slice(9)); if (!e) return undefined
+    const d = DATASETS.find((x) => x.id === e.dataset)
+    return [`# ${e.title} (${e.level}, ${e.topic})`, `Dataset **${d?.title}**: ${d?.description}`, ...(d?.tables ?? []).map((t) => `- ${t.name}(${t.columns})`),
+      `## Task\n${e.task}`, e.hint ? `Hint: ${e.hint}` : '', `## Reference solution\n\`\`\`sql\n${e.solution.trim()}\n\`\`\``, e.explanation,
+      `## Dataset setup (run it with run_sql to try the exercise)\n\`\`\`sql\n${d?.setup.trim()}\n\`\`\``,
+      `Practise interactively: https://vivek-rm-14286.github.io/postgres-internals/#/cookbook/${e.id}`].filter(Boolean).join('\n\n')
   }
   if (id.startsWith('note:')) { const n = NOTES[+id.slice(5)]; return n && `# ${[n.section, n.title].filter(Boolean).join(' › ')}\n\n${n.text}` }
   return undefined
@@ -168,10 +178,12 @@ function formatResult(r, maxRows, maxCell = 200) {
 /* ------------------------------------------------------------------ MCP server */
 
 const server = new McpServer(
-  { name: 'pg-internals', version: '1.0.0' },
+  { name: 'pg-internals', version: '1.1.0' },
   {
     instructions:
-      'PostgreSQL 18 internals: 57 lessons (storage, MVCC, locking, planner, indexes, WAL, replication, vacuum), complete reference ' +
+      `PostgreSQL 18 from fundamentals to internals: ${LESSONS.length} lessons in three tracks (Fundamentals: SQL from first query to production patterns; ` +
+      'Internals: storage, MVCC, locking, planner, indexes, WAL, replication, vacuum; Ecosystem: pgvector, TimescaleDB, distributed PostgreSQL), ' +
+      `${EXERCISES.length} graded SQL exercises with reference solutions, complete reference ` +
       'tables (every GUC, catalog, view, wait event, lock mode, SQLSTATE, SQL command, data type), distilled docs notes, and a live ' +
       'PostgreSQL 18 sandbox. Use `search` first, then `read` or `get_lesson`. Use `run_sql` to verify behaviour (EXPLAIN, pageinspect, ' +
       'pg_locks, xmin/xmax) instead of guessing. The sandbox is a single-backend in-memory PGlite: no replication, no second connection.',
@@ -183,10 +195,10 @@ const ro = { readOnlyHint: true, openWorldHint: false }
 
 server.registerTool('search', {
   title: 'Search PostgreSQL internals knowledge',
-  description: 'Ranked full-text search over lessons, reference tables (GUCs, catalogs, views, wait events, lock modes, SQLSTATEs, SQL commands, data types, functions, glossary) and distilled PostgreSQL 18 docs notes. Returns ids for `read`.',
+  description: 'Ranked full-text search over lessons, graded SQL exercises (beginner → expert, with reference solutions), reference tables (GUCs, catalogs, views, wait events, lock modes, SQLSTATEs, SQL commands, data types, functions, glossary) and distilled PostgreSQL 18 docs notes. Returns ids for `read`.',
   inputSchema: {
     query: z.string().min(1).describe('Keywords, e.g. "HOT update fillfactor", "autovacuum_vacuum_scale_factor", "40P01", "SIRead"'),
-    kind: z.enum(['all', 'lesson', 'reference', 'docs', 'lesson-plan']).default('all').describe('Restrict to one source kind'),
+    kind: z.enum(['all', 'lesson', 'exercise', 'reference', 'docs', 'lesson-plan']).default('all').describe('Restrict to one source kind'),
     limit: z.number().int().min(1).max(30).default(8),
   },
   annotations: ro,
@@ -198,18 +210,18 @@ server.registerTool('search', {
 
 server.registerTool('read', {
   title: 'Read a search result in full',
-  description: 'Return the full text of a `search` hit by its id (lesson:…, ref:…, note:…).',
+  description: 'Return the full text of a `search` hit by its id (lesson:…, exercise:…, ref:…, note:…).',
   inputSchema: { id: z.string().describe('An id returned by search') },
   annotations: ro,
 }, async ({ id }) => text(readDoc(id) ?? `Unknown id "${id}".`))
 
 server.registerTool('list_lessons', {
   title: 'List lessons',
-  description: 'List all modules and lessons (slug, title), optionally for one module m1…m7.',
-  inputSchema: { module: z.enum(['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7']).optional() },
+  description: 'List all tracks, modules and lessons (slug, title), optionally for one module.',
+  inputSchema: { module: z.enum(MODULES.map((m) => m.id)).optional() },
   annotations: ro,
 }, async ({ module }) => text(MODULES.filter((m) => !module || m.id === module).map((m) =>
-  `## ${m.id} · ${m.title}\n${m.blurb}\n` + LESSONS.filter((l) => l.module === m.id).map((l) => `- ${l.slug}: ${l.title} — ${l.tldr[0]}`).join('\n')).join('\n\n')))
+  `## ${m.code ?? m.id} · ${m.title}${m.track ? ` (${TRACKS.find((t) => t.id === m.track)?.title ?? m.track})` : ''} · module id ${m.id}\n${m.blurb}\n` + LESSONS.filter((l) => l.module === m.id).map((l) => `- ${l.slug}: ${l.title} — ${l.tldr[0]}`).join('\n')).join('\n\n')))
 
 server.registerTool('get_lesson', {
   title: 'Get a lesson',

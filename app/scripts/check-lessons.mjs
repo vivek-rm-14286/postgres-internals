@@ -21,6 +21,9 @@ const sentences = (s) => (s.match(/[.!?](\s|$)/g) ?? []).length
 let failures = 0
 const fail = (l, msg) => { failures++; console.log(`  ✗ ${l.module}/${l.slug}: ${msg}`) }
 const slugs = new Set()
+const { EXERCISES } = await server.ssrLoadModule('/src/cookbook/registry.ts')
+const refData = (await import('../src/reference/data.json', { with: { type: 'json' } })).default
+const validTargets = new Set([...LESSONS.map((x) => `/${x.module}/${x.slug}`), '/cookbook', '/reference', ...EXERCISES.map((e) => `/cookbook/${e.id}`), ...refData.map((t) => `/reference/${t.id}`)])
 
 for (const l of LESSONS) {
   if (filter && !l.slug.includes(filter) && l.module !== filter) continue
@@ -36,6 +39,7 @@ for (const l of LESSONS) {
   if (!l.sources?.length) fail(l, 'sources missing')
   const text = JSON.stringify(l)
   if (/lorem ipsum|coming soon|\bTODO\b|\bTBD\b/i.test(text)) fail(l, 'placeholder text found')
+  for (const m of text.matchAll(/\]\((\/[^)\s]*)\)/g)) if (!validTargets.has(m[1])) fail(l, `broken internal link ${m[1]}`)
 
   // ---- SQL checks: setup, then all presets in order on one database (as a reader clicking through would)
   const exts = l.playground.extensions ?? []
@@ -43,7 +47,7 @@ for (const l of LESSONS) {
   let db
   try {
     const loaded = Object.fromEntries(await Promise.all(exts.map(async (n) => [n, await loadExt(n)])))
-    db = await PGlite.create({ extensions: loaded })
+    db = await PGlite.create({ extensions: loaded, ...(l.playground.config?.length ? { postgresqlconf: l.playground.config } : {}) })
     for (const e of exts) await db.exec(`CREATE EXTENSION IF NOT EXISTS ${sqlName(e)};`)
     await execAll(db, l.playground.setup)
   } catch (e) { fail(l, `setup failed: ${e.message}`); await db?.close(); continue }

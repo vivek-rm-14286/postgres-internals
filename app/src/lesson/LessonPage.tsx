@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Building2, Check, CircleAlert, Lightbulb, Sparkles, SquareTerminal, Zap } from 'lucide-react'
 import type { Lesson } from './types'
 import { Md } from './Md'
+import { VizFrame } from './VizFrame'
 import { Playground } from '../playground/Playground'
 import { lessonPath, neighbours } from '../lessons'
 import { moduleById } from '../lessons/modules'
@@ -15,12 +16,12 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
   const done = useProgress().has(lesson.slug)
   const V = lesson.visualizer.Component
 
-  useEffect(() => { document.title = `${lesson.title} · Postgres Internals, Visualized` }, [lesson])
+  useEffect(() => { document.title = `${lesson.title} · Postgres, Visualized` }, [lesson])
 
   return (
-    <article className="mx-auto w-full max-w-4xl px-4 pb-24 sm:px-8" data-testid="lesson" data-slug={lesson.slug}>
+    <article className="mx-auto w-full min-w-0 max-w-4xl px-4 pb-24 sm:px-8" data-testid="lesson" data-slug={lesson.slug}>
       <header className="pt-8 pb-6">
-        <p className="font-mono text-xs text-accent">Module {mod.n} · Lesson {lesson.order}</p>
+        <p className="font-mono text-xs text-accent">{mod.code} · {mod.title} · Lesson {lesson.order}</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">{lesson.title}</h1>
       </header>
 
@@ -33,13 +34,13 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
       {/* 2. Visualizer */}
       <Section n={2} icon={<Sparkles className="size-4" />} title={lesson.visualizer.title} id="visualizer">
         <p className="-mt-2 mb-4 text-sm text-muted"><Md>{lesson.visualizer.caption}</Md></p>
-        <div className="min-w-0 overflow-x-auto rounded-xl border border-line bg-surface p-3 scrollbar-thin sm:p-5" data-testid="visualizer"><V /></div>
+        <VizFrame Component={V} title={lesson.visualizer.title} />
       </Section>
 
       {/* 3. Playground */}
       <Section n={3} icon={<SquareTerminal className="size-4" />} title="Live playground" id="playground">
         <p className="-mt-2 mb-4 text-sm text-muted">A real PostgreSQL 18 runs in this tab, pre-loaded with the lesson schema. Nothing leaves your browser.</p>
-        <Playground setup={lesson.playground.setup} presets={lesson.playground.presets} extensions={lesson.playground.extensions} />
+        <Playground setup={lesson.playground.setup} presets={lesson.playground.presets} extensions={lesson.playground.extensions} config={lesson.playground.config} />
       </Section>
 
       {/* 4. Production example */}

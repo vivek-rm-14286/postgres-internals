@@ -6,7 +6,7 @@ import type { ExtensionName } from '../playground/extensions'
  *   1 TL;DR  2 Visualizer  3 Playground  4 Production example  5 Pitfalls  6 Key pointers
  * Strings support inline markup: **bold**, `code`, *emphasis*.
  */
-export type ModuleId = 'm1' | 'm2' | 'm3' | 'm4' | 'm5' | 'm6' | 'm7'
+export type ModuleId = 'f1' | 'f2' | 'f3' | 'f4' | 'm1' | 'm2' | 'm3' | 'm4' | 'm5' | 'm6' | 'm7' | 'e1' | 'e2' | 'e3'
 
 export interface Preset {
   label: string
@@ -42,6 +42,11 @@ export interface Lesson {
   }
   playground: {
     extensions?: ExtensionName[]
+    /**
+     * Server settings applied at startup (postgresql.conf lines), e.g. ['max_prepared_transactions = 10'].
+     * Never use them to create a state where a statement waits on a lock: lock waits cannot time out in the browser.
+     */
+    config?: string[]
     /** Runs once before the reader's first query (schema + seed data). */
     setup: string
     presets: Preset[]

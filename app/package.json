@@ -13,7 +13,8 @@
     "predev": "node scripts/gen-manifest.mjs",
     "prebuild": "node scripts/gen-manifest.mjs",
     "precheck:lessons": "node scripts/gen-manifest.mjs",
-    "curriculum-map": "node scripts/gen-curriculum-map.mjs"
+    "curriculum-map": "node scripts/gen-curriculum-map.mjs",
+    "check:cookbook": "node scripts/check-cookbook.mjs"
   },
   "dependencies": {
     "@codemirror/lang-sql": "^6.10.0",

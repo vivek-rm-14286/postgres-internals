@@ -1,5 +1,222 @@
 [
  {
+  "slug": "relational-basics",
+  "module": "f1",
+  "order": 1,
+  "title": "Tables, rows and your first query",
+  "file": "./f1/relational-basics.tsx"
+ },
+ {
+  "slug": "create-and-insert",
+  "module": "f1",
+  "order": 2,
+  "title": "Creating tables and inserting rows",
+  "file": "./f1/create-and-insert.tsx"
+ },
+ {
+  "slug": "filter-and-sort",
+  "module": "f1",
+  "order": 3,
+  "title": "Filtering and sorting",
+  "file": "./f1/filter-and-sort.tsx"
+ },
+ {
+  "slug": "aggregate-basics",
+  "module": "f1",
+  "order": 4,
+  "title": "Counting, summing and grouping",
+  "file": "./f1/aggregate-basics.tsx"
+ },
+ {
+  "slug": "change-data-safely",
+  "module": "f1",
+  "order": 5,
+  "title": "Updating and deleting safely",
+  "file": "./f1/change-data-safely.tsx"
+ },
+ {
+  "slug": "text-functions",
+  "module": "f2",
+  "order": 1,
+  "title": "Text and strings",
+  "file": "./f2/text-functions.tsx"
+ },
+ {
+  "slug": "numbers-and-math",
+  "module": "f2",
+  "order": 2,
+  "title": "Numbers and arithmetic",
+  "file": "./f2/numbers-and-math.tsx"
+ },
+ {
+  "slug": "dates-and-times",
+  "module": "f2",
+  "order": 3,
+  "title": "Dates, times and time zones",
+  "file": "./f2/dates-and-times.tsx"
+ },
+ {
+  "slug": "conditional-logic",
+  "module": "f2",
+  "order": 4,
+  "title": "Conditional logic",
+  "file": "./f2/conditional-logic.tsx"
+ },
+ {
+  "slug": "casting-and-types",
+  "module": "f2",
+  "order": 5,
+  "title": "Type conversion",
+  "file": "./f2/casting-and-types.tsx"
+ },
+ {
+  "slug": "keys-and-relationships",
+  "module": "f3",
+  "order": 1,
+  "title": "Keys and relationships",
+  "file": "./f3/keys-and-relationships.tsx"
+ },
+ {
+  "slug": "constraints-defaults",
+  "module": "f3",
+  "order": 2,
+  "title": "Constraints and defaults",
+  "file": "./f3/constraints-defaults.tsx"
+ },
+ {
+  "slug": "indexes-101",
+  "module": "f3",
+  "order": 3,
+  "title": "Indexes for beginners",
+  "file": "./f3/indexes-101.tsx"
+ },
+ {
+  "slug": "views-and-sequences",
+  "module": "f3",
+  "order": 4,
+  "title": "Views, sequences and identity",
+  "file": "./f3/views-and-sequences.tsx"
+ },
+ {
+  "slug": "schema-changes",
+  "module": "f3",
+  "order": 5,
+  "title": "Changing a schema safely",
+  "file": "./f3/schema-changes.tsx"
+ },
+ {
+  "slug": "dml-lifecycle",
+  "module": "m3",
+  "order": 1,
+  "title": "INSERT, UPDATE, DELETE, MERGE: what really happens",
+  "file": "./m3/dml-lifecycle.tsx"
+ },
+ {
+  "slug": "joins",
+  "module": "m3",
+  "order": 2,
+  "title": "Joins, visualized",
+  "file": "./m3/joins.tsx"
+ },
+ {
+  "slug": "subqueries",
+  "module": "m3",
+  "order": 3,
+  "title": "Subqueries: scalar, IN, EXISTS, ANY/ALL",
+  "file": "./m3/subqueries.tsx"
+ },
+ {
+  "slug": "ctes",
+  "module": "m3",
+  "order": 4,
+  "title": "CTEs: inlined vs MATERIALIZED",
+  "file": "./m3/ctes.tsx"
+ },
+ {
+  "slug": "recursive-ctes",
+  "module": "m3",
+  "order": 5,
+  "title": "Recursive CTEs",
+  "file": "./m3/recursive-ctes.tsx"
+ },
+ {
+  "slug": "window-functions",
+  "module": "m3",
+  "order": 6,
+  "title": "Window functions and frames",
+  "file": "./m3/window-functions.tsx"
+ },
+ {
+  "slug": "lateral",
+  "module": "m3",
+  "order": 7,
+  "title": "LATERAL joins",
+  "file": "./m3/lateral.tsx"
+ },
+ {
+  "slug": "aggregates-grouping",
+  "module": "m3",
+  "order": 8,
+  "title": "Aggregates, FILTER and GROUPING SETS",
+  "file": "./m3/aggregates-grouping.tsx"
+ },
+ {
+  "slug": "pagination",
+  "module": "f4",
+  "order": 1,
+  "title": "Pagination: OFFSET vs keyset",
+  "file": "./f4/pagination.tsx"
+ },
+ {
+  "slug": "upsert-dedup",
+  "module": "f4",
+  "order": 2,
+  "title": "Upserts and de-duplication",
+  "file": "./f4/upsert-dedup.tsx"
+ },
+ {
+  "slug": "pivot-reporting",
+  "module": "f4",
+  "order": 3,
+  "title": "Pivots and reports",
+  "file": "./f4/pivot-reporting.tsx"
+ },
+ {
+  "slug": "gaps-and-islands",
+  "module": "f4",
+  "order": 4,
+  "title": "Gaps and islands",
+  "file": "./f4/gaps-and-islands.tsx"
+ },
+ {
+  "slug": "hierarchies",
+  "module": "f4",
+  "order": 5,
+  "title": "Trees and graphs",
+  "file": "./f4/hierarchies.tsx"
+ },
+ {
+  "slug": "search-patterns",
+  "module": "f4",
+  "order": 6,
+  "title": "Searching text",
+  "file": "./f4/search-patterns.tsx"
+ },
+ {
+  "slug": "queues-and-locking",
+  "module": "f4",
+  "order": 7,
+  "title": "Job queues and concurrency patterns",
+  "file": "./f4/queues-and-locking.tsx"
+ },
+ {
+  "slug": "performance-checklist",
+  "module": "f4",
+  "order": 8,
+  "title": "A query performance checklist",
+  "file": "./f4/performance-checklist.tsx"
+ },
+ {
   "slug": "what-is-postgres",
   "module": "m1",
   "order": 1,
@@ -96,62 +313,6 @@
   "order": 8,
   "title": "Files, forks, the free space map and visibility map",
   "file": "./m2/fsm-vm-forks.tsx"
- },
- {
-  "slug": "dml-lifecycle",
-  "module": "m3",
-  "order": 1,
-  "title": "INSERT, UPDATE, DELETE, MERGE: what really happens",
-  "file": "./m3/dml-lifecycle.tsx"
- },
- {
-  "slug": "joins",
-  "module": "m3",
-  "order": 2,
-  "title": "Joins, visualized",
-  "file": "./m3/joins.tsx"
- },
- {
-  "slug": "subqueries",
-  "module": "m3",
-  "order": 3,
-  "title": "Subqueries: scalar, IN, EXISTS, ANY/ALL",
-  "file": "./m3/subqueries.tsx"
- },
- {
-  "slug": "ctes",
-  "module": "m3",
-  "order": 4,
-  "title": "CTEs: inlined vs MATERIALIZED",
-  "file": "./m3/ctes.tsx"
- },
- {
-  "slug": "recursive-ctes",
-  "module": "m3",
-  "order": 5,
-  "title": "Recursive CTEs",
-  "file": "./m3/recursive-ctes.tsx"
- },
- {
-  "slug": "window-functions",
-  "module": "m3",
-  "order": 6,
-  "title": "Window functions and frames",
-  "file": "./m3/window-functions.tsx"
- },
- {
-  "slug": "lateral",
-  "module": "m3",
-  "order": 7,
-  "title": "LATERAL joins",
-  "file": "./m3/lateral.tsx"
- },
- {
-  "slug": "aggregates-grouping",
-  "module": "m3",
-  "order": 8,
-  "title": "Aggregates, FILTER and GROUPING SETS",
-  "file": "./m3/aggregates-grouping.tsx"
  },
  {
   "slug": "query-pipeline",
@@ -397,5 +558,131 @@
   "order": 10,
   "title": "Connection pooling",
   "file": "./m7/connection-pooling.tsx"
+ },
+ {
+  "slug": "embeddings-and-vectors",
+  "module": "e1",
+  "order": 1,
+  "title": "Embeddings and the vector type",
+  "file": "./e1/embeddings-and-vectors.tsx"
+ },
+ {
+  "slug": "distance-and-exact-search",
+  "module": "e1",
+  "order": 2,
+  "title": "Distance metrics and exact search",
+  "file": "./e1/distance-and-exact-search.tsx"
+ },
+ {
+  "slug": "hnsw",
+  "module": "e1",
+  "order": 3,
+  "title": "HNSW indexes",
+  "file": "./e1/hnsw.tsx"
+ },
+ {
+  "slug": "ivfflat",
+  "module": "e1",
+  "order": 4,
+  "title": "IVFFlat indexes",
+  "file": "./e1/ivfflat.tsx"
+ },
+ {
+  "slug": "filtering-and-hybrid",
+  "module": "e1",
+  "order": 5,
+  "title": "Filtering and hybrid search",
+  "file": "./e1/filtering-and-hybrid.tsx"
+ },
+ {
+  "slug": "pgvector-production",
+  "module": "e1",
+  "order": 6,
+  "title": "pgvector in production",
+  "file": "./e1/pgvector-production.tsx"
+ },
+ {
+  "slug": "time-series-basics",
+  "module": "e2",
+  "order": 1,
+  "title": "Time-series data on PostgreSQL",
+  "file": "./e2/time-series-basics.tsx"
+ },
+ {
+  "slug": "hypertables-chunks",
+  "module": "e2",
+  "order": 2,
+  "title": "Hypertables and chunks",
+  "file": "./e2/hypertables-chunks.tsx"
+ },
+ {
+  "slug": "time-bucket-gapfill",
+  "module": "e2",
+  "order": 3,
+  "title": "time_bucket and gap filling",
+  "file": "./e2/time-bucket-gapfill.tsx"
+ },
+ {
+  "slug": "continuous-aggregates",
+  "module": "e2",
+  "order": 4,
+  "title": "Continuous aggregates",
+  "file": "./e2/continuous-aggregates.tsx"
+ },
+ {
+  "slug": "compression-columnstore",
+  "module": "e2",
+  "order": 5,
+  "title": "Compression and the columnstore",
+  "file": "./e2/compression-columnstore.tsx"
+ },
+ {
+  "slug": "retention-jobs",
+  "module": "e2",
+  "order": 6,
+  "title": "Retention, tiering and jobs",
+  "file": "./e2/retention-jobs.tsx"
+ },
+ {
+  "slug": "why-distribute",
+  "module": "e3",
+  "order": 1,
+  "title": "Why and how to distribute PostgreSQL",
+  "file": "./e3/why-distribute.tsx"
+ },
+ {
+  "slug": "sharding-citus",
+  "module": "e3",
+  "order": 2,
+  "title": "Sharding with Citus",
+  "file": "./e3/sharding-citus.tsx"
+ },
+ {
+  "slug": "distributed-queries",
+  "module": "e3",
+  "order": 3,
+  "title": "Distributed query execution",
+  "file": "./e3/distributed-queries.tsx"
+ },
+ {
+  "slug": "distributed-transactions",
+  "module": "e3",
+  "order": 4,
+  "title": "Distributed transactions and consistency",
+  "file": "./e3/distributed-transactions.tsx"
+ },
+ {
+  "slug": "distributed-sql-multimaster",
+  "module": "e3",
+  "order": 5,
+  "title": "Distributed SQL and multi-master",
+  "file": "./e3/distributed-sql-multimaster.tsx"
+ },
+ {
+  "slug": "ha-clusters",
+  "module": "e3",
+  "order": 6,
+  "title": "High-availability clusters in practice",
+  "file": "./e3/ha-clusters.tsx"
  }
 ]

@@ -23,9 +23,11 @@ export class Engine {
   private booting: Promise<PGlite> | null = null
   private extensions: ExtensionName[]
   private setup: string
-  constructor(extensions: ExtensionName[], setup: string) {
+  private config: string[]
+  constructor(extensions: ExtensionName[], setup: string, config: string[] = []) {
     this.extensions = extensions
     this.setup = setup
+    this.config = config
   }
 
   get ready() { return this.db !== null }
@@ -35,7 +37,7 @@ export class Engine {
     if (!this.booting) {
       this.booting = (async () => {
         const [{ PGlite }, exts] = await Promise.all([import('@electric-sql/pglite'), loadExtensions(this.extensions)])
-        const db = await PGlite.create({ extensions: exts })
+        const db = await PGlite.create({ extensions: exts, ...(this.config.length ? { postgresqlconf: this.config } : {}) })
         for (const e of this.extensions) await db.exec(`CREATE EXTENSION IF NOT EXISTS ${sqlName(e)};`)
         for (const stmt of splitStatements(this.setup)) await db.exec(stmt)
         this.db = db
@@ -61,7 +63,10 @@ export class Engine {
         for (const r of res) results.push({ fields: r.fields.map((f) => f.name), rows: r.rows as unknown[][], affectedRows: r.affectedRows })
       } catch (e) {
         const err = e as { message: string; code?: string; position?: string; hint?: string; detail?: string }
-        return { results, notices, error: { message: err.message, code: err.code, position: err.position, hint: err.hint, detail: err.detail, statement: stmt }, ms: performance.now() - t0 }
+        // An error inside BEGIN … leaves the transaction aborted: every later statement fails with 25P02 until ROLLBACK.
+        let hint = err.hint
+        try { if (db.isInTransaction()) hint = [hint, 'The transaction is still open and now aborted: run ROLLBACK (or press Reset DB) before continuing.'].filter(Boolean).join(' ') } catch { /* ignore */ }
+        return { results, notices, error: { message: err.message, code: err.code, position: err.position, hint, detail: err.detail, statement: stmt }, ms: performance.now() - t0 }
       }
     }
     return { results, notices, ms: performance.now() - t0 }

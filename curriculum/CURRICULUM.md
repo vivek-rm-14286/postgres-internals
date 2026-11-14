@@ -1,11 +1,83 @@
-# Curriculum map — Postgres Internals, Visualized
+# Curriculum map — Postgres, Visualized
 
-The scope of every lesson. Facts follow PostgreSQL 18.
+Three tracks plus a Cookbook. Facts follow PostgreSQL 18 (and, for the ecosystem, the current pgvector, TimescaleDB and Citus releases).
 
-Every lesson = one file `app/src/lessons/<module>/<slug>.tsx` exporting `lesson: Lesson` (see `app/src/lesson/types.ts`)
-and renders the six fixed sections: TL;DR → Visualizer → Playground → Production → Pitfalls → Key pointers.
+- **Fundamentals**: F1 Getting started, F2 Working with data, F3 Designing a database, F4 Querying & DML (module id `m3`), F5 Practical SQL patterns (module id `f4`)
+- **Internals**: I1–I6 (module ids `m1`, `m2`, `m4`, `m5`, `m6`, `m7`)
+- **Ecosystem**: E1 pgvector, E2 TimescaleDB, E3 Distributed PostgreSQL
+- **Cookbook**: graded exercises (beginner → expert) on shared datasets, `app/src/cookbook/data/*.ts`
 
-## Module 1 — Foundations & Process Architecture  (`m1`)
+
+## F1 — Getting Started with SQL  (`f1`, track: fundamentals, beginner)
+| # | slug | title | scope |
+|---|------|-------|-------|
+| 1 | relational-basics | Tables, rows and your first query | what a relational database is, tables/rows/columns, a cluster → database → schema → table, `SELECT … FROM`, column lists vs `*`, aliases, expressions in the select list, comments, semicolons, how a client sends SQL |
+| 2 | create-and-insert | Creating tables and inserting rows | `CREATE TABLE` with common types (int/bigint, text, numeric, boolean, date, timestamptz), `PRIMARY KEY`, `NOT NULL`, `DEFAULT`, identity columns, `INSERT` single/multi-row, `INSERT … SELECT`, `RETURNING`, `DROP TABLE`, quoting identifiers vs strings |
+| 3 | filter-and-sort | Filtering and sorting | `WHERE` with `= <> < >`, `AND/OR/NOT` precedence, `IN`, `BETWEEN`, `LIKE/ILIKE` and wildcards, `IS NULL`, three-valued logic, `ORDER BY` (multiple keys, `DESC`, `NULLS FIRST/LAST`), `LIMIT/OFFSET`, `FETCH FIRST … WITH TIES`, `DISTINCT` |
+| 4 | aggregate-basics | Counting, summing and grouping | `count(*)` vs `count(col)`, `sum/avg/min/max`, `GROUP BY` rules (every non-aggregated column), `HAVING` vs `WHERE`, grouping by expressions, `round()` for presentation, order of evaluation (FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT) |
+| 5 | change-data-safely | Updating and deleting safely | `UPDATE … SET … WHERE`, `DELETE … WHERE`, previewing with `SELECT` first, `RETURNING`, transactions (`BEGIN`/`COMMIT`/`ROLLBACK`) as a safety net, `TRUNCATE` vs `DELETE`, the missing-WHERE accident and how to guard against it |
+
+## F2 — Working with Data  (`f2`, track: fundamentals, beginner → intermediate)
+| # | slug | title | scope |
+|---|------|-------|-------|
+| 1 | text-functions | Text and strings | `||` and `concat`/`concat_ws`, `length` vs `octet_length`, `lower/upper/initcap`, `trim`, `substring`, `position`, `split_part`, `replace`, `format()`, regular expressions (`~`, `regexp_replace`, `regexp_matches`), collations and case-insensitive matching (`ILIKE`, `citext`, nondeterministic collations) |
+| 2 | numbers-and-math | Numbers and arithmetic | integer vs numeric vs float, integer division and casting, `round/trunc/ceil/floor`, `%` and `mod`, `numeric` precision and scale, `generate_series`, `random()` caveats, money handling, overflow errors |
+| 3 | dates-and-times | Dates, times and time zones | `date`, `timestamp` vs `timestamptz`, `interval`, `now()` vs `clock_timestamp()`, `date_trunc`, `extract`, `date_bin`, `AT TIME ZONE`, `TimeZone` setting, interval arithmetic and month-end behaviour, `age()`, series of days, half-open ranges `[start, end)` |
+| 4 | conditional-logic | Conditional logic | `CASE` (simple and searched), `COALESCE`, `NULLIF`, `GREATEST/LEAST`, conditional aggregates with `FILTER`, boolean expressions in the select list, avoiding division by zero |
+| 5 | casting-and-types | Type conversion | `CAST` and `::`, implicit vs explicit casts, `to_char`/`to_number`/`to_date`, parsing user input safely (`pg_input_is_valid`), text ↔ numeric/date pitfalls, arrays and JSON at a glance (links to I2) |
+
+## F3 — Designing a Database  (`f3`, track: fundamentals, beginner → intermediate)
+| # | slug | title | scope |
+|---|------|-------|-------|
+| 1 | keys-and-relationships | Keys and relationships | primary keys (natural vs surrogate, identity vs uuid), foreign keys, one-to-one / one-to-many / many-to-many with a junction table, ER diagrams, `ON DELETE` actions, self-references |
+| 2 | constraints-defaults | Constraints and defaults | `NOT NULL`, `UNIQUE` (and NULLs, `NULLS NOT DISTINCT`), `CHECK`, `DEFAULT`, `EXCLUDE` at a glance, naming constraints, enums vs lookup tables vs CHECK, domains |
+| 3 | indexes-101 | Indexes for beginners | what an index is (book index analogy), when the planner uses one, `CREATE INDEX`, multicolumn order, `EXPLAIN` basics (Seq Scan vs Index Scan), cost of indexes on writes, finding missing indexes (links to I3) |
+| 4 | views-and-sequences | Views, sequences and identity | views as saved queries, updatable views, materialized views at a glance, sequences, `serial` vs identity, `nextval` gaps, `RETURNING` the generated id |
+| 5 | schema-changes | Changing a schema safely | `ALTER TABLE` add/drop/rename columns, type changes and rewrites, adding NOT NULL / FK / CHECK on big tables (`NOT VALID` + `VALIDATE`), `CREATE INDEX CONCURRENTLY`, lock timeouts, migration practice |
+
+## F5 — Practical SQL Patterns  (`f4`, track: fundamentals, intermediate → expert)
+| # | slug | title | scope |
+|---|------|-------|-------|
+| 1 | pagination | Pagination: OFFSET vs keyset | why `OFFSET` gets slower, keyset/seek pagination with row comparisons `(a, b) > ($1, $2)`, stable ordering, cursors, counting totals cheaply |
+| 2 | upsert-dedup | Upserts and de-duplication | `INSERT … ON CONFLICT DO UPDATE/NOTHING`, `MERGE`, finding and deleting duplicates (`row_number`, `ctid`), preventing them with unique indexes |
+| 3 | pivot-reporting | Pivots and reports | conditional aggregation (`FILTER`), `crosstab` (tablefunc), `GROUPING SETS`/`ROLLUP` subtotals, percent of total, period-over-period with `lag`, date spines with `generate_series` |
+| 4 | gaps-and-islands | Gaps and islands | consecutive runs (row_number difference trick), sessionization with `lag` + running sum, missing values in sequences, overlapping ranges (range types, `&&`, `range_agg`) |
+| 5 | hierarchies | Trees and graphs | adjacency lists + recursive CTEs, path materialization, `ltree`, closure tables, cycle detection, nested sets trade-offs |
+| 6 | search-patterns | Searching text | `LIKE` prefix vs infix and indexes (`text_pattern_ops`), trigram search (`pg_trgm`, similarity, GIN/GiST), full-text search basics, combining with ranking |
+| 7 | queues-and-locking | Job queues and concurrency patterns | `FOR UPDATE SKIP LOCKED` workers, advisory locks, optimistic concurrency with version columns, idempotency keys, LISTEN/NOTIFY |
+| 8 | performance-checklist | A query performance checklist | reading EXPLAIN ANALYZE quickly, N+1 queries, sargable predicates, functions on columns, implicit casts, `pg_stat_statements` top queries, batching, connection usage |
+
+## E1 — Vector Search with pgvector  (`e1`, track: ecosystem)
+| # | slug | title | scope |
+|---|------|-------|-------|
+| 1 | embeddings-and-vectors | Embeddings and the vector type | what an embedding is, dimensions, `vector(n)`, storage size, inserting/reading vectors, `halfvec`/`sparsevec`/`bit` at a glance, normalization |
+| 2 | distance-and-exact-search | Distance metrics and exact search | `<->` L2, `<#>` negative inner product, `<=>` cosine, `<+>` L1, `<~>` Hamming, `<%>` Jaccard; when to use which; exact k-NN with `ORDER BY … LIMIT` and its cost |
+| 3 | hnsw | HNSW indexes | layered proximity graph, greedy search, `m`, `ef_construction`, `hnsw.ef_search`, build memory & time, recall vs speed, opclasses per type and metric |
+| 4 | ivfflat | IVFFlat indexes | k-means lists, `lists` sizing, `ivfflat.probes`, build after data load, recall vs speed, HNSW vs IVFFlat trade-offs |
+| 5 | filtering-and-hybrid | Filtering and hybrid search | post-filtering and lost recall, iterative index scans (`hnsw.iterative_scan`, `max_scan_tuples`), partial indexes and partitioning per tenant, hybrid search with full-text + Reciprocal Rank Fusion |
+| 6 | pgvector-production | pgvector in production | quantization (halfvec, binary + re-ranking), sizing memory and disk, `maintenance_work_mem` and parallel builds, monitoring recall, RAG schema design, when to use a dedicated vector database |
+
+## E2 — Time-Series with TimescaleDB  (`e2`, track: ecosystem)
+| # | slug | title | scope |
+|---|------|-------|-------|
+| 1 | time-series-basics | Time-series data on PostgreSQL | what makes time-series different (append-mostly, time-range queries, retention), plain PostgreSQL approaches (BRIN, declarative partitioning, `date_bin`), what TimescaleDB adds, licensing editions |
+| 2 | hypertables-chunks | Hypertables and chunks | `create_hypertable` / `CREATE TABLE … WITH (tsdb.hypertable…)`, chunk time interval sizing, chunk exclusion, space partitioning, `show_chunks`, native-partitioning equivalent you can run here |
+| 3 | time-bucket-gapfill | time_bucket and gap filling | `time_bucket` (origin, offset, time zones), `time_bucket_gapfill`, `locf`, `interpolate`, `first`/`last`; native equivalents with `date_bin` and `generate_series` |
+| 4 | continuous-aggregates | Continuous aggregates | materialized vs real-time aggregates, refresh policies and windows, invalidation, hierarchical aggregates; compared with materialized views |
+| 5 | compression-columnstore | Compression and the columnstore | row → columnar chunks (Hypercore), `segmentby` / `orderby`, compression policies, typical ratios, querying and modifying compressed data |
+| 6 | retention-jobs | Retention, tiering and jobs | `drop_chunks` and retention policies, the jobs framework (`add_job`, `timescaledb_information.jobs`), tiered storage, multi-node (removed) and current scale-out options, production sizing |
+
+## E3 — Distributed PostgreSQL  (`e3`, track: ecosystem)
+| # | slug | title | scope |
+|---|------|-------|-------|
+| 1 | why-distribute | Why and how to distribute PostgreSQL | scale up vs out, the architecture taxonomy (read replicas, shared-storage like Aurora/Neon, sharding extensions, distributed SQL, multi-master), what each buys and costs, CAP/PACELC in plain words |
+| 2 | sharding-citus | Sharding with Citus | coordinator and workers, distribution column choice, hash shards and `citus.shard_count`, colocation, reference tables, schema-based sharding, what changes for keys and constraints |
+| 3 | distributed-queries | Distributed query execution | router vs multi-shard queries, pushdown, repartition joins, aggregates in two phases, distributed `EXPLAIN`, rebalancing shards |
+| 4 | distributed-transactions | Distributed transactions and consistency | 2PC and its failure modes, clocks and timestamps (hybrid logical clocks), isolation differences (Read Committed vs snapshot vs serializable in distributed SQL), sequences, unique constraints and foreign keys across nodes |
+| 5 | distributed-sql-multimaster | Distributed SQL and multi-master | YugabyteDB-style (Raft, tablets, DocDB) vs PostgreSQL-compatible behaviour differences; active-active logical replication (pgEdge/Spock, EDB PGD), conflict detection and resolution, when multi-master is worth it |
+| 6 | ha-clusters | High-availability clusters in practice | Patroni + etcd/Consul, leader election and fencing, HAProxy/PgBouncer routing, synchronous standbys, failover/switchover, split-brain, monitoring a cluster |
+
+## I1 — Foundations & Process Architecture  (`m1`, track: internals)
 | # | slug | title | scope |
 |---|------|-------|-------|
 | 1 | what-is-postgres | What PostgreSQL is: cluster, client/server, a query's round trip | client/server model, a cluster = one data directory + one postmaster, databases inside it, libpq connection, simple query protocol, psql basics |
@@ -15,7 +87,7 @@ and renders the six fixed sections: TL;DR → Visualizer → Playground → Prod
 | 5 | databases-schemas-roles | Databases, schemas, search_path and roles | templates, `CREATE DATABASE`, schemas & `search_path` (pg_catalog implicit, `public` CREATE revoked since 15), roles/attributes/membership (INHERIT/SET/ADMIN), predefined roles, privileges & GRANT, pg_hba.conf first-match |
 | 6 | normalization-constraints | Modelling data: normalization and constraints | 1NF→3NF/BCNF with a worked schema, keys, PRIMARY KEY/UNIQUE/FK (actions, deferrable)/CHECK/NOT NULL/EXCLUDE, generated columns (virtual default in 18), identity columns, NOT ENFORCED, temporal keys `WITHOUT OVERLAPS` |
 
-## Module 2 — Storage & Page Layout Internals  (`m2`)
+## I2 — Storage & Page Layout Internals  (`m2`, track: internals)
 | # | slug | title | scope |
 |---|------|-------|-------|
 | 1 | primitive-types | Primitive types, alignment and padding | integer/numeric/float/text/varchar/char/bool/date/timestamptz/interval sizes & ranges, `typlen`/`typalign`, column-order padding (`pg_column_size`), numeric vs float, money pitfalls |
@@ -27,7 +99,7 @@ and renders the six fixed sections: TL;DR → Visualizer → Playground → Prod
 | 7 | toast | TOAST: oversized attributes | 2 kB threshold/target, `toast_tuple_target`, strategies PLAIN/EXTERNAL/EXTENDED/MAIN, pglz vs lz4, 18-byte pointer, ~2000-byte chunks, `pg_toast` schema, 1 GB value limit, `pg_column_compression`, unchanged-TOAST UPDATE optimization |
 | 8 | fsm-vm-forks | Files, forks, the free space map and visibility map | data directory layout, relfilenode, 1 GB segments, forks main/fsm/vm/init, `pg_relation_filepath`, FSM tree & categories (`pg_freespacemap`), VM all-visible/all-frozen bits (`pg_visibility`), unlogged tables |
 
-## Module 3 — Querying & Data Manipulation  (`m3`)
+## F4 — Querying & Data Manipulation  (`m3`, track: fundamentals)
 | # | slug | title | scope |
 |---|------|-------|-------|
 | 1 | dml-lifecycle | INSERT, UPDATE, DELETE, MERGE: what really happens | row versions, RETURNING with `old`/`new` (18), ON CONFLICT (arbiters, DO UPDATE, EXCLUDED), MERGE (WHEN clauses, `merge_action()`), COPY, sequence gaps, autocommit |
@@ -39,7 +111,7 @@ and renders the six fixed sections: TL;DR → Visualizer → Playground → Prod
 | 7 | lateral | LATERAL joins | per-row subqueries, top-N per group, set-returning functions in FROM, `LEFT JOIN LATERAL … ON true`, WITH ORDINALITY, vs window functions |
 | 8 | aggregates-grouping | Aggregates, FILTER and GROUPING SETS | aggregate evaluation, FILTER, ordered-set aggregates (percentile_cont, mode), GROUP BY ROLLUP/CUBE/GROUPING SETS, `grouping()`, HAVING, DISTINCT ON, count(*) vs count(col) |
 
-## Module 4 — Query Planner, Optimizer & Indexing Internals  (`m4`)
+## I3 — Query Planner, Optimizer & Indexing Internals  (`m4`, track: internals)
 | # | slug | title | scope |
 |---|------|-------|-------|
 | 1 | query-pipeline | From SQL text to rows: parse, analyze, rewrite, plan, execute | raw parse (no catalog access), analysis/transformation, rewriter (views, rules), planner paths & join search (dynamic programming, GEQO at `geqo_threshold`), executor demand-pull node tree, prepared statements & generic vs custom plans (`plan_cache_mode`) |
@@ -53,7 +125,7 @@ and renders the six fixed sections: TL;DR → Visualizer → Playground → Prod
 | 9 | index-design | Designing indexes: multicolumn, partial, expression, covering | column order & leftmost prefix, skip scan (18), partial indexes & predicate implication, expression indexes, `INCLUDE` & index-only scans, unique & NULLS NOT DISTINCT, CREATE INDEX CONCURRENTLY |
 | 10 | explain-analyze | Reading EXPLAIN (ANALYZE, BUFFERS) | node anatomy, costs vs actual, per-loop numbers, BUFFERS shared hit/read/dirtied/written (on by default with ANALYZE in 18), Index Only Scan & Heap Fetches (VM), Rows Removed by Filter, sort/hash spills (`work_mem`, `hash_mem_multiplier`, Batches, external merge), nested loop/hash/merge joins, parallel workers, JIT, `Index Searches` |
 
-## Module 5 — Concurrency, MVCC & Locking Internals  (`m5`)
+## I4 — Concurrency, MVCC & Locking Internals  (`m5`, track: internals)
 | # | slug | title | scope |
 |---|------|-------|-------|
 | 1 | acid-transactions | ACID and transactions | atomicity via CLOG, BEGIN/COMMIT/ROLLBACK, savepoints & subtransactions, virtual vs real xids (`pg_current_xact_id_if_assigned`), command ids, two-phase commit, implicit transactions |
@@ -64,7 +136,7 @@ and renders the six fixed sections: TL;DR → Visualizer → Playground → Prod
 | 6 | row-locks-skip-locked | Row locks, SKIP LOCKED and advisory locks | FOR UPDATE / NO KEY UPDATE / SHARE / KEY SHARE + conflict matrix, row locks stored in tuples (xmax, MultiXact), NOWAIT, SKIP LOCKED job queues, advisory locks (session vs xact) |
 | 7 | lwlocks-deadlocks | LWLocks, spinlocks and deadlock detection | lock hierarchy (spinlock → LWLock → heavyweight), wait events (`LWLock`, `Lock`), `deadlock_timeout` & the waits-for graph, 40P01, lock ordering fixes |
 
-## Module 6 — Advanced Programmability & Extensions  (`m6`)
+## I5 — Advanced Programmability & Extensions  (`m6`, track: internals)
 | # | slug | title | scope |
 |---|------|-------|-------|
 | 1 | views-matviews | Views and materialized views | views as `_RETURN` rules, updatable views & WITH CHECK OPTION, security_invoker/barrier, materialized views, REFRESH (CONCURRENTLY needs unique index) |
@@ -76,7 +148,7 @@ and renders the six fixed sections: TL;DR → Visualizer → Playground → Prod
 | 7 | full-text-search | Full-text search | tsvector/tsquery, parsers & dictionaries, `to_tsvector`/`websearch_to_tsquery`, ranking, GIN vs GiST, generated tsvector columns, highlighting |
 | 8 | row-level-security | Row-level security | ENABLE/FORCE RLS, permissive vs restrictive policies, USING vs WITH CHECK, BYPASSRLS, multi-tenant patterns with `current_setting`, leakage caveats |
 
-## Module 7 — WAL, Replication, Vacuum & High Availability  (`m7`)
+## I6 — WAL, Replication, Vacuum & High Availability  (`m7`, track: internals)
 | # | slug | title | scope |
 |---|------|-------|-------|
 | 1 | wal-lsn | Write-ahead logging and LSNs | WAL rule, records & resource managers, LSN arithmetic, segment files & naming, `pg_current_wal_lsn`, `pg_walinspect`, `wal_level`, synchronous_commit levels & group commit, async commit loss window |

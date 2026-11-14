@@ -24,6 +24,7 @@ const origin = `http://localhost:${srv.address().port}${BASE}`
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' })
 const { ALL_LESSONS: LESSONS } = await vite.ssrLoadModule('/src/lessons/all.ts')
+const { EXERCISES } = await vite.ssrLoadModule('/src/cookbook/registry.ts')
 await vite.close()
 const filter = process.argv[2]
 const lessons = LESSONS.filter((l) => !filter || l.slug.includes(filter) || l.module === filter)
@@ -49,7 +50,7 @@ async function check(route, fn) {
   await page.close()
 }
 
-await check('/', async (p) => { await p.getByText('See how PostgreSQL actually works.').waitFor({ timeout: 10000 }) })
+await check('/', async (p) => { await p.getByText('Learn PostgreSQL, from first query to internals.').waitFor({ timeout: 10000 }) })
 await check('/reference', async (p) => { await p.locator('table').first().waitFor({ timeout: 10000 }) })
 for (const l of lessons) {
   await check(`/${l.module}/${l.slug}`, async (p) => {
@@ -64,7 +65,26 @@ for (const l of lessons) {
     if (err) throw new Error('first preset returned an SQL error: ' + (await p.locator('[data-testid=results] .text-dead').first().innerText()))
   })
 }
+// Cookbook: one exercise per dataset × level, end to end in the browser (solution → Check → "Correct")
+if (!filter || filter === 'cookbook') {
+  await check('/cookbook', async (p) => { await p.getByText('Practise SQL, beginner to expert').waitFor({ timeout: 10000 }) })
+  const seen = new Set()
+  for (const e of EXERCISES) {
+    const k = e.dataset + e.level
+    if (seen.has(k)) continue
+    seen.add(k)
+    await check(`/cookbook/${e.id}`, async (p) => {
+      await p.locator('[data-testid=exercise]').waitFor({ timeout: 10000 })
+      await p.locator('[data-testid=show-solution]').click()
+      await p.getByText('Copy into the editor').click()
+      await p.locator('[data-testid=check]').click()
+      const v = p.locator('[data-testid=verdict]')
+      await v.waitFor({ timeout: 60000 })
+      if ((await v.getAttribute('data-ok')) !== 'true') throw new Error('solution not accepted in the browser: ' + (await v.innerText()))
+    })
+  }
+}
 await browser.close()
 srv.close()
-console.log(failures ? `\n${failures} route(s) failed` : `\nAll ${lessons.length + 2} routes pass.`)
+console.log(failures ? `\n${failures} route(s) failed` : `\nAll routes pass.`)
 process.exit(failures ? 1 : 0)

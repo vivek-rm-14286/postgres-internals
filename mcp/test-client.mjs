@@ -16,6 +16,10 @@ const s = await call('search', { query: 'visibility map all-frozen', kind: 'docs
 check('search docs', s, (r) => /note:\d+/.test(r.text))
 check('read note', await call('read', { id: s.text.match(/note:\d+/)[0] }), (r) => r.text.length > 200)
 check('list_lessons m5', await call('list_lessons', { module: 'm5' }), (r) => /isolation-levels/.test(r.text))
+check('list_lessons e1', await call('list_lessons', { module: 'e1' }), (r) => /hnsw/.test(r.text))
+const ex = await call('search', { query: 'latest order per customer', kind: 'exercise' })
+check('search exercises', ex, (r) => /exercise:/.test(r.text))
+check('read exercise', await call('read', { id: ex.text.match(/exercise:[\w-]+/)[0] }), (r) => /Reference solution/.test(r.text) && /CREATE TABLE/.test(r.text))
 check('get_lesson', await call('get_lesson', { slug: 'slotted-page' }), (r) => /## Pitfalls/.test(r.text) && /```sql/.test(r.text))
 check('lookup work_mem', await call('lookup_reference', { query: 'work_mem', table: 'config-parameters' }), (r) => /^\[config-parameters\] Parameter: work_mem/.test(r.text))
 check('run_sql pageinspect', await call('run_sql', { sql: `create extension pageinspect; create table t(id int primary key, v text);

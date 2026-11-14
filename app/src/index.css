@@ -20,6 +20,7 @@
   --c-new: #d48a12;     /* new version / in-progress / highlight */
   --c-free: #e9edf2;    /* free space */
   --c-ok: #2e9a3f;
+  --line: var(--border); /* alias used by some visualizers */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -61,7 +62,19 @@
 html, body { background: var(--bg); color: var(--text); }
 body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 code, kbd, pre { font-family: var(--font-mono); }
-.inline-code { font-family: var(--font-mono); font-size: 0.86em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.05em 0.35em; white-space: nowrap; }
+/* No programming ligatures: SQL operators like ->, >=, <> and != must look exactly as typed. */
+code, kbd, pre, .inline-code, .cm-editor, .font-mono, svg text { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+.inline-code { font-family: var(--font-mono); font-size: 0.86em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.05em 0.35em; overflow-wrap: anywhere; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+
+/* Mobile safety net: nothing may push the page wider than the viewport. */
+html, body { overflow-x: clip; }
+.grid > *, .flex > * { min-width: 0; }
+pre { max-width: 100%; overflow-x: auto; }
+article table { max-width: 100%; }
+@media (max-width: 640px) {
+  pre { font-size: 11.5px !important; }
+  h1 { overflow-wrap: anywhere; }
+}
 ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 .cm-editor { font-size: 13px; }
 .cm-editor.cm-focused { outline: none !important; }

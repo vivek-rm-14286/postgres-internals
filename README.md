@@ -1,27 +1,29 @@
-# Postgres Internals, Visualized
+# Postgres, Visualized
 
-An interactive, animated textbook that teaches PostgreSQL from the first `SELECT` down to page layout, MVCC,
-the planner, WAL and replication. Every lesson pairs a step-through visual of the mechanism with a **real
-PostgreSQL 18 running in the browser** ([PGlite](https://pglite.dev), PostgreSQL compiled to WebAssembly). There is
-no backend, and every query stays in the reader's tab.
+An interactive, animated textbook for PostgreSQL: from your first `SELECT` to page layout, MVCC, the planner, WAL and
+replication, and on to pgvector, TimescaleDB and distributed PostgreSQL. Every lesson pairs a step-through visual of the
+mechanism with a **real PostgreSQL 18 running in the browser** ([PGlite](https://pglite.dev), PostgreSQL compiled to
+WebAssembly). There is no backend; every query stays in the reader's tab. It works on phones too.
 
-## Curriculum
+**Live site:** https://vivek-rm-14286.github.io/postgres-internals/
 
-Seven modules, each lesson in the same six beats: **TL;DR → interactive visualizer → live playground → production
+## What's inside
+
+98 lessons in three tracks, each in the same six beats: **TL;DR → interactive visualizer → live playground → production
 example → pitfalls → key pointers**.
 
-| Module | Topics |
+| Track | Modules |
 |---|---|
-| 1. Foundations & Process Architecture | postmaster and backends, shared memory, background processes, databases, schemas, roles, normalization |
-| 2. Storage & Page Layout | types and alignment, arrays, JSONB, UUIDv4 vs v7, the 8 KB slotted page, tuple headers, TOAST, FSM/VM |
-| 3. Querying & DML | DML lifecycle, joins, subqueries, CTEs, recursive CTEs, window functions, LATERAL, grouping sets |
-| 4. Planner, Optimizer & Indexes | query pipeline, cost model, statistics, B-Tree, Hash, GIN, GiST/SP-GiST, BRIN, index design, EXPLAIN |
-| 5. Concurrency, MVCC & Locking | transactions, snapshots and visibility, HOT, isolation levels and SSI, lock modes, SKIP LOCKED, deadlocks |
-| 6. Programmability & Extensions | views, triggers, PL/pgSQL, rules, FDW, extensions, full-text search, row-level security |
-| 7. WAL, Replication, Vacuum & HA | WAL and LSN, checkpoints and full page writes, vacuum, autovacuum, wraparound, replication, partitioning, backups, pooling |
+| **Fundamentals** | F1 Getting started with SQL · F2 Working with data (text, numbers, dates, conditionals, casts) · F3 Designing a database · F4 Querying & DML (joins, subqueries, CTEs, windows, LATERAL, grouping) · F5 Practical SQL patterns (pagination, upserts, pivots, gaps & islands, hierarchies, search, queues, performance) |
+| **Internals** | I1 Processes & memory · I2 Storage & page layout · I3 Planner & indexes · I4 MVCC & locking · I5 Programmability & extensions · I6 WAL, vacuum, replication & HA |
+| **Ecosystem** | E1 Vector search with pgvector (runs live) · E2 Time-series with TimescaleDB · E3 Distributed PostgreSQL (Citus, distributed SQL, multi-master, HA clusters) |
 
-A searchable **Reference** section lists every configuration parameter, system catalog and view, statistics view, wait
-event, lock mode, SQL command, data type, index method, extension, error code and glossary term.
+Plus:
+
+- **Cookbook**: 91 graded SQL exercises (beginner → expert) on five realistic datasets. Press *Check* and your result is
+  compared with a reference solution on a fresh copy of the data.
+- **Reference**: searchable tables of every configuration parameter, system catalog and view, statistics view, wait event,
+  lock mode, SQL command, data type, index method, extension, error code and glossary term.
 
 ## Curriculum map
 
@@ -50,11 +52,12 @@ cd app
 npm install
 npm run dev            # http://localhost:5173
 npm run check:lessons  # template completeness + runs every playground query on real PGlite in Node
+npm run check:cookbook # every exercise: reference solution accepted, wrong answer rejected
 npm run build          # type-check + static build into app/dist
-npm run smoke          # headless Chromium: every route, PGlite boot, first query, visualizer step (after build)
+npm run smoke          # headless Chromium: every lesson + Cookbook checks (after build)
 ```
 
-Add a lesson by creating `app/src/lessons/<module>/<slug>.tsx` that exports `lesson: Lesson`
+Add a Cookbook exercise in `app/src/cookbook/data/<dataset>.ts`. Add a lesson by creating `app/src/lessons/<module>/<slug>.tsx` (module ids in `app/src/lessons/modules.ts`) that exports `lesson: Lesson`
 (contract in [`app/src/lesson/types.ts`](app/src/lesson/types.ts)). It is registered automatically.
 
 ## Deploy to GitHub Pages
@@ -65,4 +68,4 @@ it works at `https://<user>.github.io/<repo>/` with no configuration.
 
 ## Stack
 
-Vite · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion · PGlite 0.5 (PostgreSQL 18.6) · CodeMirror 6.
+Vite · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion · PGlite 0.5 (PostgreSQL 18.6, pgvector 0.8.7) · CodeMirror 6.

@@ -9,11 +9,11 @@ const { MODULES } = await server.ssrLoadModule('/src/lessons/modules.ts')
 await server.close()
 
 const map = {
-  title: 'Postgres Internals, Visualized — curriculum map',
+  title: 'Postgres, Visualized — curriculum map',
   postgresVersion: '18 (docs 18.7, playground PGlite 18.6)',
   generatedFrom: 'app/src/lessons/**',
   modules: MODULES.map((m) => ({
-    id: m.id, number: m.n, title: m.title, summary: m.blurb,
+    id: m.id, track: m.track, code: m.code, title: m.title, summary: m.blurb,
     lessons: ALL_LESSONS.filter((l) => l.module === m.id).map((l) => ({
       order: l.order, slug: l.slug, title: l.title, tldr: l.tldr.join(' '),
       visualizer: { title: l.visualizer.title, interaction: l.visualizer.caption },
