@@ -221,7 +221,32 @@ INSERT INTO discounts VALUES (NULL), (15);
 SELECT try($$INSERT INTO discounts VALUES (120)$$) AS too_big;
 SELECT * FROM discounts;`,
         note: 'A CHECK passes when its expression is **true or NULL**. NULL BETWEEN 0 AND 100 is NULL, so the NULL row is stored. Add `NOT NULL` if the value is required.' },
-      { label: '6. Enum, domain, exclusion', sql: `CREATE TYPE ticket_status AS ENUM ('open', 'pending', 'closed');
+      { label: '6. Text rules: length, format, not blank', sql: `DROP TABLE IF EXISTS customers;
+CREATE TABLE customers (
+  id    bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  email text NOT NULL,
+  name  text NOT NULL,
+  CONSTRAINT customers_email_length   CHECK (length(email) <= 320),
+  CONSTRAINT customers_email_format   CHECK (email ~* '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'),
+  CONSTRAINT customers_name_not_blank CHECK (length(trim(name)) > 0),
+  CONSTRAINT customers_name_length    CHECK (length(name) <= 150)
+);
+
+-- one valid row, then one row per rule
+SELECT try($$INSERT INTO customers (email, name) VALUES ('ana@example.com', 'Ana')$$)              AS valid,
+       try($$INSERT INTO customers (email, name) VALUES ('ana.example.com', 'Ana')$$)              AS no_at_sign,
+       try($$INSERT INTO customers (email, name) VALUES ('bo@example.com', '   ')$$)               AS blank_name,
+       try($$INSERT INTO customers (email, name) VALUES ('cy@example.com', repeat('x', 151))$$)    AS long_name,
+       try($$INSERT INTO customers (email, name) VALUES (repeat('a', 310) || '@example.com', 'Dee')$$) AS long_email;
+
+-- what these four rules do NOT catch
+SELECT try($$INSERT INTO customers (email, name) VALUES ('tab@example.com', E'\\t\\n')$$) AS tab_only_name,
+       try($$INSERT INTO customers (email, name) VALUES ('a@b.c', 'Eli')$$)               AS nonsense_email,
+       try($$INSERT INTO customers (email, name) VALUES ('ana@example.com', 'Ana 2')$$)   AS duplicate_email;
+
+SELECT length('Zoë') AS characters, octet_length('Zoë') AS bytes;`,
+        note: 'Each bad row fails with **23514** and the name of the rule it broke, which is why every CHECK is named. The second query shows the limits: `trim()` removes only spaces, so a name of tabs and newlines passes (use `name ~ \'\\S\'`, "contains a non-whitespace character"); the pattern only checks the shape `x@y.z`, so `a@b.c` passes; and no CHECK can see other rows, so a duplicate needs `UNIQUE`. `length()` counts characters, not bytes: `text` with a length CHECK is a limit you can change later with one `ALTER TABLE`.' },
+      { label: '7. Enum, domain, exclusion', sql: `CREATE TYPE ticket_status AS ENUM ('open', 'pending', 'closed');
 CREATE DOMAIN email_address AS text CHECK (VALUE ~ '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
 CREATE TABLE room_bookings (
   room   text NOT NULL,
@@ -234,7 +259,7 @@ SELECT try($$SELECT 'done'::ticket_status$$)    AS enum_value,
        try($$SELECT 'nope'::email_address$$)    AS domain_value,
        try($$INSERT INTO room_bookings VALUES ('A', '[2026-03-02 09:30, 2026-03-02 11:00)')$$) AS overlap;`,
         note: 'An enum rejects unknown labels (**22P02**). A domain is a reusable type with its own CHECK (**23514**). An exclusion constraint rejects overlapping time ranges (**23P01**).' },
-      { label: '7. See every constraint', sql: `SELECT conname,
+      { label: '8. See every constraint', sql: `SELECT conname,
        CASE contype WHEN 'p' THEN 'PRIMARY KEY' WHEN 'u' THEN 'UNIQUE' WHEN 'c' THEN 'CHECK'
                     WHEN 'f' THEN 'FOREIGN KEY' WHEN 'n' THEN 'NOT NULL' END AS kind,
        pg_get_constraintdef(oid) AS definition
@@ -273,6 +298,11 @@ ALTER TABLE wallets VALIDATE CONSTRAINT balance_non_negative;
       symptom: 'Logs say `violates check constraint "accounts_check1"` and nobody knows which rule that was.',
       cause: 'Without a name, PostgreSQL builds one from the table, the column (when the rule uses exactly one) and the word `check`, adding a number on a clash: `accounts_seats_check`, `accounts_check`, `accounts_check1`.',
       fix: 'Name every CHECK and UNIQUE with `CONSTRAINT <name>` so errors explain themselves and the app can map them to messages.' },
+    { title: 'A "not blank" check that whitespace gets past',
+      symptom: 'Customers appear with a name that looks empty, although `CHECK (length(trim(name)) > 0)` exists.',
+      cause: '`trim()` and `btrim()` strip only spaces by default. A value made of tabs, newlines or non-breaking spaces is left untouched, so its length is above zero.',
+      fix: 'Test for a visible character instead: `CHECK (name ~ \'\\S\')`. Normalize input in the application as well; a CHECK can reject a row but cannot clean it.',
+      sql: "ALTER TABLE customers ADD CONSTRAINT customers_name_not_blank CHECK (name ~ '\\S');" },
     { title: 'An enum you cannot shrink',
       symptom: 'A status is retired, but there is no `ALTER TYPE … DROP VALUE` to remove it.',
       cause: 'Enum labels can be added and renamed, never removed, and existing labels cannot be reordered.',
