@@ -1,0 +1,13 @@
+Appendix N. Color Support
+Prev 	Up	Part VIII. Appendixes	Home	 Next
+Appendix N. Color Support
+
+Table of Contents
+
+N.1. When Color is Used
+N.2. Configuring the Colors
+
+Most programs in the PostgreSQL package can produce colorized console output. This appendix describes how that is configured.
+
+Prev 	Up	 Next
+Appendix M. Glossary 	Home	 N.1. When Color is Used

@@ -1,0 +1,81 @@
+53.26. pg_shadow
+Prev 	Up	Chapter 53. System Views	Home	 Next
+53.26. pg_shadow #
+
+The view pg_shadow exists for backwards compatibility: it emulates a catalog that existed in PostgreSQL before version 8.1. It shows properties of all roles that are marked as rolcanlogin in pg_authid.
+
+The name stems from the fact that this table should not be readable by the public since it contains passwords. pg_user is a publicly readable view on pg_shadow that blanks out the password field.
+
+Table 53.26. pg_shadow Columns
+
+Column Type
+
+Description
+
+
+
+
+usename name (references pg_authid.rolname)
+
+User name
+
+
+
+
+usesysid oid (references pg_authid.oid)
+
+ID of this user
+
+
+
+
+usecreatedb bool
+
+User can create databases
+
+
+
+
+usesuper bool
+
+User is a superuser
+
+
+
+
+userepl bool
+
+User can initiate streaming replication and put the system in and out of backup mode.
+
+
+
+
+usebypassrls bool
+
+User bypasses every row-level security policy, see Section 5.9 for more information.
+
+
+
+
+passwd text
+
+Encrypted password; null if none. See pg_authid for details of how encrypted passwords are stored.
+
+
+
+
+valuntil timestamptz
+
+Password expiry time (only used for password authentication)
+
+
+
+
+useconfig text[]
+
+Session defaults for run-time configuration variables
+
+
+
+Prev 	Up	 Next
+53.25. pg_settings 	Home	 53.27. pg_shmem_allocations

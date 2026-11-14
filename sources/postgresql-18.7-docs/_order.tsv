@@ -1,0 +1,1149 @@
+0	index.txt	2913		PostgreSQL 18.7 Documentation
+1	preface.txt	1827	index.html	Preface
+2	intro-whatis.txt	1041	preface.html	1.  What Is PostgreSQL?
+3	history.txt	5565	preface.html	2. A Brief History of PostgreSQL
+4	notation.txt	949	preface.html	3. Conventions
+5	resources.txt	1204	preface.html	4. Further Information
+6	bug-reporting.txt	11862	preface.html	5. Bug Reporting Guidelines
+7	tutorial.txt	1425	index.html	Part I. Tutorial
+8	tutorial-start.txt	268	tutorial.html	Chapter 1. Getting Started
+9	tutorial-install.txt	1793	tutorial-start.html	1.1. Installation
+10	tutorial-arch.txt	2003	tutorial-start.html	1.2. Architectural Fundamentals
+11	tutorial-createdb.txt	4664	tutorial-start.html	1.3. Creating a Database
+12	tutorial-accessdb.txt	2737	tutorial-start.html	1.4. Accessing a Database
+13	tutorial-sql.txt	371	tutorial.html	Chapter 2. The SQL Language
+14	tutorial-sql-intro.txt	1348	tutorial-sql.html	2.1. Introduction
+15	tutorial-concepts.txt	1147	tutorial-sql.html	2.2. Concepts
+16	tutorial-table.txt	2248	tutorial-sql.html	2.3. Creating a New Table
+17	tutorial-populate.txt	2230	tutorial-sql.html	2.4. Populating a Table With Rows
+18	tutorial-select.txt	3637	tutorial-sql.html	2.5. Querying a Table
+19	tutorial-join.txt	5969	tutorial-sql.html	2.6. Joins Between Tables
+20	tutorial-agg.txt	4319	tutorial-sql.html	2.7. Aggregate Functions
+21	tutorial-update.txt	766	tutorial-sql.html	2.8. Updates
+22	tutorial-delete.txt	914	tutorial-sql.html	2.9. Deletions
+23	tutorial-advanced.txt	289	tutorial.html	Chapter 3. Advanced Features
+24	tutorial-advanced-intro.txt	799	tutorial-advanced.html	3.1. Introduction
+25	tutorial-views.txt	965	tutorial-advanced.html	3.2. Views
+26	tutorial-fk.txt	1651	tutorial-advanced.html	3.3. Foreign Keys
+27	tutorial-transactions.txt	6399	tutorial-advanced.html	3.4. Transactions
+28	tutorial-window.txt	7568	tutorial-advanced.html	3.5. Window Functions
+29	tutorial-inheritance.txt	2662	tutorial-advanced.html	3.6. Inheritance
+30	tutorial-conclusion.txt	468	tutorial-advanced.html	3.7. Conclusion
+31	sql.txt	4977	index.html	Part II. The SQL Language
+32	sql-syntax.txt	1262	sql.html	Chapter 4. SQL Syntax
+33	sql-syntax-lexical.txt	26217	sql-syntax.html	4.1. Lexical Structure
+34	sql-expressions.txt	36890	sql-syntax.html	4.2. Value Expressions
+35	sql-syntax-calling-funcs.txt	4688	sql-syntax.html	4.3. Calling Functions
+36	ddl.txt	1881	sql.html	Chapter 5. Data Definition
+37	ddl-basics.txt	4548	ddl.html	5.1. Table Basics
+38	ddl-default.txt	1707	ddl.html	5.2. Default Values
+39	ddl-identity-columns.txt	3420	ddl.html	5.3. Identity Columns
+40	ddl-generated-columns.txt	6181	ddl.html	5.4. Generated Columns
+41	ddl-constraints.txt	23365	ddl.html	5.5. Constraints
+42	ddl-system-columns.txt	2624	ddl.html	5.6. System Columns
+43	ddl-alter.txt	6547	ddl.html	5.7. Modifying Tables
+44	ddl-priv.txt	13712	ddl.html	5.8. Privileges
+45	ddl-rowsecurity.txt	15900	ddl.html	5.9. Row Security Policies
+46	ddl-schemas.txt	13965	ddl.html	5.10. Schemas
+47	ddl-inherit.txt	10844	ddl.html	5.11. Inheritance
+48	ddl-partitioning.txt	42118	ddl.html	5.12. Table Partitioning
+49	ddl-foreign-data.txt	1959	ddl.html	5.13. Foreign Data
+50	ddl-others.txt	712	ddl.html	5.14. Other Database Objects
+51	ddl-depend.txt	4121	ddl.html	5.15. Dependency Tracking
+52	dml.txt	591	sql.html	Chapter 6. Data Manipulation
+53	dml-insert.txt	2916	dml.html	6.1. Inserting Data
+54	dml-update.txt	2641	dml.html	6.2. Updating Data
+55	dml-delete.txt	1148	dml.html	6.3. Deleting Data
+56	dml-returning.txt	3611	dml.html	6.4. Returning Data from Modified Rows
+57	queries.txt	937	sql.html	Chapter 7. Queries
+58	queries-overview.txt	1873	queries.html	7.1. Overview
+59	queries-table-expressions.txt	33071	queries.html	7.2. Table Expressions
+60	queries-select-lists.txt	4785	queries.html	7.3. Select Lists
+61	queries-union.txt	2395	queries.html	7.4. Combining Queries (UNION, INTERSECT, EXCEPT)
+62	queries-order.txt	3230	queries.html	7.5. Sorting Rows (ORDER BY)
+63	queries-limit.txt	1933	queries.html	7.6. LIMIT and OFFSET
+64	queries-values.txt	1847	queries.html	7.7. VALUES Lists
+65	queries-with.txt	20040	queries.html	7.8. WITH Queries (Common Table Expressions)
+66	datatype.txt	5446	sql.html	Chapter 8. Data Types
+67	datatype-numeric.txt	15337	datatype.html	8.1. Numeric Types
+68	datatype-money.txt	2112	datatype.html	8.2. Monetary Types
+69	datatype-character.txt	6671	datatype.html	8.3. Character Types
+70	datatype-binary.txt	6022	datatype.html	8.4. Binary Data Types
+71	datatype-datetime.txt	26206	datatype.html	8.5. Date/Time Types
+72	datatype-boolean.txt	1961	datatype.html	8.6. Boolean Type
+73	datatype-enum.txt	3680	datatype.html	8.7. Enumerated Types
+74	datatype-geometric.txt	4892	datatype.html	8.8. Geometric Types
+75	datatype-net-types.txt	6288	datatype.html	8.9. Network Address Types
+76	datatype-bit.txt	1728	datatype.html	8.10. Bit String Types
+77	datatype-textsearch.txt	5767	datatype.html	8.11. Text Search Types
+78	datatype-uuid.txt	2059	datatype.html	8.12. UUID Type
+79	datatype-xml.txt	6594	datatype.html	8.13. XML Type
+80	datatype-json.txt	29169	datatype.html	8.14. JSON Types
+81	arrays.txt	20507	datatype.html	8.15. Arrays
+82	rowtypes.txt	15811	datatype.html	8.16. Composite Types
+83	rangetypes.txt	17014	datatype.html	8.17. Range Types
+84	domains.txt	1596	datatype.html	8.18. Domain Types
+85	datatype-oid.txt	7790	datatype.html	8.19. Object Identifier Types
+86	datatype-pg-lsn.txt	1023	datatype.html	8.20. pg_lsn Type
+87	datatype-pseudo.txt	4364	datatype.html	8.21. Pseudo-Types
+88	functions.txt	4355	sql.html	Chapter 9. Functions and Operators
+89	functions-logical.txt	952	functions.html	9.1. Logical Operators
+90	functions-comparison.txt	8560	functions.html	9.2. Comparison Functions and Operators
+91	functions-math.txt	13835	functions.html	9.3. Mathematical Functions and Operators
+92	functions-string.txt	25521	functions.html	9.4. String Functions and Operators
+93	functions-binarystring.txt	10522	functions.html	9.5. Binary String Functions and Operators
+94	functions-bitstring.txt	3622	functions.html	9.6. Bit String Functions and Operators
+95	functions-matching.txt	55304	functions.html	9.7. Pattern Matching
+96	functions-formatting.txt	19434	functions.html	9.8. Data Type Formatting Functions
+97	functions-datetime.txt	36898	functions.html	9.9. Date/Time Functions and Operators
+98	functions-enum.txt	1966	functions.html	9.10. Enum Support Functions
+99	functions-geometry.txt	13903	functions.html	9.11. Geometric Functions and Operators
+100	functions-net.txt	6385	functions.html	9.12. Network Address Functions and Operators
+101	functions-textsearch.txt	14946	functions.html	9.13. Text Search Functions and Operators
+102	functions-uuid.txt	2445	functions.html	9.14. UUID Functions
+103	functions-xml.txt	30576	functions.html	9.15. XML Functions
+104	functions-json.txt	74179	functions.html	9.16. JSON Functions and Operators
+105	functions-sequence.txt	4971	functions.html	9.17. Sequence Manipulation Functions
+106	functions-conditional.txt	5613	functions.html	9.18. Conditional Expressions
+107	functions-array.txt	9116	functions.html	9.19. Array Functions and Operators
+108	functions-range.txt	11260	functions.html	9.20. Range/Multirange Functions and Operators
+109	functions-aggregate.txt	19246	functions.html	9.21. Aggregate Functions
+110	functions-window.txt	4977	functions.html	9.22. Window Functions
+111	functions-merge-support.txt	1328	functions.html	9.23. Merge Support Functions
+112	functions-subquery.txt	9049	functions.html	9.24. Subquery Expressions
+113	functions-comparisons.txt	8207	functions.html	9.25. Row and Array Comparisons
+114	functions-srf.txt	6030	functions.html	9.26. Set Returning Functions
+115	functions-info.txt	57825	functions.html	9.27. System Information Functions and Operators
+116	functions-admin.txt	59234	functions.html	9.28. System Administration Functions
+117	functions-trigger.txt	3345	functions.html	9.29. Trigger Functions
+118	functions-event-triggers.txt	5176	functions.html	9.30. Event Trigger Functions
+119	functions-statistics.txt	1151	functions.html	9.31. Statistics Information Functions
+120	typeconv.txt	1004	sql.html	Chapter 10. Type Conversion
+121	typeconv-overview.txt	4620	typeconv.html	10.1. Overview
+122	typeconv-oper.txt	9917	typeconv.html	10.2. Operators
+123	typeconv-func.txt	10458	typeconv.html	10.3. Functions
+124	typeconv-query.txt	2489	typeconv.html	10.4. Value Storage
+125	typeconv-union-case.txt	3882	typeconv.html	10.5. UNION, CASE, and Related Constructs
+126	typeconv-select.txt	1244	typeconv.html	10.6. SELECT Output Columns
+127	indexes.txt	876	sql.html	Chapter 11. Indexes
+128	indexes-intro.txt	4140	indexes.html	11.1. Introduction
+129	indexes-types.txt	6238	indexes.html	11.2. Index Types
+130	indexes-multicolumn.txt	5665	indexes.html	11.3. Multicolumn Indexes
+131	indexes-ordering.txt	3191	indexes.html	11.4. Indexes and ORDER BY
+132	indexes-bitmap-scans.txt	3670	indexes.html	11.5. Combining Multiple Indexes
+133	indexes-unique.txt	1254	indexes.html	11.6. Unique Indexes
+134	indexes-expressional.txt	2053	indexes.html	11.7. Indexes on Expressions
+135	indexes-partial.txt	8973	indexes.html	11.8. Partial Indexes
+136	indexes-index-only-scans.txt	9580	indexes.html	11.9. Index-Only Scans and Covering Indexes
+137	indexes-opclass.txt	4308	indexes.html	11.10. Operator Classes and Operator Families
+138	indexes-collations.txt	1073	indexes.html	11.11. Indexes and Collations
+139	indexes-examine.txt	3844	indexes.html	11.12. Examining Index Usage
+140	textsearch.txt	1089	sql.html	Chapter 12. Full Text Search
+141	textsearch-intro.txt	13570	textsearch.html	12.1. Introduction
+142	textsearch-tables.txt	5096	textsearch.html	12.2. Tables and Indexes
+143	textsearch-controls.txt	20337	textsearch.html	12.3. Controlling Text Search
+144	textsearch-features.txt	12870	textsearch.html	12.4. Additional Features
+145	textsearch-parsers.txt	4237	textsearch.html	12.5. Parsers
+146	textsearch-dictionaries.txt	22032	textsearch.html	12.6. Dictionaries
+147	textsearch-configuration.txt	2921	textsearch.html	12.7. Configuration Example
+148	textsearch-debugging.txt	9840	textsearch.html	12.8. Testing and Debugging Text Search
+149	textsearch-indexes.txt	3546	textsearch.html	12.9. Preferred Index Types for Text Search
+150	textsearch-psql.txt	6700	textsearch.html	12.10. psql Support
+151	textsearch-limitations.txt	972	textsearch.html	12.11. Limitations
+152	mvcc.txt	1104	sql.html	Chapter 13. Concurrency Control
+153	mvcc-intro.txt	1782	mvcc.html	13.1. Introduction
+154	transaction-iso.txt	23616	mvcc.html	13.2. Transaction Isolation
+155	explicit-locking.txt	16709	mvcc.html	13.3. Explicit Locking
+156	applevel-consistency.txt	6449	mvcc.html	13.4. Data Consistency Checks at the Application Level
+157	mvcc-serialization-failure-handling.txt	2441	mvcc.html	13.5. Serialization Failure Handling
+158	mvcc-caveats.txt	1989	mvcc.html	13.6. Caveats
+159	locking-indexes.txt	1647	mvcc.html	13.7. Locking and Indexes
+160	performance-tips.txt	1031	sql.html	Chapter 14. Performance Tips
+161	using-explain.txt	46496	performance-tips.html	14.1. Using EXPLAIN
+162	planner-stats.txt	16297	performance-tips.html	14.2. Statistics Used by the Planner
+163	explicit-joins.txt	6867	performance-tips.html	14.3. Controlling the Planner with Explicit JOIN Clauses
+164	populate.txt	9863	performance-tips.html	14.4. Populating a Database
+165	non-durability.txt	1554	performance-tips.html	14.5. Non-Durable Settings
+166	parallel-query.txt	1345	sql.html	Chapter 15. Parallel Query
+167	how-parallel-query-works.txt	3712	parallel-query.html	15.1. How Parallel Query Works
+168	when-can-parallel-query-be-used.txt	3747	parallel-query.html	15.2. When Can Parallel Query Be Used?
+169	parallel-plans.txt	8381	parallel-query.html	15.3. Parallel Plans
+170	parallel-safety.txt	4274	parallel-query.html	15.4. Parallel Safety
+171	admin.txt	4788	index.html	Part III. Server Administration
+172	install-binaries.txt	736	admin.html	Chapter 16. Installation from Binaries
+173	installation.txt	1052	admin.html	Chapter 17. Installation from Source Code
+174	install-requirements.txt	7101	installation.html	17.1. Requirements
+175	install-getsource.txt	781	installation.html	17.2. Getting the Source
+176	install-make.txt	31772	installation.html	17.3. Building and Installation with Autoconf and Make
+177	install-meson.txt	28257	installation.html	17.4. Building and Installation with Meson
+178	install-post.txt	3339	installation.html	17.5. Post-Installation Setup
+179	supported-platforms.txt	2162	installation.html	17.6. Supported Platforms
+180	installation-platform-notes.txt	13387	installation.html	17.7. Platform-Specific Notes
+181	runtime.txt	1853	admin.html	Chapter 18. Server Setup and Operation
+182	postgres-user.txt	1029	runtime.html	18.1. The PostgreSQL User Account
+183	creating-cluster.txt	9413	runtime.html	18.2. Creating a Database Cluster
+184	server-start.txt	9433	runtime.html	18.3. Starting the Database Server
+185	kernel-resources.txt	22706	runtime.html	18.4. Managing Kernel Resources
+186	server-shutdown.txt	2744	runtime.html	18.5. Shutting Down the Server
+187	upgrading.txt	8383	runtime.html	18.6. Upgrading a PostgreSQL Cluster
+188	preventing-server-spoofing.txt	3104	runtime.html	18.7. Preventing Server Spoofing
+189	encryption-options.txt	4446	runtime.html	18.8. Encryption Options
+190	ssl-tcp.txt	12029	runtime.html	18.9. Secure TCP/IP Connections with SSL
+191	gssapi-enc.txt	1606	runtime.html	18.10. Secure TCP/IP Connections with GSSAPI Encryption
+192	ssh-tunnels.txt	3130	runtime.html	18.11. Secure TCP/IP Connections with SSH Tunnels
+193	event-log-registration.txt	921	runtime.html	18.12. Registering Event Log on Windows
+194	runtime-config.txt	2261	admin.html	Chapter 19. Server Configuration
+195	config-setting.txt	13653	runtime-config.html	19.1. Setting Parameters
+196	runtime-config-file-locations.txt	2861	runtime-config.html	19.2. File Locations
+197	runtime-config-connection.txt	24177	runtime-config.html	19.3. Connections and Authentication
+198	runtime-config-resource.txt	32304	runtime-config.html	19.4. Resource Consumption
+199	runtime-config-wal.txt	37652	runtime-config.html	19.5. Write Ahead Log
+200	runtime-config-replication.txt	29191	runtime-config.html	19.6. Replication
+201	runtime-config-query.txt	23312	runtime-config.html	19.7. Query Planning
+202	runtime-config-logging.txt	40250	runtime-config.html	19.8. Error Reporting and Logging
+203	runtime-config-statistics.txt	6965	runtime-config.html	19.9. Run-time Statistics
+204	runtime-config-vacuum.txt	17624	runtime-config.html	19.10. Vacuuming
+205	runtime-config-client.txt	34482	runtime-config.html	19.11. Client Connection Defaults
+206	runtime-config-locks.txt	3987	runtime-config.html	19.12. Lock Management
+207	runtime-config-compatible.txt	7128	runtime-config.html	19.13. Version and Platform Compatibility
+208	runtime-config-error-handling.txt	3267	runtime-config.html	19.14. Error Handling
+209	runtime-config-preset.txt	5061	runtime-config.html	19.15. Preset Options
+210	runtime-config-custom.txt	1121	runtime-config.html	19.16. Customized Options
+211	runtime-config-developer.txt	19413	runtime-config.html	19.17. Developer Options
+212	runtime-config-short.txt	1218	runtime-config.html	19.18. Short Options
+213	client-authentication.txt	2282	admin.html	Chapter 20. Client Authentication
+214	auth-pg-hba-conf.txt	24868	client-authentication.html	20.1. The pg_hba.conf File
+215	auth-username-maps.txt	5808	client-authentication.html	20.2. User Name Maps
+216	auth-methods.txt	2084	client-authentication.html	20.3. Authentication Methods
+217	auth-trust.txt	1817	client-authentication.html	20.4. Trust Authentication
+218	auth-password.txt	3827	client-authentication.html	20.5. Password Authentication
+219	gssapi-auth.txt	5142	client-authentication.html	20.6. GSSAPI Authentication
+220	sspi-auth.txt	2916	client-authentication.html	20.7. SSPI Authentication
+221	auth-ident.txt	2260	client-authentication.html	20.8. Ident Authentication
+222	auth-peer.txt	816	client-authentication.html	20.9. Peer Authentication
+223	auth-ldap.txt	8017	client-authentication.html	20.10. LDAP Authentication
+224	auth-radius.txt	3074	client-authentication.html	20.11. RADIUS Authentication
+225	auth-cert.txt	1138	client-authentication.html	20.12. Certificate Authentication
+226	auth-pam.txt	1426	client-authentication.html	20.13. PAM Authentication
+227	auth-bsd.txt	1038	client-authentication.html	20.14. BSD Authentication
+228	auth-oauth.txt	6004	client-authentication.html	20.15. OAuth Authorization/Authentication
+229	client-authentication-problems.txt	1521	client-authentication.html	20.16. Authentication Problems
+230	user-manag.txt	1243	admin.html	Chapter 21. Database Roles
+231	database-roles.txt	2882	user-manag.html	21.1. Database Roles
+232	role-attributes.txt	6481	user-manag.html	21.2. Role Attributes
+233	role-membership.txt	4397	user-manag.html	21.3. Role Membership
+234	role-removal.txt	2459	user-manag.html	21.4. Dropping Roles
+235	predefined-roles.txt	5086	user-manag.html	21.5. Predefined Roles
+236	perm-functions.txt	1162	user-manag.html	21.6. Function Security
+237	managing-databases.txt	615	admin.html	Chapter 22. Managing Databases
+238	manage-ag-overview.txt	2858	managing-databases.html	22.1. Overview
+239	manage-ag-createdb.txt	2731	managing-databases.html	22.2. Creating a Database
+240	manage-ag-templatedbs.txt	4202	managing-databases.html	22.3. Template Databases
+241	manage-ag-config.txt	1094	managing-databases.html	22.4. Database Configuration
+242	manage-ag-dropdb.txt	910	managing-databases.html	22.5. Destroying a Database
+243	manage-ag-tablespaces.txt	5741	managing-databases.html	22.6. Tablespaces
+244	charset.txt	1214	admin.html	Chapter 23. Localization
+245	locale.txt	15784	charset.html	23.1. Locale Support
+246	collation.txt	26554	charset.html	23.2. Collation Support
+247	multibyte.txt	17308	charset.html	23.3. Character Set Support
+248	maintenance.txt	2036	admin.html	Chapter 24. Routine Database Maintenance Tasks
+249	routine-vacuuming.txt	36618	maintenance.html	24.1. Routine Vacuuming
+250	routine-reindex.txt	1523	maintenance.html	24.2. Routine Reindexing
+251	logfile-maintenance.txt	5130	maintenance.html	24.3. Log File Maintenance
+252	backup.txt	1129	admin.html	Chapter 25. Backup and Restore
+253	backup-dump.txt	9405	backup.html	25.1. SQL Dump
+254	backup-file.txt	4462	backup.html	25.2. File System Level Backup
+255	continuous-archiving.txt	43363	backup.html	25.3. Continuous Archiving and Point-in-Time Recovery (PITR)
+256	high-availability.txt	3702	admin.html	Chapter 26. High Availability, Load Balancing, and Replication
+257	different-replication-solutions.txt	8393	high-availability.html	26.1. Comparison of Different Solutions
+258	warm-standby.txt	32893	high-availability.html	26.2. Log-Shipping Standby Servers
+259	warm-standby-failover.txt	3436	high-availability.html	26.3. Failover
+260	hot-standby.txt	26529	high-availability.html	26.4. Hot Standby
+261	monitoring.txt	2152	admin.html	Chapter 27. Monitoring Database Activity
+262	monitoring-ps.txt	3571	monitoring.html	27.1. Standard Unix Tools
+263	monitoring-stats.txt	98021	monitoring.html	27.2. The Cumulative Statistics System
+264	monitoring-locks.txt	1064	monitoring.html	27.3. Viewing Locks
+265	progress-reporting.txt	19555	monitoring.html	27.4. Progress Reporting
+266	dynamic-trace.txt	18772	monitoring.html	27.5. Dynamic Tracing
+267	diskusage.txt	3891	monitoring.html	27.6. Monitoring Disk Usage
+268	wal.txt	530	admin.html	Chapter 28. Reliability and the Write-Ahead Log
+269	wal-reliability.txt	8065	wal.html	28.1. Reliability
+270	checksums.txt	1377	wal.html	28.2. Data Checksums
+271	wal-intro.txt	2619	wal.html	28.3. Write-Ahead Logging (WAL)
+272	wal-async-commit.txt	5243	wal.html	28.4. Asynchronous Commit
+273	wal-configuration.txt	16870	wal.html	28.5. WAL Configuration
+274	wal-internals.txt	3398	wal.html	28.6. WAL Internals
+275	logical-replication.txt	3354	admin.html	Chapter 29. Logical Replication
+276	logical-replication-publication.txt	3394	logical-replication.html	29.1. Publication
+277	logical-replication-subscription.txt	12455	logical-replication.html	29.2. Subscription
+278	logical-replication-failover.txt	5007	logical-replication.html	29.3. Logical Replication Failover
+279	logical-replication-row-filter.txt	13838	logical-replication.html	29.4. Row Filters
+280	logical-replication-col-lists.txt	5954	logical-replication.html	29.5. Column Lists
+281	logical-replication-gencols.txt	3548	logical-replication.html	29.6. Generated Column Replication
+282	logical-replication-conflicts.txt	8833	logical-replication.html	29.7. Conflicts
+283	logical-replication-restrictions.txt	3620	logical-replication.html	29.8. Restrictions
+284	logical-replication-architecture.txt	2990	logical-replication.html	29.9. Architecture
+285	logical-replication-monitoring.txt	1004	logical-replication.html	29.10. Monitoring
+286	logical-replication-security.txt	3879	logical-replication.html	29.11. Security
+287	logical-replication-config.txt	1929	logical-replication.html	29.12. Configuration Settings
+288	logical-replication-upgrade.txt	13482	logical-replication.html	29.13. Upgrade
+289	logical-replication-quick-setup.txt	966	logical-replication.html	29.14. Quick Setup
+290	jit.txt	566	admin.html	Chapter 30. Just-in-Time Compilation (JIT)
+291	jit-reason.txt	2334	jit.html	30.1. What Is JIT compilation?
+292	jit-decision.txt	3544	jit.html	30.2. When to JIT?
+293	jit-configuration.txt	705	jit.html	30.3. Configuration
+294	jit-extensibility.txt	2118	jit.html	30.4. Extensibility
+295	regress.txt	1085	admin.html	Chapter 31. Regression Tests
+296	regress-run.txt	12349	regress.html	31.1. Running the Tests
+297	regress-evaluation.txt	7894	regress.html	31.2. Test Evaluation
+298	regress-variant.txt	3474	regress.html	31.3. Variant Comparison Files
+299	regress-tap.txt	2594	regress.html	31.4. TAP Tests
+300	regress-coverage.txt	1926	regress.html	31.5. Test Coverage Examination
+301	client-interfaces.txt	3707	index.html	Part IV. Client Interfaces
+302	libpq.txt	2848	client-interfaces.html	Chapter 32. libpq — C Library
+303	libpq-connect.txt	58293	libpq.html	32.1. Database Connection Control Functions
+304	libpq-status.txt	15286	libpq.html	32.2. Connection Status Functions
+305	libpq-exec.txt	41449	libpq.html	32.3. Command Execution Functions
+306	libpq-async.txt	12844	libpq.html	32.4. Asynchronous Command Processing
+307	libpq-pipeline-mode.txt	14008	libpq.html	32.5. Pipeline Mode
+308	libpq-single-row-mode.txt	3979	libpq.html	32.6. Retrieving Query Results in Chunks
+309	libpq-cancel.txt	12769	libpq.html	32.7. Canceling Queries in Progress
+310	libpq-fastpath.txt	3394	libpq.html	32.8. The Fast-Path Interface
+311	libpq-notify.txt	2876	libpq.html	32.9. Asynchronous Notification
+312	libpq-copy.txt	12492	libpq.html	32.10. Functions Associated with the COPY Command
+313	libpq-control.txt	4826	libpq.html	32.11. Control Functions
+314	libpq-misc.txt	10482	libpq.html	32.12. Miscellaneous Functions
+315	libpq-notice-processing.txt	3259	libpq.html	32.13. Notice Processing
+316	libpq-events.txt	14185	libpq.html	32.14. Event System
+317	libpq-envars.txt	4695	libpq.html	32.15. Environment Variables
+318	libpq-pgpass.txt	2302	libpq.html	32.16. The Password File
+319	libpq-pgservice.txt	2263	libpq.html	32.17. The Connection Service File
+320	libpq-ldap.txt	2234	libpq.html	32.18. LDAP Lookup of Connection Parameters
+321	libpq-ssl.txt	13406	libpq.html	32.19. SSL Support
+322	libpq-oauth.txt	10056	libpq.html	32.20. OAuth Support
+323	libpq-threading.txt	2215	libpq.html	32.21. Behavior in Threaded Programs
+324	libpq-build.txt	3013	libpq.html	32.22. Building libpq Programs
+325	libpq-example.txt	14552	libpq.html	32.23. Example Programs
+326	largeobjects.txt	1392	client-interfaces.html	Chapter 33. Large Objects
+327	lo-intro.txt	980	largeobjects.html	33.1. Introduction
+328	lo-implementation.txt	1399	largeobjects.html	33.2. Implementation Features
+329	lo-interfaces.txt	11081	largeobjects.html	33.3. Client Interfaces
+330	lo-funcs.txt	3670	largeobjects.html	33.4. Server-Side Functions
+331	lo-examplesect.txt	6964	largeobjects.html	33.5. Example Program
+332	ecpg.txt	3253	client-interfaces.html	Chapter 34. ECPG — Embedded SQL in C
+333	ecpg-concept.txt	2381	ecpg.html	34.1. The Concept
+334	ecpg-connect.txt	7922	ecpg.html	34.2. Managing Database Connections
+335	ecpg-commands.txt	4979	ecpg.html	34.3. Running SQL Commands
+336	ecpg-variables.txt	28199	ecpg.html	34.4. Using Host Variables
+337	ecpg-dynamic.txt	3432	ecpg.html	34.5. Dynamic SQL
+338	ecpg-pgtypes.txt	27490	ecpg.html	34.6. pgtypes Library
+339	ecpg-descriptors.txt	22269	ecpg.html	34.7. Using Descriptor Areas
+340	ecpg-errors.txt	15441	ecpg.html	34.8. Error Handling
+341	ecpg-preproc.txt	4396	ecpg.html	34.9. Preprocessor Directives
+342	ecpg-process.txt	2205	ecpg.html	34.10. Processing Embedded SQL Programs
+343	ecpg-library.txt	2042	ecpg.html	34.11. Library Functions
+344	ecpg-lo.txt	2800	ecpg.html	34.12. Large Objects
+345	ecpg-cpp.txt	5563	ecpg.html	34.13. C++ Applications
+346	ecpg-sql-commands.txt	1264	ecpg.html	34.14. Embedded SQL Commands
+347	ecpg-sql-allocate-descriptor.txt	779	ecpg-sql-commands.html	ALLOCATE DESCRIPTOR
+348	ecpg-sql-connect.txt	4314	ecpg-sql-commands.html	CONNECT
+349	ecpg-sql-deallocate-descriptor.txt	639	ecpg-sql-commands.html	DEALLOCATE DESCRIPTOR
+350	ecpg-sql-declare.txt	1665	ecpg-sql-commands.html	DECLARE
+351	ecpg-sql-declare-statement.txt	1580	ecpg-sql-commands.html	DECLARE STATEMENT
+352	ecpg-sql-describe.txt	1151	ecpg-sql-commands.html	DESCRIBE
+353	ecpg-sql-disconnect.txt	1101	ecpg-sql-commands.html	DISCONNECT
+354	ecpg-sql-execute-immediate.txt	1531	ecpg-sql-commands.html	EXECUTE IMMEDIATE
+355	ecpg-sql-get-descriptor.txt	3564	ecpg-sql-commands.html	GET DESCRIPTOR
+356	ecpg-sql-open.txt	1143	ecpg-sql-commands.html	OPEN
+357	ecpg-sql-prepare.txt	1721	ecpg-sql-commands.html	PREPARE
+358	ecpg-sql-set-autocommit.txt	629	ecpg-sql-commands.html	SET AUTOCOMMIT
+359	ecpg-sql-set-connection.txt	702	ecpg-sql-commands.html	SET CONNECTION
+360	ecpg-sql-set-descriptor.txt	1645	ecpg-sql-commands.html	SET DESCRIPTOR
+361	ecpg-sql-type.txt	1848	ecpg-sql-commands.html	TYPE
+362	ecpg-sql-var.txt	532	ecpg-sql-commands.html	VAR
+363	ecpg-sql-whenever.txt	1857	ecpg-sql-commands.html	WHENEVER
+364	ecpg-informix-compat.txt	29844	ecpg.html	34.15. Informix Compatibility Mode
+365	ecpg-oracle-compat.txt	668	ecpg.html	34.16. Oracle Compatibility Mode
+366	ecpg-develop.txt	3811	ecpg.html	34.17. Internals
+367	information-schema.txt	3138	client-interfaces.html	Chapter 35. The Information Schema
+368	infoschema-schema.txt	841	information-schema.html	35.1. The Schema
+369	infoschema-datatypes.txt	1237	information-schema.html	35.2. Data Types
+370	infoschema-information-schema-catalog-name.txt	557	information-schema.html	35.3. information_schema_catalog_name
+371	infoschema-administrable-role-authorizations.txt	671	information-schema.html	35.4. administrable_role_​authorizations
+372	infoschema-applicable-roles.txt	861	information-schema.html	35.5. applicable_roles
+373	infoschema-attributes.txt	5916	information-schema.html	35.6. attributes
+374	infoschema-character-sets.txt	2827	information-schema.html	35.7. character_sets
+375	infoschema-check-constraint-routine-usage.txt	1037	information-schema.html	35.8. check_constraint_routine_usage
+376	infoschema-check-constraints.txt	1001	information-schema.html	35.9. check_constraints
+377	infoschema-collations.txt	693	information-schema.html	35.10. collations
+378	infoschema-collation-character-set-applicab.txt	1158	information-schema.html	35.11. collation_character_set_​applicability
+379	infoschema-column-column-usage.txt	838	information-schema.html	35.12. column_column_usage
+380	infoschema-column-domain-usage.txt	941	information-schema.html	35.13. column_domain_usage
+381	infoschema-column-options.txt	894	information-schema.html	35.14. column_options
+382	infoschema-column-privileges.txt	1344	information-schema.html	35.15. column_privileges
+383	infoschema-column-udt-usage.txt	1190	information-schema.html	35.16. column_udt_usage
+384	infoschema-columns.txt	8975	information-schema.html	35.17. columns
+385	infoschema-constraint-column-usage.txt	1593	information-schema.html	35.18. constraint_column_usage
+386	infoschema-constraint-table-usage.txt	1427	information-schema.html	35.19. constraint_table_usage
+387	infoschema-data-type-privileges.txt	1755	information-schema.html	35.20. data_type_privileges
+388	infoschema-domain-constraints.txt	1163	information-schema.html	35.21. domain_constraints
+389	infoschema-domain-udt-usage.txt	972	information-schema.html	35.22. domain_udt_usage
+390	infoschema-domains.txt	5197	information-schema.html	35.23. domains
+391	infoschema-element-types.txt	5016	information-schema.html	35.24. element_types
+392	infoschema-enabled-roles.txt	889	information-schema.html	35.25. enabled_roles
+393	infoschema-foreign-data-wrapper-options.txt	862	information-schema.html	35.26. foreign_data_wrapper_options
+394	infoschema-foreign-data-wrappers.txt	1016	information-schema.html	35.27. foreign_data_wrappers
+395	infoschema-foreign-server-options.txt	804	information-schema.html	35.28. foreign_server_options
+396	infoschema-foreign-servers.txt	1227	information-schema.html	35.29. foreign_servers
+397	infoschema-foreign-table-options.txt	874	information-schema.html	35.30. foreign_table_options
+398	infoschema-foreign-tables.txt	939	information-schema.html	35.31. foreign_tables
+399	infoschema-key-column-usage.txt	1630	information-schema.html	35.32. key_column_usage
+400	infoschema-parameters.txt	4376	information-schema.html	35.33. parameters
+401	infoschema-referential-constraints.txt	1644	information-schema.html	35.34. referential_constraints
+402	infoschema-role-column-grants.txt	1310	information-schema.html	35.35. role_column_grants
+403	infoschema-role-routine-grants.txt	1537	information-schema.html	35.36. role_routine_grants
+404	infoschema-role-table-grants.txt	1488	information-schema.html	35.37. role_table_grants
+405	infoschema-role-udt-grants.txt	1252	information-schema.html	35.38. role_udt_grants
+406	infoschema-role-usage-grants.txt	1293	information-schema.html	35.39. role_usage_grants
+407	infoschema-routine-column-usage.txt	1575	information-schema.html	35.40. routine_column_usage
+408	infoschema-routine-privileges.txt	1370	information-schema.html	35.41. routine_privileges
+409	infoschema-routine-routine-usage.txt	1689	information-schema.html	35.42. routine_routine_usage
+410	infoschema-routine-sequence-usage.txt	1534	information-schema.html	35.43. routine_sequence_usage
+411	infoschema-routine-table-usage.txt	1321	information-schema.html	35.44. routine_table_usage
+412	infoschema-routines.txt	9994	information-schema.html	35.45. routines
+413	infoschema-schemata.txt	960	information-schema.html	35.46. schemata
+414	infoschema-sequences.txt	2012	information-schema.html	35.47. sequences
+415	infoschema-sql-features.txt	1194	information-schema.html	35.48. sql_features
+416	infoschema-sql-implementation-info.txt	1294	information-schema.html	35.49. sql_implementation_info
+417	infoschema-sql-parts.txt	834	information-schema.html	35.50. sql_parts
+418	infoschema-sql-sizing.txt	1026	information-schema.html	35.51. sql_sizing
+419	infoschema-table-constraints.txt	1478	information-schema.html	35.52. table_constraints
+420	infoschema-table-privileges.txt	1308	information-schema.html	35.53. table_privileges
+421	infoschema-tables.txt	1762	information-schema.html	35.54. tables
+422	infoschema-transforms.txt	1355	information-schema.html	35.55. transforms
+423	infoschema-triggered-update-columns.txt	1271	information-schema.html	35.56. triggered_update_columns
+424	infoschema-triggers.txt	3958	information-schema.html	35.57. triggers
+425	infoschema-udt-privileges.txt	1049	information-schema.html	35.58. udt_privileges
+426	infoschema-usage-privileges.txt	1632	information-schema.html	35.59. usage_privileges
+427	infoschema-user-defined-types.txt	3403	information-schema.html	35.60. user_defined_types
+428	infoschema-user-mapping-options.txt	1239	information-schema.html	35.61. user_mapping_options
+429	infoschema-user-mappings.txt	833	information-schema.html	35.62. user_mappings
+430	infoschema-view-column-usage.txt	1260	information-schema.html	35.63. view_column_usage
+431	infoschema-view-routine-usage.txt	1031	information-schema.html	35.64. view_routine_usage
+432	infoschema-view-table-usage.txt	1060	information-schema.html	35.65. view_table_usage
+433	infoschema-views.txt	1395	information-schema.html	35.66. views
+434	server-programming.txt	4380	index.html	Part V. Server Programming
+435	extend.txt	3237	server-programming.html	Chapter 36. Extending SQL
+436	extend-how.txt	1671	extend.html	36.1. How Extensibility Works
+437	extend-type-system.txt	11201	extend.html	36.2. The PostgreSQL Type System
+438	xfunc.txt	1395	extend.html	36.3. User-Defined Functions
+439	xproc.txt	1479	extend.html	36.4. User-Defined Procedures
+440	xfunc-sql.txt	35261	extend.html	36.5. Query Language (SQL) Functions
+441	xfunc-overload.txt	3080	extend.html	36.6. Function Overloading
+442	xfunc-volatility.txt	5159	extend.html	36.7. Function Volatility Categories
+443	xfunc-pl.txt	531	extend.html	36.8. Procedural Language Functions
+444	xfunc-internal.txt	1256	extend.html	36.9. Internal Functions
+445	xfunc-c.txt	65438	extend.html	36.10. C-Language Functions
+446	xfunc-optimization.txt	4618	extend.html	36.11. Function Optimization Information
+447	xaggr.txt	23136	extend.html	36.12. User-Defined Aggregates
+448	xtypes.txt	11709	extend.html	36.13. User-Defined Types
+449	xoper.txt	1938	extend.html	36.14. User-Defined Operators
+450	xoper-optimization.txt	13570	extend.html	36.15. Operator Optimization Information
+451	xindex.txt	36223	extend.html	36.16. Interfacing Extensions to Indexes
+452	extend-extensions.txt	31369	extend.html	36.17. Packaging Related Objects into an Extension
+453	extend-pgxs.txt	9502	extend.html	36.18. Extension Building Infrastructure
+454	triggers.txt	996	server-programming.html	Chapter 37. Triggers
+455	trigger-definition.txt	15180	triggers.html	37.1. Overview of Trigger Behavior
+456	trigger-datachanges.txt	1953	triggers.html	37.2. Visibility of Data Changes
+457	trigger-interface.txt	6313	triggers.html	37.3. Writing Trigger Functions in C
+458	trigger-example.txt	4795	triggers.html	37.4. A Complete Trigger Example
+459	event-triggers.txt	1046	server-programming.html	Chapter 38. Event Triggers
+460	event-trigger-definition.txt	5306	event-triggers.html	38.1. Overview of Event Trigger Behavior
+461	event-trigger-interface.txt	2366	event-triggers.html	38.2. Writing Event Trigger Functions in C
+462	event-trigger-example.txt	2372	event-triggers.html	38.3. A Complete Event Trigger Example
+463	event-trigger-table-rewrite-example.txt	1571	event-triggers.html	38.4. A Table Rewrite Event Trigger Example
+464	event-trigger-database-login-example.txt	2238	event-triggers.html	38.5. A Database Login Event Trigger Example
+465	rules.txt	1460	server-programming.html	Chapter 39. The Rule System
+466	querytree.txt	6115	rules.html	39.1. The Query Tree
+467	rules-views.txt	19927	rules.html	39.2. Views and the Rule System
+468	rules-materializedviews.txt	5829	rules.html	39.3. Materialized Views
+469	rules-update.txt	24903	rules.html	39.4. Rules on INSERT, UPDATE, and DELETE
+470	rules-privileges.txt	8237	rules.html	39.5. Rules and Privileges
+471	rules-status.txt	1580	rules.html	39.6. Rules and Command Status
+472	rules-triggers.txt	5767	rules.html	39.7. Rules Versus Triggers
+473	xplang.txt	1458	server-programming.html	Chapter 40. Procedural Languages
+474	xplang-install.txt	5237	xplang.html	40.1. Installing Procedural Languages
+475	plpgsql.txt	1757	server-programming.html	Chapter 41. PL/pgSQL — SQL Procedural Language
+476	plpgsql-overview.txt	4297	plpgsql.html	41.1. Overview
+477	plpgsql-structure.txt	3884	plpgsql.html	41.2. Structure of PL/pgSQL
+478	plpgsql-declarations.txt	15053	plpgsql.html	41.3. Declarations
+479	plpgsql-expressions.txt	1921	plpgsql.html	41.4. Expressions
+480	plpgsql-statements.txt	22090	plpgsql.html	41.5. Basic Statements
+481	plpgsql-control-structures.txt	29574	plpgsql.html	41.6. Control Structures
+482	plpgsql-cursors.txt	14864	plpgsql.html	41.7. Cursors
+483	plpgsql-transactions.txt	3031	plpgsql.html	41.8. Transaction Management
+484	plpgsql-errors-and-messages.txt	5994	plpgsql.html	41.9. Errors and Messages
+485	plpgsql-trigger.txt	19166	plpgsql.html	41.10. Trigger Functions
+486	plpgsql-implementation.txt	11420	plpgsql.html	41.11. PL/pgSQL under the Hood
+487	plpgsql-development-tips.txt	8031	plpgsql.html	41.12. Tips for Developing in PL/pgSQL
+488	plpgsql-porting.txt	16944	plpgsql.html	41.13. Porting from Oracle PL/SQL
+489	pltcl.txt	765	server-programming.html	Chapter 42. PL/Tcl — Tcl Procedural Language
+490	pltcl-overview.txt	2143	pltcl.html	42.1. Overview
+491	pltcl-functions.txt	4212	pltcl.html	42.2. PL/Tcl Functions and Arguments
+492	pltcl-data.txt	582	pltcl.html	42.3. Data Values in PL/Tcl
+493	pltcl-global.txt	2309	pltcl.html	42.4. Global Data in PL/Tcl
+494	pltcl-dbaccess.txt	6895	pltcl.html	42.5. Database Access from PL/Tcl
+495	pltcl-trigger.txt	4411	pltcl.html	42.6. Trigger Functions in PL/Tcl
+496	pltcl-event-trigger.txt	1065	pltcl.html	42.7. Event Trigger Functions in PL/Tcl
+497	pltcl-error-handling.txt	2558	pltcl.html	42.8. Error Handling in PL/Tcl
+498	pltcl-subtransactions.txt	3063	pltcl.html	42.9. Explicit Subtransactions in PL/Tcl
+499	pltcl-transactions.txt	1092	pltcl.html	42.10. Transaction Management
+500	pltcl-config.txt	1826	pltcl.html	42.11. PL/Tcl Configuration
+501	pltcl-procnames.txt	1161	pltcl.html	42.12. Tcl Procedure Names
+502	plperl.txt	1505	server-programming.html	Chapter 43. PL/Perl — Perl Procedural Language
+503	plperl-funcs.txt	9932	plperl.html	43.1. PL/Perl Functions and Arguments
+504	plperl-data.txt	750	plperl.html	43.2. Data Values in PL/Perl
+505	plperl-builtins.txt	10960	plperl.html	43.3. Built-in Functions
+506	plperl-global.txt	2412	plperl.html	43.4. Global Values in PL/Perl
+507	plperl-trusted.txt	3553	plperl.html	43.5. Trusted and Untrusted PL/Perl
+508	plperl-triggers.txt	2264	plperl.html	43.6. PL/Perl Triggers
+509	plperl-event-triggers.txt	1025	plperl.html	43.7. PL/Perl Event Triggers
+510	plperl-under-the-hood.txt	4653	plperl.html	43.8. PL/Perl Under the Hood
+511	plpython.txt	1913	server-programming.html	Chapter 44. PL/Python — Python Procedural Language
+512	plpython-funcs.txt	2646	plpython.html	44.1. PL/Python Functions
+513	plpython-data.txt	9595	plpython.html	44.2. Data Values
+514	plpython-sharing.txt	631	plpython.html	44.3. Sharing Data
+515	plpython-do.txt	464	plpython.html	44.4. Anonymous Code Blocks
+516	plpython-trigger.txt	1330	plpython.html	44.5. Trigger Functions
+517	plpython-database.txt	8651	plpython.html	44.6. Database Access
+518	plpython-subtransaction.txt	3097	plpython.html	44.7. Explicit Subtransactions
+519	plpython-transactions.txt	1078	plpython.html	44.8. Transaction Management
+520	plpython-util.txt	2639	plpython.html	44.9. Utility Functions
+521	plpython-python23.txt	340	plpython.html	44.10. Python 2 vs. Python 3
+522	plpython-envar.txt	1115	plpython.html	44.11. Environment Variables
+523	spi.txt	5017	server-programming.html	Chapter 45. Server Programming Interface
+524	spi-interface.txt	2222	spi.html	45.1. Interface Functions
+525	spi-spi-connect.txt	1192	spi-interface.html	SPI_connect
+526	spi-spi-finish.txt	673	spi-interface.html	SPI_finish
+527	spi-spi-execute.txt	6448	spi-interface.html	SPI_execute
+528	spi-spi-exec.txt	496	spi-interface.html	SPI_exec
+529	spi-spi-execute-extended.txt	2837	spi-interface.html	SPI_execute_extended
+530	spi-spi-execute-with-args.txt	2407	spi-interface.html	SPI_execute_with_args
+531	spi-spi-prepare.txt	3866	spi-interface.html	SPI_prepare
+532	spi-spi-prepare-cursor.txt	1306	spi-interface.html	SPI_prepare_cursor
+533	spi-spi-prepare-extended.txt	1517	spi-interface.html	SPI_prepare_extended
+534	spi-spi-prepare-params.txt	1147	spi-interface.html	SPI_prepare_params
+535	spi-spi-getargcount.txt	622	spi-interface.html	SPI_getargcount
+536	spi-spi-getargtypeid.txt	846	spi-interface.html	SPI_getargtypeid
+537	spi-spi-is-cursor-plan.txt	1094	spi-interface.html	SPI_is_cursor_plan
+538	spi-spi-execute-plan.txt	1709	spi-interface.html	SPI_execute_plan
+539	spi-spi-execute-plan-extended.txt	3033	spi-interface.html	SPI_execute_plan_extended
+540	spi-spi-execute-plan-with-paramlist.txt	1416	spi-interface.html	SPI_execute_plan_with_paramlist
+541	spi-spi-execp.txt	1295	spi-interface.html	SPI_execp
+542	spi-spi-cursor-open.txt	2438	spi-interface.html	SPI_cursor_open
+543	spi-spi-cursor-open-with-args.txt	2500	spi-interface.html	SPI_cursor_open_with_args
+544	spi-spi-cursor-open-with-paramlist.txt	1524	spi-interface.html	SPI_cursor_open_with_paramlist
+545	spi-spi-cursor-parse-open.txt	2184	spi-interface.html	SPI_cursor_parse_open
+546	spi-spi-cursor-find.txt	851	spi-interface.html	SPI_cursor_find
+547	spi-spi-cursor-fetch.txt	789	spi-interface.html	SPI_cursor_fetch
+548	spi-spi-cursor-move.txt	694	spi-interface.html	SPI_cursor_move
+549	spi-spi-scroll-cursor-fetch.txt	1094	spi-interface.html	SPI_scroll_cursor_fetch
+550	spi-spi-scroll-cursor-move.txt	1143	spi-interface.html	SPI_scroll_cursor_move
+551	spi-spi-cursor-close.txt	532	spi-interface.html	SPI_cursor_close
+552	spi-spi-keepplan.txt	814	spi-interface.html	SPI_keepplan
+553	spi-spi-saveplan.txt	1166	spi-interface.html	SPI_saveplan
+554	spi-spi-register-relation.txt	1066	spi-interface.html	SPI_register_relation
+555	spi-spi-unregister-relation.txt	946	spi-interface.html	SPI_unregister_relation
+556	spi-spi-register-trigger-data.txt	1305	spi-interface.html	SPI_register_trigger_data
+557	spi-interface-support.txt	1007	spi.html	45.2. Interface Support Functions
+558	spi-spi-fname.txt	660	spi-interface-support.html	SPI_fname
+559	spi-spi-fnumber.txt	912	spi-interface-support.html	SPI_fnumber
+560	spi-spi-getvalue.txt	856	spi-interface-support.html	SPI_getvalue
+561	spi-spi-getbinval.txt	971	spi-interface-support.html	SPI_getbinval
+562	spi-spi-gettype.txt	660	spi-interface-support.html	SPI_gettype
+563	spi-spi-gettypeid.txt	589	spi-interface-support.html	SPI_gettypeid
+564	spi-spi-getrelname.txt	499	spi-interface-support.html	SPI_getrelname
+565	spi-spi-getnspname.txt	598	spi-interface-support.html	SPI_getnspname
+566	spi-spi-result-code-string.txt	511	spi-interface-support.html	SPI_result_code_string
+567	spi-memory.txt	2774	spi.html	45.3. Memory Management
+568	spi-spi-palloc.txt	509	spi-memory.html	SPI_palloc
+569	spi-realloc.txt	680	spi-memory.html	SPI_repalloc
+570	spi-spi-pfree.txt	480	spi-memory.html	SPI_pfree
+571	spi-spi-copytuple.txt	722	spi-memory.html	SPI_copytuple
+572	spi-spi-returntuple.txt	1048	spi-memory.html	SPI_returntuple
+573	spi-spi-modifytuple.txt	2169	spi-memory.html	SPI_modifytuple
+574	spi-spi-freetuple.txt	494	spi-memory.html	SPI_freetuple
+575	spi-spi-freetupletable.txt	1181	spi-memory.html	SPI_freetuptable
+576	spi-spi-freeplan.txt	507	spi-memory.html	SPI_freeplan
+577	spi-transaction.txt	1300	spi.html	45.4. Transaction Management
+578	spi-spi-commit.txt	1035	spi-transaction.html	SPI_commit
+579	spi-spi-rollback.txt	882	spi-transaction.html	SPI_rollback
+580	spi-spi-start-transaction.txt	498	spi-transaction.html	SPI_start_transaction
+581	spi-visibility.txt	1553	spi.html	45.5. Visibility of Data Changes
+582	spi-examples.txt	3826	spi.html	45.6. Examples
+583	bgworker.txt	11045	server-programming.html	Chapter 46. Background Worker Processes
+584	logicaldecoding.txt	2073	server-programming.html	Chapter 47. Logical Decoding
+585	logicaldecoding-example.txt	7775	logicaldecoding.html	47.1. Logical Decoding Examples
+586	logicaldecoding-explanation.txt	10621	logicaldecoding.html	47.2. Logical Decoding Concepts
+587	logicaldecoding-walsender.txt	768	logicaldecoding.html	47.3. Streaming Replication Protocol Interface
+588	logicaldecoding-sql.txt	582	logicaldecoding.html	47.4. Logical Decoding SQL Interface
+589	logicaldecoding-catalogs.txt	593	logicaldecoding.html	47.5. System Catalogs Related to Logical Decoding
+590	logicaldecoding-output-plugin.txt	21949	logicaldecoding.html	47.6. Logical Decoding Output Plugins
+591	logicaldecoding-writer.txt	524	logicaldecoding.html	47.7. Logical Decoding Output Writers
+592	logicaldecoding-synchronous.txt	1999	logicaldecoding.html	47.8. Synchronous Replication Support for Logical Decoding
+593	logicaldecoding-streaming.txt	3812	logicaldecoding.html	47.9. Streaming of Large Transactions for Logical Decoding
+594	logicaldecoding-two-phase-commits.txt	2397	logicaldecoding.html	47.10. Two-phase Commit Support for Logical Decoding
+595	replication-origins.txt	3324	server-programming.html	Chapter 48. Replication Progress Tracking
+596	archive-modules.txt	1365	server-programming.html	Chapter 49. Archive Modules
+597	archive-module-init.txt	1238	archive-modules.html	49.1. Initialization Functions
+598	archive-module-callbacks.txt	3148	archive-modules.html	49.2. Archive Module Callbacks
+599	oauth-validators.txt	1266	server-programming.html	Chapter 50. OAuth Validator Modules
+600	oauth-validator-design.txt	9411	oauth-validators.html	50.1. Safely Designing a Validator Module
+601	oauth-validator-init.txt	1349	oauth-validators.html	50.2. Initialization Functions
+602	oauth-validator-callbacks.txt	3114	oauth-validators.html	50.3. OAuth Validator Callbacks
+603	reference.txt	11860	index.html	Part VI. Reference
+604	sql-commands.txt	9368	reference.html	SQL Commands
+605	sql-abort.txt	1082	sql-commands.html	ABORT
+606	sql-alteraggregate.txt	3219	sql-commands.html	ALTER AGGREGATE
+607	sql-altercollation.txt	4239	sql-commands.html	ALTER COLLATION
+608	sql-alterconversion.txt	1430	sql-commands.html	ALTER CONVERSION
+609	sql-alterdatabase.txt	4287	sql-commands.html	ALTER DATABASE
+610	sql-alterdefaultprivileges.txt	6844	sql-commands.html	ALTER DEFAULT PRIVILEGES
+611	sql-alterdomain.txt	5770	sql-commands.html	ALTER DOMAIN
+612	sql-altereventtrigger.txt	1083	sql-commands.html	ALTER EVENT TRIGGER
+613	sql-alterextension.txt	4986	sql-commands.html	ALTER EXTENSION
+614	sql-alterforeigndatawrapper.txt	2964	sql-commands.html	ALTER FOREIGN DATA WRAPPER
+615	sql-alterforeigntable.txt	9949	sql-commands.html	ALTER FOREIGN TABLE
+616	sql-alterfunction.txt	6803	sql-commands.html	ALTER FUNCTION
+617	sql-altergroup.txt	1784	sql-commands.html	ALTER GROUP
+618	sql-alterindex.txt	5866	sql-commands.html	ALTER INDEX
+619	sql-alterlanguage.txt	801	sql-commands.html	ALTER LANGUAGE
+620	sql-alterlargeobject.txt	884	sql-commands.html	ALTER LARGE OBJECT
+621	sql-altermaterializedview.txt	3105	sql-commands.html	ALTER MATERIALIZED VIEW
+622	sql-alteroperator.txt	3121	sql-commands.html	ALTER OPERATOR
+623	sql-alteropclass.txt	1427	sql-commands.html	ALTER OPERATOR CLASS
+624	sql-alteropfamily.txt	6946	sql-commands.html	ALTER OPERATOR FAMILY
+625	sql-alterpolicy.txt	1735	sql-commands.html	ALTER POLICY
+626	sql-alterprocedure.txt	5257	sql-commands.html	ALTER PROCEDURE
+627	sql-alterpublication.txt	5433	sql-commands.html	ALTER PUBLICATION
+628	sql-alterrole.txt	7107	sql-commands.html	ALTER ROLE
+629	sql-alterroutine.txt	1967	sql-commands.html	ALTER ROUTINE
+630	sql-alterrule.txt	836	sql-commands.html	ALTER RULE
+631	sql-alterschema.txt	997	sql-commands.html	ALTER SCHEMA
+632	sql-altersequence.txt	6624	sql-commands.html	ALTER SEQUENCE
+633	sql-alterserver.txt	1835	sql-commands.html	ALTER SERVER
+634	sql-alterstatistics.txt	1983	sql-commands.html	ALTER STATISTICS
+635	sql-altersubscription.txt	8518	sql-commands.html	ALTER SUBSCRIPTION
+636	sql-altersystem.txt	2806	sql-commands.html	ALTER SYSTEM
+637	sql-altertable.txt	51186	sql-commands.html	ALTER TABLE
+638	sql-altertablespace.txt	1970	sql-commands.html	ALTER TABLESPACE
+639	sql-altertsconfig.txt	3182	sql-commands.html	ALTER TEXT SEARCH CONFIGURATION
+640	sql-altertsdictionary.txt	2448	sql-commands.html	ALTER TEXT SEARCH DICTIONARY
+641	sql-altertsparser.txt	910	sql-commands.html	ALTER TEXT SEARCH PARSER
+642	sql-altertstemplate.txt	925	sql-commands.html	ALTER TEXT SEARCH TEMPLATE
+643	sql-altertrigger.txt	1832	sql-commands.html	ALTER TRIGGER
+644	sql-altertype.txt	8423	sql-commands.html	ALTER TYPE
+645	sql-alteruser.txt	1325	sql-commands.html	ALTER USER
+646	sql-alterusermapping.txt	1868	sql-commands.html	ALTER USER MAPPING
+647	sql-alterview.txt	3311	sql-commands.html	ALTER VIEW
+648	sql-analyze.txt	9512	sql-commands.html	ANALYZE
+649	sql-begin.txt	2507	sql-commands.html	BEGIN
+650	sql-call.txt	1639	sql-commands.html	CALL
+651	sql-checkpoint.txt	988	sql-commands.html	CHECKPOINT
+652	sql-close.txt	1335	sql-commands.html	CLOSE
+653	sql-cluster.txt	5580	sql-commands.html	CLUSTER
+654	sql-comment.txt	8662	sql-commands.html	COMMENT
+655	sql-commit.txt	1084	sql-commands.html	COMMIT
+656	sql-commit-prepared.txt	1222	sql-commands.html	COMMIT PREPARED
+657	sql-copy.txt	29445	sql-commands.html	COPY
+658	sql-create-access-method.txt	1537	sql-commands.html	CREATE ACCESS METHOD
+659	sql-createaggregate.txt	23349	sql-commands.html	CREATE AGGREGATE
+660	sql-createcast.txt	11460	sql-commands.html	CREATE CAST
+661	sql-createcollation.txt	4916	sql-commands.html	CREATE COLLATION
+662	sql-createconversion.txt	2707	sql-commands.html	CREATE CONVERSION
+663	sql-createdatabase.txt	11546	sql-commands.html	CREATE DATABASE
+664	sql-createdomain.txt	6375	sql-commands.html	CREATE DOMAIN
+665	sql-createeventtrigger.txt	2510	sql-commands.html	CREATE EVENT TRIGGER
+666	sql-createextension.txt	5819	sql-commands.html	CREATE EXTENSION
+667	sql-createforeigndatawrapper.txt	3298	sql-commands.html	CREATE FOREIGN DATA WRAPPER
+668	sql-createforeigntable.txt	13342	sql-commands.html	CREATE FOREIGN TABLE
+669	sql-createfunction.txt	23763	sql-commands.html	CREATE FUNCTION
+670	sql-creategroup.txt	875	sql-commands.html	CREATE GROUP
+671	sql-createindex.txt	25050	sql-commands.html	CREATE INDEX
+672	sql-createlanguage.txt	5177	sql-commands.html	CREATE LANGUAGE
+673	sql-creatematerializedview.txt	3357	sql-commands.html	CREATE MATERIALIZED VIEW
+674	sql-createoperator.txt	6492	sql-commands.html	CREATE OPERATOR
+675	sql-createopclass.txt	6692	sql-commands.html	CREATE OPERATOR CLASS
+676	sql-createopfamily.txt	2114	sql-commands.html	CREATE OPERATOR FAMILY
+677	sql-createpolicy.txt	18634	sql-commands.html	CREATE POLICY
+678	sql-createprocedure.txt	8551	sql-commands.html	CREATE PROCEDURE
+679	sql-createpublication.txt	11157	sql-commands.html	CREATE PUBLICATION
+680	sql-createrole.txt	11612	sql-commands.html	CREATE ROLE
+681	sql-createrule.txt	6806	sql-commands.html	CREATE RULE
+682	sql-createschema.txt	4450	sql-commands.html	CREATE SCHEMA
+683	sql-createsequence.txt	8395	sql-commands.html	CREATE SEQUENCE
+684	sql-createserver.txt	2386	sql-commands.html	CREATE SERVER
+685	sql-createstatistics.txt	9042	sql-commands.html	CREATE STATISTICS
+686	sql-createsubscription.txt	14402	sql-commands.html	CREATE SUBSCRIPTION
+687	sql-createtable.txt	67290	sql-commands.html	CREATE TABLE
+688	sql-createtableas.txt	5488	sql-commands.html	CREATE TABLE AS
+689	sql-createtablespace.txt	3060	sql-commands.html	CREATE TABLESPACE
+690	sql-createtsconfig.txt	1816	sql-commands.html	CREATE TEXT SEARCH CONFIGURATION
+691	sql-createtsdictionary.txt	1902	sql-commands.html	CREATE TEXT SEARCH DICTIONARY
+692	sql-createtsparser.txt	2140	sql-commands.html	CREATE TEXT SEARCH PARSER
+693	sql-createtstemplate.txt	2003	sql-commands.html	CREATE TEXT SEARCH TEMPLATE
+694	sql-createtransform.txt	4174	sql-commands.html	CREATE TRANSFORM
+695	sql-createtrigger.txt	19534	sql-commands.html	CREATE TRIGGER
+696	sql-createtype.txt	28208	sql-commands.html	CREATE TYPE
+697	sql-createuser.txt	1107	sql-commands.html	CREATE USER
+698	sql-createusermapping.txt	2090	sql-commands.html	CREATE USER MAPPING
+699	sql-createview.txt	14887	sql-commands.html	CREATE VIEW
+700	sql-deallocate.txt	711	sql-commands.html	DEALLOCATE
+701	sql-declare.txt	8773	sql-commands.html	DECLARE
+702	sql-delete.txt	6692	sql-commands.html	DELETE
+703	sql-discard.txt	1459	sql-commands.html	DISCARD
+704	sql-do.txt	1898	sql-commands.html	DO
+705	sql-drop-access-method.txt	959	sql-commands.html	DROP ACCESS METHOD
+706	sql-dropaggregate.txt	2288	sql-commands.html	DROP AGGREGATE
+707	sql-dropcast.txt	918	sql-commands.html	DROP CAST
+708	sql-dropcollation.txt	1016	sql-commands.html	DROP COLLATION
+709	sql-dropconversion.txt	1001	sql-commands.html	DROP CONVERSION
+710	sql-dropdatabase.txt	1695	sql-commands.html	DROP DATABASE
+711	sql-dropdomain.txt	943	sql-commands.html	DROP DOMAIN
+712	sql-dropeventtrigger.txt	972	sql-commands.html	DROP EVENT TRIGGER
+713	sql-dropextension.txt	1457	sql-commands.html	DROP EXTENSION
+714	sql-dropforeigndatawrapper.txt	1192	sql-commands.html	DROP FOREIGN DATA WRAPPER
+715	sql-dropforeigntable.txt	1186	sql-commands.html	DROP FOREIGN TABLE
+716	sql-dropfunction.txt	2562	sql-commands.html	DROP FUNCTION
+717	sql-dropgroup.txt	332	sql-commands.html	DROP GROUP
+718	sql-dropindex.txt	1887	sql-commands.html	DROP INDEX
+719	sql-droplanguage.txt	1209	sql-commands.html	DROP LANGUAGE
+720	sql-dropmaterializedview.txt	1182	sql-commands.html	DROP MATERIALIZED VIEW
+721	sql-dropoperator.txt	1419	sql-commands.html	DROP OPERATOR
+722	sql-dropopclass.txt	1982	sql-commands.html	DROP OPERATOR CLASS
+723	sql-dropopfamily.txt	1704	sql-commands.html	DROP OPERATOR FAMILY
+724	sql-drop-owned.txt	1751	sql-commands.html	DROP OWNED
+725	sql-droppolicy.txt	1152	sql-commands.html	DROP POLICY
+726	sql-dropprocedure.txt	3978	sql-commands.html	DROP PROCEDURE
+727	sql-droppublication.txt	814	sql-commands.html	DROP PUBLICATION
+728	sql-droprole.txt	1642	sql-commands.html	DROP ROLE
+729	sql-droproutine.txt	2001	sql-commands.html	DROP ROUTINE
+730	sql-droprule.txt	929	sql-commands.html	DROP RULE
+731	sql-dropschema.txt	1345	sql-commands.html	DROP SCHEMA
+732	sql-dropsequence.txt	1052	sql-commands.html	DROP SEQUENCE
+733	sql-dropserver.txt	996	sql-commands.html	DROP SERVER
+734	sql-dropstatistics.txt	1034	sql-commands.html	DROP STATISTICS
+735	sql-dropsubscription.txt	2398	sql-commands.html	DROP SUBSCRIPTION
+736	sql-droptable.txt	1551	sql-commands.html	DROP TABLE
+737	sql-droptablespace.txt	1139	sql-commands.html	DROP TABLESPACE
+738	sql-droptsconfig.txt	1413	sql-commands.html	DROP TEXT SEARCH CONFIGURATION
+739	sql-droptsdictionary.txt	1348	sql-commands.html	DROP TEXT SEARCH DICTIONARY
+740	sql-droptsparser.txt	1259	sql-commands.html	DROP TEXT SEARCH PARSER
+741	sql-droptstemplate.txt	1276	sql-commands.html	DROP TEXT SEARCH TEMPLATE
+742	sql-droptransform.txt	1174	sql-commands.html	DROP TRANSFORM
+743	sql-droptrigger.txt	1197	sql-commands.html	DROP TRIGGER
+744	sql-droptype.txt	1122	sql-commands.html	DROP TYPE
+745	sql-dropuser.txt	413	sql-commands.html	DROP USER
+746	sql-dropusermapping.txt	1218	sql-commands.html	DROP USER MAPPING
+747	sql-dropview.txt	1030	sql-commands.html	DROP VIEW
+748	sql-end.txt	1086	sql-commands.html	END
+749	sql-execute.txt	1557	sql-commands.html	EXECUTE
+750	sql-explain.txt	14474	sql-commands.html	EXPLAIN
+751	sql-fetch.txt	6328	sql-commands.html	FETCH
+752	sql-grant.txt	15192	sql-commands.html	GRANT
+753	sql-importforeignschema.txt	2433	sql-commands.html	IMPORT FOREIGN SCHEMA
+754	sql-insert.txt	20663	sql-commands.html	INSERT
+755	sql-listen.txt	2959	sql-commands.html	LISTEN
+756	sql-load.txt	1253	sql-commands.html	LOAD
+757	sql-lock.txt	7032	sql-commands.html	LOCK
+758	sql-merge.txt	19151	sql-commands.html	MERGE
+759	sql-move.txt	1440	sql-commands.html	MOVE
+760	sql-notify.txt	6653	sql-commands.html	NOTIFY
+761	sql-prepare.txt	6933	sql-commands.html	PREPARE
+762	sql-prepare-transaction.txt	4054	sql-commands.html	PREPARE TRANSACTION
+763	sql-reassign-owned.txt	1912	sql-commands.html	REASSIGN OWNED
+764	sql-refreshmaterializedview.txt	2621	sql-commands.html	REFRESH MATERIALIZED VIEW
+765	sql-reindex.txt	14382	sql-commands.html	REINDEX
+766	sql-release-savepoint.txt	2535	sql-commands.html	RELEASE SAVEPOINT
+767	sql-reset.txt	1432	sql-commands.html	RESET
+768	sql-revoke.txt	9905	sql-commands.html	REVOKE
+769	sql-rollback.txt	1061	sql-commands.html	ROLLBACK
+770	sql-rollback-prepared.txt	1266	sql-commands.html	ROLLBACK PREPARED
+771	sql-rollback-to.txt	2542	sql-commands.html	ROLLBACK TO SAVEPOINT
+772	sql-savepoint.txt	2785	sql-commands.html	SAVEPOINT
+773	sql-security-label.txt	4055	sql-commands.html	SECURITY LABEL
+774	sql-select.txt	62222	sql-commands.html	SELECT
+775	sql-selectinto.txt	2970	sql-commands.html	SELECT INTO
+776	sql-set.txt	5403	sql-commands.html	SET
+777	sql-set-constraints.txt	3205	sql-commands.html	SET CONSTRAINTS
+778	sql-set-role.txt	3546	sql-commands.html	SET ROLE
+779	sql-set-session-authorization.txt	2510	sql-commands.html	SET SESSION AUTHORIZATION
+780	sql-set-transaction.txt	7060	sql-commands.html	SET TRANSACTION
+781	sql-show.txt	2016	sql-commands.html	SHOW
+782	sql-start-transaction.txt	1497	sql-commands.html	START TRANSACTION
+783	sql-truncate.txt	4956	sql-commands.html	TRUNCATE
+784	sql-unlisten.txt	1313	sql-commands.html	UNLISTEN
+785	sql-update.txt	14037	sql-commands.html	UPDATE
+786	sql-vacuum.txt	13974	sql-commands.html	VACUUM
+787	sql-values.txt	4781	sql-commands.html	VALUES
+788	reference-client.txt	1983	reference.html	PostgreSQL Client Applications
+789	app-clusterdb.txt	4057	reference-client.html	clusterdb
+790	app-createdb.txt	5841	reference-client.html	createdb
+791	app-createuser.txt	7692	reference-client.html	createuser
+792	app-dropdb.txt	3701	reference-client.html	dropdb
+793	app-dropuser.txt	3491	reference-client.html	dropuser
+794	app-ecpg.txt	3857	reference-client.html	ecpg
+795	app-pgamcheck.txt	11674	reference-client.html	pg_amcheck
+796	app-pgbasebackup.txt	25657	reference-client.html	pg_basebackup
+797	pgbench.txt	56665	reference-client.html	pgbench
+798	app-pgcombinebackup.txt	7386	reference-client.html	pg_combinebackup
+799	app-pgconfig.txt	4201	reference-client.html	pg_config
+800	app-pgdump.txt	42235	reference-client.html	pg_dump
+801	app-pg-dumpall.txt	18362	reference-client.html	pg_dumpall
+802	app-pg-isready.txt	2763	reference-client.html	pg_isready
+803	app-pgreceivewal.txt	10341	reference-client.html	pg_receivewal
+804	app-pgrecvlogical.txt	7773	reference-client.html	pg_recvlogical
+805	app-pgrestore.txt	23757	reference-client.html	pg_restore
+806	app-pgverifybackup.txt	7766	reference-client.html	pg_verifybackup
+807	app-psql.txt	126837	reference-client.html	psql
+808	app-reindexdb.txt	4910	reference-client.html	reindexdb
+809	app-vacuumdb.txt	9153	reference-client.html	vacuumdb
+810	reference-server.txt	1386	reference.html	PostgreSQL Server Applications
+811	app-initdb.txt	12830	reference-server.html	initdb
+812	pgarchivecleanup.txt	3937	reference-server.html	pg_archivecleanup
+813	app-pgchecksums.txt	3806	reference-server.html	pg_checksums
+814	app-pgcontroldata.txt	1095	reference-server.html	pg_controldata
+815	app-pgcreatesubscriber.txt	14280	reference-server.html	pg_createsubscriber
+816	app-pg-ctl.txt	11428	reference-server.html	pg_ctl
+817	app-pgresetwal.txt	10182	reference-server.html	pg_resetwal
+818	app-pgrewind.txt	10617	reference-server.html	pg_rewind
+819	pgtestfsync.txt	1686	reference-server.html	pg_test_fsync
+820	pgtesttiming.txt	8050	reference-server.html	pg_test_timing
+821	pgupgrade.txt	26130	reference-server.html	pg_upgrade
+822	pgwaldump.txt	5346	reference-server.html	pg_waldump
+823	app-pgwalsummary.txt	2053	reference-server.html	pg_walsummary
+824	app-postgres.txt	16792	reference-server.html	postgres
+825	internals.txt	5357	index.html	Part VII. Internals
+826	overview.txt	1080	internals.html	Chapter 51. Overview of PostgreSQL Internals
+827	query-path.txt	2101	overview.html	51.1. The Path of a Query
+828	connect-estab.txt	1551	overview.html	51.2. How Connections Are Established
+829	parser-stage.txt	3767	overview.html	51.3. The Parser Stage
+830	rule-system.txt	1237	overview.html	51.4. The PostgreSQL Rule System
+831	planner-optimizer.txt	5611	overview.html	51.5. Planner/Optimizer
+832	executor.txt	3721	overview.html	51.6. Executor
+833	catalogs.txt	2312	internals.html	Chapter 52. System Catalogs
+834	catalogs-overview.txt	3489	catalogs.html	52.1. Overview
+835	catalog-pg-aggregate.txt	3768	catalogs.html	52.2. pg_aggregate
+836	catalog-pg-am.txt	1115	catalogs.html	52.3. pg_am
+837	catalog-pg-amop.txt	2722	catalogs.html	52.4. pg_amop
+838	catalog-pg-amproc.txt	1280	catalogs.html	52.5. pg_amproc
+839	catalog-pg-attrdef.txt	816	catalogs.html	52.6. pg_attrdef
+840	catalog-pg-attribute.txt	5379	catalogs.html	52.7. pg_attribute
+841	catalog-pg-authid.txt	2696	catalogs.html	52.8. pg_authid
+842	catalog-pg-auth-members.txt	1045	catalogs.html	52.9. pg_auth_members
+843	catalog-pg-cast.txt	2771	catalogs.html	52.10. pg_cast
+844	catalog-pg-class.txt	6767	catalogs.html	52.11. pg_class
+845	catalog-pg-collation.txt	2692	catalogs.html	52.12. pg_collation
+846	catalog-pg-constraint.txt	4434	catalogs.html	52.13. pg_constraint
+847	catalog-pg-conversion.txt	956	catalogs.html	52.14. pg_conversion
+848	catalog-pg-database.txt	3302	catalogs.html	52.15. pg_database
+849	catalog-pg-db-role-setting.txt	892	catalogs.html	52.16. pg_db_role_setting
+850	catalog-pg-default-acl.txt	1539	catalogs.html	52.17. pg_default_acl
+851	catalog-pg-depend.txt	6957	catalogs.html	52.18. pg_depend
+852	catalog-pg-description.txt	1096	catalogs.html	52.19. pg_description
+853	catalog-pg-enum.txt	1480	catalogs.html	52.20. pg_enum
+854	catalog-pg-event-trigger.txt	983	catalogs.html	52.21. pg_event_trigger
+855	catalog-pg-extension.txt	1381	catalogs.html	52.22. pg_extension
+856	catalog-pg-foreign-data-wrapper.txt	1239	catalogs.html	52.23. pg_foreign_data_wrapper
+857	catalog-pg-foreign-server.txt	958	catalogs.html	52.24. pg_foreign_server
+858	catalog-pg-foreign-table.txt	799	catalogs.html	52.25. pg_foreign_table
+859	catalog-pg-index.txt	4008	catalogs.html	52.26. pg_index
+860	catalog-pg-inherits.txt	1047	catalogs.html	52.27. pg_inherits
+861	catalog-pg-init-privs.txt	1724	catalogs.html	52.28. pg_init_privs
+862	catalog-pg-language.txt	1761	catalogs.html	52.29. pg_language
+863	catalog-pg-largeobject.txt	1583	catalogs.html	52.30. pg_largeobject
+864	catalog-pg-largeobject-metadata.txt	559	catalogs.html	52.31. pg_largeobject_metadata
+865	catalog-pg-namespace.txt	623	catalogs.html	52.32. pg_namespace
+866	catalog-pg-opclass.txt	1650	catalogs.html	52.33. pg_opclass
+867	catalog-pg-operator.txt	1580	catalogs.html	52.34. pg_operator
+868	catalog-pg-opfamily.txt	1230	catalogs.html	52.35. pg_opfamily
+869	catalog-pg-parameter-acl.txt	776	catalogs.html	52.36. pg_parameter_acl
+870	catalog-pg-partitioned-table.txt	1873	catalogs.html	52.37. pg_partitioned_table
+871	catalog-pg-policy.txt	1481	catalogs.html	52.38. pg_policy
+872	catalog-pg-proc.txt	6324	catalogs.html	52.39. pg_proc
+873	catalog-pg-publication.txt	1513	catalogs.html	52.40. pg_publication
+874	catalog-pg-publication-namespace.txt	569	catalogs.html	52.41. pg_publication_namespace
+875	catalog-pg-publication-rel.txt	1102	catalogs.html	52.42. pg_publication_rel
+876	catalog-pg-range.txt	1388	catalogs.html	52.43. pg_range
+877	catalog-pg-replication-origin.txt	726	catalogs.html	52.44. pg_replication_origin
+878	catalog-pg-rewrite.txt	1098	catalogs.html	52.45. pg_rewrite
+879	catalog-pg-seclabel.txt	1057	catalogs.html	52.46. pg_seclabel
+880	catalog-pg-sequence.txt	812	catalogs.html	52.47. pg_sequence
+881	catalog-pg-shdepend.txt	2879	catalogs.html	52.48. pg_shdepend
+882	catalog-pg-shdescription.txt	985	catalogs.html	52.49. pg_shdescription
+883	catalog-pg-shseclabel.txt	1035	catalogs.html	52.50. pg_shseclabel
+884	catalog-pg-statistic.txt	4267	catalogs.html	52.51. pg_statistic
+885	catalog-pg-statistic-ext.txt	2215	catalogs.html	52.52. pg_statistic_ext
+886	catalog-pg-statistic-ext-data.txt	1899	catalogs.html	52.53. pg_statistic_ext_data
+887	catalog-pg-subscription.txt	2983	catalogs.html	52.54. pg_subscription
+888	catalog-pg-subscription-rel.txt	942	catalogs.html	52.55. pg_subscription_rel
+889	catalog-pg-tablespace.txt	862	catalogs.html	52.56. pg_tablespace
+890	catalog-pg-transform.txt	1044	catalogs.html	52.57. pg_transform
+891	catalog-pg-trigger.txt	3075	catalogs.html	52.58. pg_trigger
+892	catalog-pg-ts-config.txt	1014	catalogs.html	52.59. pg_ts_config
+893	catalog-pg-ts-config-map.txt	846	catalogs.html	52.60. pg_ts_config_map
+894	catalog-pg-ts-dict.txt	1199	catalogs.html	52.61. pg_ts_dict
+895	catalog-pg-ts-parser.txt	1211	catalogs.html	52.62. pg_ts_parser
+896	catalog-pg-ts-template.txt	956	catalogs.html	52.63. pg_ts_template
+897	catalog-pg-type.txt	8240	catalogs.html	52.64. pg_type
+898	catalog-pg-user-mapping.txt	730	catalogs.html	52.65. pg_user_mapping
+899	views.txt	1804	internals.html	Chapter 53. System Views
+900	views-overview.txt	1885	views.html	53.1. Overview
+901	view-pg-aios.txt	2887	views.html	53.2. pg_aios
+902	view-pg-available-extensions.txt	754	views.html	53.3. pg_available_extensions
+903	view-pg-available-extension-versions.txt	1226	views.html	53.4. pg_available_extension_versions
+904	view-pg-backend-memory-contexts.txt	2206	views.html	53.5. pg_backend_memory_contexts
+905	view-pg-config.txt	716	views.html	53.6. pg_config
+906	view-pg-cursors.txt	1621	views.html	53.7. pg_cursors
+907	view-pg-file-settings.txt	2260	views.html	53.8. pg_file_settings
+908	view-pg-group.txt	716	views.html	53.9. pg_group
+909	view-pg-hba-file-rules.txt	1889	views.html	53.10. pg_hba_file_rules
+910	view-pg-ident-file-mappings.txt	1492	views.html	53.11. pg_ident_file_mappings
+911	view-pg-indexes.txt	745	views.html	53.12. pg_indexes
+912	view-pg-locks.txt	9401	views.html	53.13. pg_locks
+913	view-pg-matviews.txt	943	views.html	53.14. pg_matviews
+914	view-pg-policies.txt	998	views.html	53.15. pg_policies
+915	view-pg-prepared-statements.txt	1994	views.html	53.16. pg_prepared_statements
+916	view-pg-prepared-xacts.txt	1369	views.html	53.17. pg_prepared_xacts
+917	view-pg-publication-tables.txt	1110	views.html	53.18. pg_publication_tables
+918	view-pg-replication-origin-status.txt	873	views.html	53.19. pg_replication_origin_status
+919	view-pg-replication-slots.txt	5294	views.html	53.20. pg_replication_slots
+920	view-pg-roles.txt	1457	views.html	53.21. pg_roles
+921	view-pg-rules.txt	713	views.html	53.22. pg_rules
+922	view-pg-seclabels.txt	1187	views.html	53.23. pg_seclabels
+923	view-pg-sequences.txt	1326	views.html	53.24. pg_sequences
+924	view-pg-settings.txt	6048	views.html	53.25. pg_settings
+925	view-pg-shadow.txt	1308	views.html	53.26. pg_shadow
+926	view-pg-shmem-allocations.txt	1466	views.html	53.27. pg_shmem_allocations
+927	view-pg-shmem-allocations-numa.txt	1606	views.html	53.28. pg_shmem_allocations_numa
+928	view-pg-stats.txt	4467	views.html	53.29. pg_stats
+929	view-pg-stats-ext.txt	3297	views.html	53.30. pg_stats_ext
+930	view-pg-stats-ext-exprs.txt	4366	views.html	53.31. pg_stats_ext_exprs
+931	view-pg-tables.txt	1054	views.html	53.32. pg_tables
+932	view-pg-timezone-abbrevs.txt	882	views.html	53.33. pg_timezone_abbrevs
+933	view-pg-timezone-names.txt	995	views.html	53.34. pg_timezone_names
+934	view-pg-user.txt	951	views.html	53.35. pg_user
+935	view-pg-user-mappings.txt	1265	views.html	53.36. pg_user_mappings
+936	view-pg-views.txt	584	views.html	53.37. pg_views
+937	view-pg-wait-events.txt	408	views.html	53.38. pg_wait_events
+938	protocol.txt	2127	internals.html	Chapter 54. Frontend/Backend Protocol
+939	protocol-overview.txt	8356	protocol.html	54.1. Overview
+940	protocol-flow.txt	49464	protocol.html	54.2. Message Flow
+941	sasl-authentication.txt	8537	protocol.html	54.3. SASL Authentication
+942	protocol-replication.txt	23639	protocol.html	54.4. Streaming Replication Protocol
+943	protocol-logical-replication.txt	5365	protocol.html	54.5. Logical Streaming Replication Protocol
+944	protocol-message-types.txt	1375	protocol.html	54.6. Message Data Types
+945	protocol-message-formats.txt	24236	protocol.html	54.7. Message Formats
+946	protocol-error-fields.txt	4273	protocol.html	54.8. Error and Notice Message Fields
+947	protocol-logicalrep-message-formats.txt	10717	protocol.html	54.9. Logical Replication Message Formats
+948	protocol-changes.txt	3794	protocol.html	54.10. Summary of Changes since Protocol 2.0
+949	source.txt	356	internals.html	Chapter 55. PostgreSQL Coding Conventions
+950	source-format.txt	2204	source.html	55.1. Formatting
+951	error-message-reporting.txt	10606	source.html	55.2. Reporting Errors Within the Server
+952	error-style-guide.txt	10489	source.html	55.3. Error Message Style Guide
+953	source-conventions.txt	3808	source.html	55.4. Miscellaneous Coding Conventions
+954	nls.txt	437	internals.html	Chapter 56. Native Language Support
+955	nls-translator.txt	9254	nls.html	56.1. For the Translator
+956	nls-programmer.txt	5345	nls.html	56.2. For the Programmer
+957	plhandler.txt	7909	internals.html	Chapter 57. Writing a Procedural Language Handler
+958	fdwhandler.txt	1931	internals.html	Chapter 58. Writing a Foreign Data Wrapper
+959	fdw-functions.txt	1789	fdwhandler.html	58.1. Foreign Data Wrapper Functions
+960	fdw-callbacks.txt	50541	fdwhandler.html	58.2. Foreign Data Wrapper Callback Routines
+961	fdw-helpers.txt	3553	fdwhandler.html	58.3. Foreign Data Wrapper Helper Functions
+962	fdw-planning.txt	9913	fdwhandler.html	58.4. Foreign Data Wrapper Query Planning
+963	fdw-row-locking.txt	4942	fdwhandler.html	58.5. Row Locking in Foreign Data Wrappers
+964	tablesample-method.txt	2837	internals.html	Chapter 59. Writing a Table Sampling Method
+965	tablesample-support-functions.txt	6651	tablesample-method.html	59.1. Sampling Method Support Functions
+966	custom-scan.txt	1557	internals.html	Chapter 60. Writing a Custom Scan Provider
+967	custom-scan-path.txt	5455	custom-scan.html	60.1. Creating Custom Scan Paths
+968	custom-scan-plan.txt	2899	custom-scan.html	60.2. Creating Custom Scan Plans
+969	custom-scan-execution.txt	5367	custom-scan.html	60.3. Executing Custom Scans
+970	geqo.txt	661	internals.html	Chapter 61. Genetic Query Optimizer
+971	geqo-intro.txt	1787	geqo.html	61.1. Query Handling as a Complex Optimization Problem
+972	geqo-intro2.txt	1334	geqo.html	61.2. Genetic Algorithms
+973	geqo-pg-intro.txt	4703	geqo.html	61.3. Genetic Query Optimization (GEQO) in PostgreSQL
+974	geqo-biblio.txt	501	geqo.html	61.4. Further Reading
+975	tableam.txt	4406	internals.html	Chapter 62. Table Access Method Interface Definition
+976	indexam.txt	2334	internals.html	Chapter 63. Index Access Method Interface Definition
+977	index-api.txt	9512	indexam.html	63.1. Basic API Structure for Indexes
+978	index-functions.txt	22667	indexam.html	63.2. Index Access Method Functions
+979	index-scanning.txt	6258	indexam.html	63.3. Index Scanning
+980	index-locking.txt	4709	indexam.html	63.4. Index Locking Considerations
+981	index-unique-checks.txt	5599	indexam.html	63.5. Index Uniqueness Checks
+982	index-cost-estimation.txt	6030	indexam.html	63.6. Index Cost Estimation Functions
+983	wal-for-extensions.txt	1140	internals.html	Chapter 64. Write Ahead Logging for Extensions
+984	generic-wal.txt	4209	wal-for-extensions.html	64.1. Generic WAL Records
+985	custom-rmgr.txt	3289	wal-for-extensions.html	64.2. Custom WAL Resource Managers
+986	indextypes.txt	976	internals.html	Chapter 65. Built-in Index Access Methods
+987	btree.txt	26785	indextypes.html	65.1. B-Tree Indexes
+988	gist.txt	35555	indextypes.html	65.2. GiST Indexes
+989	spgist.txt	35797	indextypes.html	65.3. SP-GiST Indexes
+990	gin.txt	20671	indextypes.html	65.4. GIN Indexes
+991	brin.txt	24547	indextypes.html	65.5. BRIN Indexes
+992	hash-index.txt	6179	indextypes.html	65.6. Hash Indexes
+993	storage.txt	580	internals.html	Chapter 66. Database Physical Storage
+994	storage-file-layout.txt	7733	storage.html	66.1. Database File Layout
+995	storage-toast.txt	12444	storage.html	66.2. TOAST
+996	storage-fsm.txt	1337	storage.html	66.3. Free Space Map
+997	storage-vm.txt	1533	storage.html	66.4. Visibility Map
+998	storage-init.txt	550	storage.html	66.5. The Initialization Fork
+999	storage-page-layout.txt	8240	storage.html	66.6. Database Page Layout
+1000	storage-hot.txt	2187	storage.html	66.7. Heap-Only Tuples (HOT)
+1001	transactions.txt	483	internals.html	Chapter 67. Transaction Processing
+1002	transaction-id.txt	2283	transactions.html	67.1. Transactions and Identifiers
+1003	xact-locking.txt	752	transactions.html	67.2. Transactions and Locking
+1004	subxacts.txt	2490	transactions.html	67.3. Subtransactions
+1005	two-phase.txt	1188	transactions.html	67.4. Two-Phase Transactions
+1006	bki.txt	3239	internals.html	Chapter 68. System Catalog Declarations and Initial Contents
+1007	system-catalog-declarations.txt	3732	bki.html	68.1. System Catalog Declaration Rules
+1008	system-catalog-initial-data.txt	16262	bki.html	68.2. System Catalog Initial Data
+1009	bki-format.txt	980	bki.html	68.3. BKI File Format
+1010	bki-commands.txt	3127	bki.html	68.4. BKI Commands
+1011	bki-structure.txt	1125	bki.html	68.5. Structure of the Bootstrap BKI File
+1012	bki-example.txt	573	bki.html	68.6. BKI Example
+1013	planner-stats-details.txt	955	internals.html	Chapter 69. How the Planner Uses Statistics
+1014	row-estimation-examples.txt	14323	planner-stats-details.html	69.1. Row Estimation Examples
+1015	multivariate-statistics-examples.txt	9191	planner-stats-details.html	69.2. Multivariate Statistics Examples
+1016	planner-stats-security.txt	3026	planner-stats-details.html	69.3. Planner Statistics and Security
+1017	backup-manifest-format.txt	1074	internals.html	Chapter 70. Backup Manifest Format
+1018	backup-manifest-toplevel.txt	1634	backup-manifest-format.html	70.1. Backup Manifest Top-level Object
+1019	backup-manifest-files.txt	1763	backup-manifest-format.html	70.2. Backup Manifest File Object
+1020	backup-manifest-wal-ranges.txt	1135	backup-manifest-format.html	70.3. Backup Manifest WAL Range Object
+1021	appendixes.txt	4548	index.html	Part VIII. Appendixes
+1022	errcodes-appendix.txt	12265	appendixes.html	Appendix A. PostgreSQL Error Codes
+1023	datetime-appendix.txt	1022	appendixes.html	Appendix B. Date/Time Support
+1024	datetime-input-rules.txt	2679	datetime-appendix.html	B.1. Date/Time Input Interpretation
+1025	datetime-invalid-input.txt	2620	datetime-appendix.html	B.2. Handling of Invalid or Ambiguous Timestamps
+1026	datetime-keywords.txt	969	datetime-appendix.html	B.3. Date/Time Key Words
+1027	datetime-config-files.txt	5476	datetime-appendix.html	B.4. Date/Time Configuration Files
+1028	datetime-posix-timezone-specs.txt	5542	datetime-appendix.html	B.5. POSIX Time Zone Specifications
+1029	datetime-units-history.txt	3234	datetime-appendix.html	B.6. History of Units
+1030	datetime-julian-dates.txt	2000	datetime-appendix.html	B.7. Julian Dates
+1031	sql-keywords-appendix.txt	39627	appendixes.html	Appendix C. SQL Key Words
+1032	features.txt	4225	appendixes.html	Appendix D. SQL Conformance
+1033	features-sql-standard.txt	18979	features.html	D.1. Supported Features
+1034	unsupported-features-sql-standard.txt	12860	features.html	D.2. Unsupported Features
+1035	xml-limits-conformance.txt	8907	features.html	D.3. XML Limits and Conformance to SQL/XML
+1036	release.txt	1792	appendixes.html	Appendix E. Release Notes
+1037	release-18-7.txt	55995	release.html	E.1. Release 18.7
+1038	release-18-6.txt	43007	release.html	E.2. Release 18.6
+1039	release-18-4.txt	21863	release.html	E.3. Release 18.4
+1040	release-18-3.txt	4154	release.html	E.4. Release 18.3
+1041	release-18-2.txt	21861	release.html	E.5. Release 18.2
+1042	release-18-1.txt	12771	release.html	E.6. Release 18.1
+1043	release-18.txt	42482	release.html	E.7. Release 18
+1044	release-prior.txt	280	release.html	E.8. Prior Releases
+1045	contrib.txt	12155	appendixes.html	Appendix F. Additional Supplied Modules and Extensions
+1046	amcheck.txt	17467	contrib.html	F.1. amcheck — tools to verify table and index consistency
+1047	auth-delay.txt	1204	contrib.html	F.2. auth_delay — pause on authentication failure
+1048	auto-explain.txt	7451	contrib.html	F.3. auto_explain — log execution plans of slow queries
+1049	basebackup-to-shell.txt	2031	contrib.html	F.4. basebackup_to_shell — example "shell" pg_basebackup module
+1050	basic-archive.txt	1761	contrib.html	F.5. basic_archive — an example WAL archive module
+1051	bloom.txt	8493	contrib.html	F.6. bloom — bloom filter index access method
+1052	btree-gin.txt	1781	contrib.html	F.7. btree_gin — GIN operator classes with B-tree behavior
+1053	btree-gist.txt	3530	contrib.html	F.8. btree_gist — GiST operator classes with B-tree behavior
+1054	citext.txt	6700	contrib.html	F.9. citext — a case-insensitive character string type
+1055	cube.txt	10009	contrib.html	F.10. cube — a multi-dimensional cube data type
+1056	dblink.txt	2324	contrib.html	F.11. dblink — connect to other PostgreSQL databases
+1057	contrib-dblink-connect.txt	4793	dblink.html	dblink_connect
+1058	contrib-dblink-connect-u.txt	1582	dblink.html	dblink_connect_u
+1059	contrib-dblink-disconnect.txt	838	dblink.html	dblink_disconnect
+1060	contrib-dblink-function.txt	4910	dblink.html	dblink
+1061	contrib-dblink-exec.txt	2231	dblink.html	dblink_exec
+1062	contrib-dblink-open.txt	1824	dblink.html	dblink_open
+1063	contrib-dblink-fetch.txt	2708	dblink.html	dblink_fetch
+1064	contrib-dblink-close.txt	1373	dblink.html	dblink_close
+1065	contrib-dblink-get-connections.txt	528	dblink.html	dblink_get_connections
+1066	contrib-dblink-error-message.txt	981	dblink.html	dblink_error_message
+1067	contrib-dblink-send-query.txt	1075	dblink.html	dblink_send_query
+1068	contrib-dblink-is-busy.txt	604	dblink.html	dblink_is_busy
+1069	contrib-dblink-get-notify.txt	1181	dblink.html	dblink_get_notify
+1070	contrib-dblink-get-result.txt	3431	dblink.html	dblink_get_result
+1071	contrib-dblink-cancel-query.txt	889	dblink.html	dblink_cancel_query
+1072	contrib-dblink-get-pkey.txt	1366	dblink.html	dblink_get_pkey
+1073	contrib-dblink-build-sql-insert.txt	2452	dblink.html	dblink_build_sql_insert
+1074	contrib-dblink-build-sql-delete.txt	1919	dblink.html	dblink_build_sql_delete
+1075	contrib-dblink-build-sql-update.txt	2723	dblink.html	dblink_build_sql_update
+1076	dict-int.txt	2277	contrib.html	F.12. dict_int — example full-text search dictionary for integers
+1077	dict-xsyn.txt	3198	contrib.html	F.13. dict_xsyn — example synonym full-text search dictionary
+1078	earthdistance.txt	4962	contrib.html	F.14. earthdistance — calculate great-circle distances
+1079	file-fdw.txt	6178	contrib.html	F.15. file_fdw — access data files in the server's file system
+1080	fuzzystrmatch.txt	8612	contrib.html	F.16. fuzzystrmatch — determine string similarities and distance
+1081	hstore.txt	14314	contrib.html	F.17. hstore — hstore key/value datatype
+1082	intagg.txt	3405	contrib.html	F.18. intagg — integer aggregator and enumerator
+1083	intarray.txt	7513	contrib.html	F.19. intarray — manipulate arrays of integers
+1084	isn.txt	8148	contrib.html	F.20. isn — data types for international standard numbers (ISBN, EAN, UPC, etc.)
+1085	lo.txt	3661	contrib.html	F.21. lo — manage large objects
+1086	ltree.txt	14696	contrib.html	F.22. ltree — hierarchical tree-like data type
+1087	pageinspect.txt	22840	contrib.html	F.23. pageinspect — low-level inspection of database pages
+1088	passwordcheck.txt	2397	contrib.html	F.24. passwordcheck — verify password strength
+1089	pgbuffercache.txt	11227	contrib.html	F.25. pg_buffercache — inspect PostgreSQL buffer cache state
+1090	pgcrypto.txt	22518	contrib.html	F.26. pgcrypto — cryptographic functions
+1091	pgfreespacemap.txt	2313	contrib.html	F.27. pg_freespacemap — examine the free space map
+1092	pglogicalinspect.txt	3505	contrib.html	F.28. pg_logicalinspect — logical decoding components inspection
+1093	pgoverexplain.txt	5033	contrib.html	F.29. pg_overexplain — allow EXPLAIN to dump even more details
+1094	pgprewarm.txt	3809	contrib.html	F.30. pg_prewarm — preload relation data into buffer caches
+1095	pgrowlocks.txt	2649	contrib.html	F.31. pgrowlocks — show a table's row locking information
+1096	pgstatstatements.txt	24399	contrib.html	F.32. pg_stat_statements — track statistics of SQL planning and execution
+1097	pgstattuple.txt	8517	contrib.html	F.33. pgstattuple — obtain tuple-level statistics
+1098	pgsurgery.txt	2312	contrib.html	F.34. pg_surgery — perform low-level surgery on relation data
+1099	pgtrgm.txt	12837	contrib.html	F.35. pg_trgm — support for similarity of text using trigram matching
+1100	pgvisibility.txt	4518	contrib.html	F.36. pg_visibility — visibility map information and utilities
+1101	pgwalinspect.txt	7094	contrib.html	F.37. pg_walinspect — low-level WAL inspection
+1102	postgres-fdw.txt	37403	contrib.html	F.38. postgres_fdw — access data stored in external PostgreSQL servers
+1103	seg.txt	7560	contrib.html	F.39. seg — a datatype for line segments or floating point intervals
+1104	sepgsql.txt	21794	contrib.html	F.40. sepgsql — SELinux-, label-based mandatory access control (MAC) security module
+1105	contrib-spi.txt	6598	contrib.html	F.41. spi — Server Programming Interface features/examples
+1106	sslinfo.txt	4448	contrib.html	F.42. sslinfo — obtain client SSL information
+1107	tablefunc.txt	21698	contrib.html	F.43. tablefunc — functions that return tables (crosstab and others)
+1108	tcn.txt	2889	contrib.html	F.44. tcn — a trigger function to notify listeners of changes to table content
+1109	test-decoding.txt	2293	contrib.html	F.45. test_decoding — SQL-based test/example module for WAL logical decoding
+1110	tsm-system-rows.txt	1659	contrib.html	F.46. tsm_system_rows — the SYSTEM_ROWS sampling method for TABLESAMPLE
+1111	tsm-system-time.txt	1819	contrib.html	F.47. tsm_system_time — the SYSTEM_TIME sampling method for TABLESAMPLE
+1112	unaccent.txt	4966	contrib.html	F.48. unaccent — a text search dictionary which removes diacritics
+1113	uuid-ossp.txt	4499	contrib.html	F.49. uuid-ossp — a UUID generator
+1114	xml2.txt	9827	contrib.html	F.50. xml2 — XPath querying and XSLT functionality
+1115	contrib-prog.txt	944	appendixes.html	Appendix G. Additional Supplied Programs
+1116	contrib-prog-client.txt	601	contrib-prog.html	G.1. Client Applications
+1117	oid2name.txt	6917	contrib-prog-client.html	oid2name
+1118	vacuumlo.txt	3115	contrib-prog-client.html	vacuumlo
+1119	contrib-prog-server.txt	434	contrib-prog.html	G.2. Server Applications
+1120	external-projects.txt	484	appendixes.html	Appendix H. External Projects
+1121	external-interfaces.txt	928	external-projects.html	H.1. Client Interfaces
+1122	external-admin-tools.txt	329	external-projects.html	H.2. Administration Tools
+1123	external-pl.txt	745	external-projects.html	H.3. Procedural Languages
+1124	external-extensions.txt	693	external-projects.html	H.4. Extensions
+1125	sourcerepo.txt	558	appendixes.html	Appendix I. The Source Code Repository
+1126	git.txt	1260	sourcerepo.html	I.1. Getting the Source via Git
+1127	docguide.txt	1086	appendixes.html	Appendix J. Documentation
+1128	docguide-docbook.txt	890	docguide.html	J.1. DocBook
+1129	docguide-toolsets.txt	4266	docguide.html	J.2. Tool Sets
+1130	docguide-build.txt	2673	docguide.html	J.3. Building the Documentation with Make
+1131	docguide-build-meson.txt	566	docguide.html	J.4. Building the Documentation with Meson
+1132	docguide-authoring.txt	1000	docguide.html	J.5. Documentation Authoring
+1133	docguide-style.txt	3995	docguide.html	J.6. Style Guide
+1134	limits.txt	2816	appendixes.html	Appendix K. PostgreSQL Limits
+1135	acronyms.txt	3569	appendixes.html	Appendix L. Acronyms
+1136	glossary.txt	35191	appendixes.html	Appendix M. Glossary
+1137	color.txt	360	appendixes.html	Appendix N. Color Support
+1138	color-when.txt	434	color.html	N.1. When Color is Used
+1139	color-which.txt	1109	color.html	N.2. Configuring the Colors
+1140	appendix-obsolete.txt	776	appendixes.html	Appendix O. Obsolete or Renamed Features
+1141	recovery-config.txt	1079	appendix-obsolete.html	O.1. recovery.conf file merged into postgresql.conf
+1142	default-roles.txt	645	appendix-obsolete.html	O.2. Default Roles Renamed to Predefined Roles
+1143	pgxlogdump.txt	510	appendix-obsolete.html	O.3. pg_xlogdump renamed to pg_waldump
+1144	app-pgresetxlog.txt	519	appendix-obsolete.html	O.4. pg_resetxlog renamed to pg_resetwal
+1145	app-pgreceivexlog.txt	501	appendix-obsolete.html	O.5. pg_receivexlog renamed to pg_receivewal
+1146	biblio.txt	4159	index.html	Bibliography
+1147	bookindex.txt	150860	index.html	Index
+1148	legalnotice.txt	1206		Legal Notice

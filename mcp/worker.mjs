@@ -10,24 +10,25 @@ const CONTRIB = ['pageinspect', 'pg_visibility', 'pg_freespacemap', 'pg_bufferca
   'dict_int', 'dict_xsyn', 'auto_explain', 'tcn', 'moddatetime']
 
 let db
-async function boot() {
+async function boot(withPostgis) {
   if (db) return db
   const extensions = {}
   for (const n of CONTRIB) {
     try { const m = await import(`@electric-sql/pglite/contrib/${n}`); extensions[n] = m[n] ?? Object.values(m)[0] } catch { /* not bundled */ }
   }
   try { extensions.vector = (await import('@electric-sql/pglite-pgvector')).vector } catch { /* optional */ }
+  if (withPostgis) extensions.postgis = (await import('@electric-sql/pglite-postgis')).postgis
   db = await PGlite.create({ extensions })
   return db
 }
 
-parentPort.on('message', async ({ id, sql }) => {
+parentPort.on('message', async ({ id, sql, withPostgis }) => {
   const t0 = performance.now()
   const results = []
   const notices = []
   const onNotice = (n) => notices.push(`${n.severity ?? 'NOTICE'}:  ${n.message ?? ''}${n.detail ? `\nDETAIL:  ${n.detail}` : ''}`)
   try {
-    const conn = await boot()
+    const conn = await boot(withPostgis)
     const stmts = splitStatements(sql)
     for (let i = 0; i < stmts.length; i++) {
       try {

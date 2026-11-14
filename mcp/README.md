@@ -1,6 +1,6 @@
 # pg-internals MCP server
 
-PostgreSQL 18 for AI agents: the 98 lessons (Fundamentals, Internals, Ecosystem) and 91 graded exercises from
+PostgreSQL 18 for AI agents: the 104 lessons (Fundamentals, Internals, Ecosystem) and 91 graded exercises from
 [Postgres, Visualized](https://vivek-rm-14286.github.io/postgres-internals/), complete reference tables,
 distilled docs notes, and a **live PostgreSQL 18 sandbox** (PGlite, in-memory) to verify behaviour instead of guessing.
 
@@ -12,7 +12,7 @@ distilled docs notes, and a **live PostgreSQL 18 sandbox** (PGlite, in-memory) t
 | `read` | Full text of a search hit: a lesson, an exercise (task, schema, reference solution, dataset setup), a reference row or a note. |
 | `list_lessons` / `get_lesson` | The curriculum, and one lesson as markdown: TL;DR, mechanism, runnable SQL with "look for" notes, a production scenario, pitfalls (symptom / why / fix), key pointers. |
 | `lookup_reference` | Filter the reference tables: 410 GUCs, 64 catalogs, 37 system views, 43 stats views, 280 wait events, 12 lock modes, 183 SQL commands, 100 data types, 6 index AMs, 51 extensions, 35 programs, 232 admin functions, 263 SQLSTATEs, limits, glossary, acronyms. |
-| `run_sql` | Run SQL on a named sandbox session. Statements run one by one like psql. Returns tables, EXPLAIN plans, NOTICE/INFO output and SQLSTATE errors. 33 extensions available, including `pageinspect`, `pg_visibility`, `pg_walinspect`, `pg_stat_statements`, `pg_trgm` and `vector`. |
+| `run_sql` | Run SQL on a named sandbox session. Statements run one by one like psql. Returns tables, EXPLAIN plans, NOTICE/INFO output and SQLSTATE errors. 33 extensions available (plus PostGIS 3.6 with `with_postgis: true`), including `pageinspect`, `pg_visibility`, `pg_walinspect`, `pg_stat_statements`, `pg_trgm` and `vector`. |
 | `reset_sandbox` | Throw a session away. |
 
 Each session runs in its own worker thread: a runaway query hits `timeout_ms` (default 30 s), and the session is reset

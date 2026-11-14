@@ -1,6 +1,6 @@
 {
   "name": "pg-internals-mcp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Set up the pg-internals MCP server (PostgreSQL 18 internals lessons, reference tables and a live PostgreSQL 18 sandbox) in your AI coding tools.",
   "type": "module",
   "bin": {

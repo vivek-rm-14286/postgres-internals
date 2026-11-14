@@ -1,0 +1,15 @@
+Chapter 67. Transaction Processing
+Prev 	Up	Part VII. Internals	Home	 Next
+Chapter 67. Transaction Processing
+
+Table of Contents
+
+67.1. Transactions and Identifiers
+67.2. Transactions and Locking
+67.3. Subtransactions
+67.4. Two-Phase Transactions
+
+This chapter provides an overview of the internals of PostgreSQL's transaction management system. The word transaction is often abbreviated as xact.
+
+Prev 	Up	 Next
+66.7. Heap-Only Tuples (HOT) 	Home	 67.1. Transactions and Identifiers

@@ -1,0 +1,18 @@
+Chapter 61. Genetic Query Optimizer
+Prev 	Up	Part VII. Internals	Home	 Next
+Chapter 61. Genetic Query Optimizer
+
+Table of Contents
+
+61.1. Query Handling as a Complex Optimization Problem
+61.2. Genetic Algorithms
+61.3. Genetic Query Optimization (GEQO) in PostgreSQL
+61.3.1. Generating Possible Plans with GEQO
+61.3.2. Future Implementation Tasks for PostgreSQL GEQO
+61.4. Further Reading
+Author
+
+Written by Martin Utesch (<utesch@aut.tu-freiberg.de>) for the Institute of Automatic Control at the University of Mining and Technology in Freiberg, Germany.
+
+Prev 	Up	 Next
+60.3. Executing Custom Scans 	Home	 61.1. Query Handling as a Complex Optimization Problem

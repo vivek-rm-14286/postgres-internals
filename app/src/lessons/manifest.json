@@ -70,6 +70,20 @@
   "file": "./f2/casting-and-types.tsx"
  },
  {
+  "slug": "working-with-json",
+  "module": "f2",
+  "order": 6,
+  "title": "Working with JSON",
+  "file": "./f2/working-with-json.tsx"
+ },
+ {
+  "slug": "ranges-and-special-types",
+  "module": "f2",
+  "order": 7,
+  "title": "Ranges and other special types",
+  "file": "./f2/ranges-and-special-types.tsx"
+ },
+ {
   "slug": "keys-and-relationships",
   "module": "f3",
   "order": 1,
@@ -684,5 +698,33 @@
   "order": 6,
   "title": "High-availability clusters in practice",
   "file": "./e3/ha-clusters.tsx"
+ },
+ {
+  "slug": "spatial-basics",
+  "module": "e4",
+  "order": 1,
+  "title": "Geometry, geography and coordinate systems",
+  "file": "./e4/spatial-basics.tsx"
+ },
+ {
+  "slug": "spatial-indexes",
+  "module": "e4",
+  "order": 2,
+  "title": "Spatial indexes",
+  "file": "./e4/spatial-indexes.tsx"
+ },
+ {
+  "slug": "nearest-neighbour",
+  "module": "e4",
+  "order": 3,
+  "title": "Nearest-neighbour search",
+  "file": "./e4/nearest-neighbour.tsx"
+ },
+ {
+  "slug": "spatial-queries",
+  "module": "e4",
+  "order": 4,
+  "title": "Everyday spatial queries",
+  "file": "./e4/spatial-queries.tsx"
  }
 ]

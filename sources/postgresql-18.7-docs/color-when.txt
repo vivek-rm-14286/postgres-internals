@@ -1,0 +1,14 @@
+N.1. When Color is Used
+Prev 	Up	Appendix N. Color Support	Home	 Next
+N.1. When Color is Used #
+
+To use colorized output, set the environment variable PG_COLOR as follows:
+
+If the value is always, then color is used.
+
+If the value is auto and the standard error stream is associated with a terminal device, then color is used.
+
+Otherwise, color is not used.
+
+Prev 	Up	 Next
+Appendix N. Color Support 	Home	 N.2. Configuring the Colors

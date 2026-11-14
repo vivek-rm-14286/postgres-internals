@@ -1,6 +1,6 @@
 {
   "name": "pg-internals-mcp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "MCP server: PostgreSQL 18 internals lessons, reference tables and a live PGlite sandbox",
   "main": "index.js",
   "scripts": {
@@ -17,6 +17,7 @@
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
     "@electric-sql/pglite-pgvector": "^0.0.17",
+    "@electric-sql/pglite-postgis": "^0.2.16",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "jsonc-parser": "^3.3.1",
     "yaml": "^2.9.1",

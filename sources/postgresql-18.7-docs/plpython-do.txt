@@ -1,0 +1,15 @@
+44.4. Anonymous Code Blocks
+Prev 	Up	Chapter 44. PL/Python — Python Procedural Language	Home	 Next
+44.4. Anonymous Code Blocks #
+
+PL/Python also supports anonymous code blocks called with the DO statement:
+
+DO $$
+    # PL/Python code
+$$ LANGUAGE plpython3u;
+
+
+An anonymous code block receives no arguments, and whatever value it might return is discarded. Otherwise it behaves just like a function.
+
+Prev 	Up	 Next
+44.3. Sharing Data 	Home	 44.5. Trigger Functions

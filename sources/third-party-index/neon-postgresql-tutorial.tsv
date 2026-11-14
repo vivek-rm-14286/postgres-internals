@@ -1,0 +1,431 @@
+0	6646	PostgreSQL 18 Array and Bytea Function Improvements	https://neon.com/postgresql/18/array-bytea-improvements
+1	11832	PostgreSQL 18 Asynchronous I/O - Improve Read Performance	https://neon.com/postgresql/18/asynchronous-io
+2	8284	PostgreSQL 18 Autovacuum and Maintenance Configuration: Dynamic Workers and Improved Controls	https://neon.com/postgresql/18/autovacuum-maintenance-configuration
+3	15603	PostgreSQL 18 Enhanced EXPLAIN with Automatic Buffers	https://neon.com/postgresql/18/enhanced-explain
+4	15932	PostgreSQL 18 Enhanced Returning Clause	https://neon.com/postgresql/18/enhanced-returning
+5	8138	PostgreSQL 18 Logical Replication of Generated Columns	https://neon.com/postgresql/18/logical-replication-improvements
+6	10332	PostgreSQL 18 NOT NULL Constraints as NOT VALID: Zero-Downtime Schema Changes	https://neon.com/postgresql/18/not-null-as-not-valid
+7	8069	PostgreSQL 18 OAuth Support	https://neon.com/postgresql/18/oauth-authentication
+8	8360	PostgreSQL 18 pg_stat_io Guide: Better I/O Monitoring	https://neon.com/postgresql/18/pg-stat-io
+9	10186	PostgreSQL 18 psql Improvements: Pipeline Queries and Prepared Statements	https://neon.com/postgresql/18/psql-improvements
+10	11240	PostgreSQL 18 Security Improvements: Wire Protocol 3.2, Advanced TLS and FIPS Validation	https://neon.com/postgresql/18/security-improvements
+11	11782	PostgreSQL 18 B-tree Skip Scan for Better Queries	https://neon.com/postgresql/18/skip-scan-btree
+12	14325	PostgreSQL 18 Temporal Constraints with WITHOUT OVERLAPS	https://neon.com/postgresql/18/temporal-constraints
+13	11283	PostgreSQL 18 UUIDv7 Support - Generate Timestamp-Ordered UUIDs	https://neon.com/postgresql/18/uuidv7-support
+14	14536	PostgreSQL 18 Virtual Generated Columns: Compute On-Demand	https://neon.com/postgresql/18/virtual-generated-columns
+15	10628	PostgreSQL 18 New Features: What's New and Why It Matters	https://neon.com/postgresql/18-new-features
+16	4567	PostgreSQL Administration	https://neon.com/postgresql/administration
+17	4354	PostgreSQL ALTER DATABASE Statement By Practical Examples	https://neon.com/postgresql/administration/alter-database
+18	5399	PostgreSQL ALTER ROLE Statement	https://neon.com/postgresql/administration/alter-role
+19	2989	PostgreSQL ALTER SCHEMA Statement	https://neon.com/postgresql/administration/alter-schema
+20	2054	PostgreSQL ALTER TABLESPACE	https://neon.com/postgresql/administration/alter-tablespace
+21	10459	PostgreSQL Backup - pg_dump & pg_dumpall	https://neon.com/postgresql/administration/backup-database
+22	2160	How to Change the Password of a PostgreSQL User	https://neon.com/postgresql/administration/change-password
+23	3717	PostgreSQL Copy Database Made Easy	https://neon.com/postgresql/administration/copy-database
+24	6978	PostgreSQL CREATE DATABASE Statement	https://neon.com/postgresql/administration/create-database
+25	3354	PostgreSQL CREATE SCHEMA Statement	https://neon.com/postgresql/administration/create-schema
+26	3642	How to Create Superuser in PostgreSQL	https://neon.com/postgresql/administration/create-superuser-postgresql
+27	4891	PostgreSQL Create Tablespace	https://neon.com/postgresql/administration/create-tablespace
+28	2400	PostgreSQL CURRENT_USER Function	https://neon.com/postgresql/administration/current_user
+29	5216	How to Get Sizes of Database Objects in PostgreSQL	https://neon.com/postgresql/administration/database-indexes-table-size
+30	6089	PostgreSQL DESCRIBE TABLE	https://neon.com/postgresql/administration/describe-table
+31	4539	PostgreSQL DROP DATABASE Statement	https://neon.com/postgresql/administration/drop-database
+32	4981	PostgreSQL DROP ROLE Statement	https://neon.com/postgresql/administration/drop-role
+33	3127	PostgreSQL DROP SCHEMA Explained by Practical Examples	https://neon.com/postgresql/administration/drop-schema
+34	3263	PostgreSQL DROP TABLESPACE Statement	https://neon.com/postgresql/administration/drop-tablespace
+35	4798	PostgreSQL GRANT Statement	https://neon.com/postgresql/administration/grant
+36	1961	PostgreSQL List Users: Shows PostgreSQL Users	https://neon.com/postgresql/administration/list-users
+37	3872	PostgreSQL Password File .pgpass	https://neon.com/postgresql/administration/password-file-pgpass
+38	2852	PostgreSQL pg_terminate_backend() Function	https://neon.com/postgresql/administration/pg_terminate_backend
+39	2917	How to Change Owners of PostgreSQL Databases	https://neon.com/postgresql/administration/postgres-change-database-owner
+40	5092	17 Practical psql Commands That You Don't Want To Miss	https://neon.com/postgresql/administration/psql-commands
+41	2775	PostgreSQL Rename Database: A Quick Guide	https://neon.com/postgresql/administration/rename-database
+42	3172	How To Reset Forgotten Password Of postgres User	https://neon.com/postgresql/administration/reset-password
+43	3610	How to Restart PostgreSQL on Windows	https://neon.com/postgresql/administration/restart-postgresql-windows
+44	2540	How to Restart PostgreSQL on Ubuntu	https://neon.com/postgresql/administration/restart-ubuntu
+45	3943	PostgreSQL Restore Database	https://neon.com/postgresql/administration/restore-database
+46	2597	PostgreSQL REVOKE Statement	https://neon.com/postgresql/administration/revoke
+47	5375	PostgreSQL Role Membership	https://neon.com/postgresql/administration/role-membership
+48	6157	PostgreSQL CREATE ROLE Statement	https://neon.com/postgresql/administration/roles
+49	4319	PostgreSQL Row-Level Security	https://neon.com/postgresql/administration/row-level-security
+50	6070	An Essential Guide to PostgreSQL Schema	https://neon.com/postgresql/administration/schema
+51	2776	PostgreSQL SET ROLE Statement	https://neon.com/postgresql/administration/set-role
+52	3212	PostgreSQL Show Databases	https://neon.com/postgresql/administration/show-databases
+53	7424	PostgreSQL Show Tables	https://neon.com/postgresql/administration/show-tables
+54	2451	How to Uninstall PostgreSQL from Ubuntu	https://neon.com/postgresql/administration/uninstall-postgresql-ubuntu
+55	1968	PostgreSQL Uptime	https://neon.com/postgresql/administration/uptime
+56	1853	How to Check PostgreSQL Version	https://neon.com/postgresql/administration/version
+57	2580	PostgreSQL Advanced	https://neon.com/postgresql/advanced
+58	5051	PostgreSQL Aggregate Functions	https://neon.com/postgresql/aggregate-functions
+59	3705	PostgreSQL ARRAY_AGG Function By Practical Examples	https://neon.com/postgresql/aggregate-functions/array_agg
+60	6167	PostgreSQL AVG function	https://neon.com/postgresql/aggregate-functions/avg-function
+61	4024	PostgreSQL BOOL_AND() Function	https://neon.com/postgresql/aggregate-functions/bool_and
+62	3950	PostgreSQL BOOL_OR() Function	https://neon.com/postgresql/aggregate-functions/bool_or
+63	4339	PostgreSQL COUNT() Function	https://neon.com/postgresql/aggregate-functions/count-function
+64	3331	PostgreSQL MAX() Function	https://neon.com/postgresql/aggregate-functions/max-function
+65	5298	PostgreSQL MIN() Function	https://neon.com/postgresql/aggregate-functions/min-function
+66	3871	PostgreSQL STRING_AGG() Function By Practical Examples	https://neon.com/postgresql/aggregate-functions/string_agg-function
+67	5379	PostgreSQL SUM() Function	https://neon.com/postgresql/aggregate-functions/sum-function
+68	2176	PostgreSQL API	https://neon.com/postgresql/api
+69	6646	PostgreSQL Cheat Sheet - Download the Cheat Sheet in PDF Format	https://neon.com/postgresql/cheat-sheet
+70	2344	PostgreSQL C#	https://neon.com/postgresql/csharp
+71	5850	PostgreSQL C#: Call a PostgreSQL Stored Procedure Using C#	https://neon.com/postgresql/csharp/csharp-call-a-stored-procedure
+72	4962	PostgreSQL C#: Call a PostgreSQL Function	https://neon.com/postgresql/csharp/csharp-call-postgresql-function
+73	6117	PostgreSQL C#: Connecting to the PostgreSQL database	https://neon.com/postgresql/csharp/csharp-connect
+74	4593	PostgreSQL C#: Create Tables	https://neon.com/postgresql/csharp/csharp-create-table
+75	4428	PostgreSQL C#: Delete	https://neon.com/postgresql/csharp/csharp-delete
+76	9369	PostgreSQL C#: Import Data from a CSV File into a Table	https://neon.com/postgresql/csharp/csharp-import-csv-file
+77	5375	PostgreSQL C#: Insert	https://neon.com/postgresql/csharp/csharp-insert
+78	5745	PostgreSQL C#: Selecting Data	https://neon.com/postgresql/csharp/csharp-select
+79	5322	PostgreSQL C#: Transaction	https://neon.com/postgresql/csharp/csharp-transaction
+80	4768	PostgreSQL C#: Updating Data	https://neon.com/postgresql/csharp/csharp-update
+81	3294	PostgreSQL Date Functions	https://neon.com/postgresql/date-functions
+82	2803	PostgreSQL AGE() Function: Calculate Ages	https://neon.com/postgresql/date-functions/age
+83	3766	PostgreSQL AT TIME ZONE Operator	https://neon.com/postgresql/date-functions/at-time-zone
+84	3289	PostgreSQL CLOCK_TIMESTAMP() Function	https://neon.com/postgresql/date-functions/clock_timestamp
+85	4057	PostgreSQL CURRENT_DATE Function By Practical Examples	https://neon.com/postgresql/date-functions/current_date
+86	3281	PostgreSQL CURRENT_TIME Function By Examples	https://neon.com/postgresql/date-functions/current_time
+87	3468	PostgreSQL CURRENT_TIMESTAMP Function	https://neon.com/postgresql/date-functions/current_timestamp
+88	5145	PostgreSQL DATE_BIN Function By Examples	https://neon.com/postgresql/date-functions/date_bin
+89	4427	PostgreSQL DATE_PART() Function	https://neon.com/postgresql/date-functions/date_part
+90	4510	PostgreSQL DATE_TRUNC Function By Examples	https://neon.com/postgresql/date-functions/date_trunc
+91	8758	PostgreSQL EXTRACT() Function	https://neon.com/postgresql/date-functions/extract
+92	2599	PostgreSQL ISFINITE() Function	https://neon.com/postgresql/date-functions/isfinite
+93	3041	PostgreSQL JUSTIFY_DAYS() Function	https://neon.com/postgresql/date-functions/justify_days
+94	2929	PostgreSQL JUSTIFY_HOURS() Function	https://neon.com/postgresql/date-functions/justify_hours
+95	2938	PostgreSQL JUSTIFY_INTERVAL() Function	https://neon.com/postgresql/date-functions/justify_interval
+96	2136	PostgreSQL LOCALTIME Function	https://neon.com/postgresql/date-functions/localtime
+97	2207	PostgreSQL LOCALTIMESTAMP Function By Examples	https://neon.com/postgresql/date-functions/localtimestamp
+98	2215	PostgreSQL MAKE_DATE() Function	https://neon.com/postgresql/date-functions/make_date
+99	4262	PostgreSQL MAKE_INTERVAL() Function	https://neon.com/postgresql/date-functions/make_interval
+100	2573	PostgreSQL MAKE_TIME() Function	https://neon.com/postgresql/date-functions/make_time
+101	5895	PostgreSQL NOW() Function: Getting the Current Date and Time	https://neon.com/postgresql/date-functions/now
+102	2831	PostgreSQL PG_SLEEP() Function	https://neon.com/postgresql/date-functions/pg_sleep
+103	4022	PostgreSQL statement_timestamp() Function	https://neon.com/postgresql/date-functions/statement_timestamp
+104	1967	PostgreSQL TIMEOFDAY() Function	https://neon.com/postgresql/date-functions/timeofday
+105	4134	PostgreSQL TO_DATE() Function: Convert String to Date	https://neon.com/postgresql/date-functions/to_date
+106	6271	PostgreSQL TO_TIMESTAMP() Function By Practical Examples	https://neon.com/postgresql/date-functions/to_timestamp
+107	3263	PostgreSQL Functions	https://neon.com/postgresql/functions
+108	2119	Getting Started with PostgreSQL	https://neon.com/postgresql/getting-started
+109	4951	Connecting to PostgreSQL Database Server	https://neon.com/postgresql/getting-started/connect-to-postgresql-database
+110	5676	Install PostgreSQL	https://neon.com/postgresql/getting-started/install-postgresql
+111	4370	Install PostgreSQL on Linux (Ubuntu)	https://neon.com/postgresql/getting-started/install-postgresql-linux
+112	3947	Install PostgreSQL on macOS	https://neon.com/postgresql/getting-started/install-postgresql-macos
+113	6902	Load PostgreSQL Sample Database	https://neon.com/postgresql/getting-started/load-postgresql-sample-database
+114	2630	PostgreSQL Sample Database	https://neon.com/postgresql/getting-started/sample-database
+115	3925	What is PostgreSQL?	https://neon.com/postgresql/getting-started/what-is-postgresql
+116	5742	PostgreSQL Indexes	https://neon.com/postgresql/indexes
+117	5160	PostgreSQL CREATE INDEX Statement	https://neon.com/postgresql/indexes/create-index
+118	3288	PostgreSQL DROP INDEX Statement	https://neon.com/postgresql/indexes/drop-index
+119	13218	PostgreSQL Full-text Search	https://neon.com/postgresql/indexes/full-text-search
+120	4387	PostgreSQL Index On Expression Explained By Practical Examples	https://neon.com/postgresql/indexes/index-on-expression
+121	3799	PostgreSQL Index Types	https://neon.com/postgresql/indexes/index-types
+122	9938	PostgreSQL JSON Index	https://neon.com/postgresql/indexes/json-index
+123	7936	PostgreSQL List Indexes	https://neon.com/postgresql/indexes/list-indexes
+124	6732	PostgreSQL Multicolumn Indexes	https://neon.com/postgresql/indexes/multicolumn-indexes
+125	3101	PostgreSQL Partial Index	https://neon.com/postgresql/indexes/partial-index
+126	4113	PostgreSQL REINDEX Explained	https://neon.com/postgresql/indexes/reindex
+127	5864	PostgreSQL UNIQUE Index	https://neon.com/postgresql/indexes/unique-index
+128	2709	PostgreSQL JDBC	https://neon.com/postgresql/jdbc
+129	4519	PostgreSQL JDBC: Call Stored Functions	https://neon.com/postgresql/jdbc/call-postgresql-stored-function
+130	6325	PostgreSQL JDBC: Connecting To The PostgreSQL Database	https://neon.com/postgresql/jdbc/connecting-to-postgresql-database
+131	3003	PostgreSQL JDBC: Creating Tables	https://neon.com/postgresql/jdbc/create-tables
+132	2955	PostgreSQL JDBC: Delete Data from Table	https://neon.com/postgresql/jdbc/delete
+133	8447	PostgreSQL JDBC: Insert Data into a Table	https://neon.com/postgresql/jdbc/insert
+134	8135	PostgreSQL JDBC: Querying Data	https://neon.com/postgresql/jdbc/query
+135	2770	PostgreSQL JDBC: Transactions	https://neon.com/postgresql/jdbc/transaction
+136	3354	PostgreSQL JDBC: Updating Data	https://neon.com/postgresql/jdbc/update
+137	4600	PostgreSQL JSON Functions	https://neon.com/postgresql/json-functions
+138	6972	PostgreSQL JSON Extract Operators: -> And ->>	https://neon.com/postgresql/json-functions/json-extract
+139	6923	PostgreSQL JSON Path	https://neon.com/postgresql/json-functions/json-path
+140	6325	PostgreSQL jsonb_agg() Function	https://neon.com/postgresql/json-functions/jsonb_agg
+141	3665	PostgreSQL jsonb_array_elements() Function	https://neon.com/postgresql/json-functions/jsonb_array_elements
+142	3934	PostgreSQL jsonb_array_elements_text() Function	https://neon.com/postgresql/json-functions/jsonb_array_elements_text
+143	3864	PostgreSQL jsonb_array_length() Function	https://neon.com/postgresql/json-functions/jsonb_array_length
+144	2174	PostgreSQL jsonb_build_array() Function	https://neon.com/postgresql/json-functions/jsonb_build_array
+145	2909	PostgreSQL jsonb_build_object() Function	https://neon.com/postgresql/json-functions/jsonb_build_object
+146	3536	PostgreSQL jsonb_each() Function	https://neon.com/postgresql/json-functions/jsonb_each
+147	3755	PostgreSQL jsonb_each_text() Function	https://neon.com/postgresql/json-functions/jsonb_each_text
+148	3986	PostgreSQL jsonb_extract_path() Function	https://neon.com/postgresql/json-functions/jsonb_extract_path
+149	4092	PostgreSQL jsonb_extract_path_text() Function	https://neon.com/postgresql/json-functions/jsonb_extract_path_text
+150	7668	PostgreSQL jsonb_insert() Function	https://neon.com/postgresql/json-functions/jsonb_insert
+151	3175	PostgreSQL jsonb_object() Function	https://neon.com/postgresql/json-functions/jsonb_object
+152	5303	PostgreSQL jsonb_object_agg() Function	https://neon.com/postgresql/json-functions/jsonb_object_agg
+153	3418	PostgreSQL jsonb_object_keys() Function	https://neon.com/postgresql/json-functions/jsonb_object_keys
+154	3213	PostgreSQL jsonb_path_exists() Function	https://neon.com/postgresql/json-functions/jsonb_path_exists
+155	2749	PostgreSQL jsonb_path_query() Function	https://neon.com/postgresql/json-functions/jsonb_path_query
+156	4002	PostgreSQL jsonb_path_query_array() Function	https://neon.com/postgresql/json-functions/jsonb_path_query_array
+157	3157	PostgreSQL jsonb_path_query_first() Function	https://neon.com/postgresql/json-functions/jsonb_path_query_first
+158	3004	PostgreSQL jsonb_populate_record() Function	https://neon.com/postgresql/json-functions/jsonb_populate_record
+159	3494	PostgreSQL jsonb_populate_recordset() Function	https://neon.com/postgresql/json-functions/jsonb_populate_recordset
+160	4921	PostgreSQL jsonb_pretty() Function	https://neon.com/postgresql/json-functions/jsonb_pretty
+161	7113	PostgreSQL jsonb_set() Function	https://neon.com/postgresql/json-functions/jsonb_set
+162	4043	PostgreSQL jsonb_strip_nulls() Function	https://neon.com/postgresql/json-functions/jsonb_strip_nulls
+163	3013	PostgreSQL jsonb_to_record() Function	https://neon.com/postgresql/json-functions/jsonb_to_record
+164	2339	PostgreSQL jsonb_typeof() Function	https://neon.com/postgresql/json-functions/jsonb_typeof
+165	16199	PostgreSQL JSONB Operators	https://neon.com/postgresql/json-functions/jsonb-operators
+166	3069	PostgreSQL row_to_json() Function	https://neon.com/postgresql/json-functions/row_to_json
+167	3399	PostgreSQL to_jsonb() Function	https://neon.com/postgresql/json-functions/to_jsonb
+168	2682	PostgreSQL Math Functions	https://neon.com/postgresql/math-functions
+169	1766	PostgreSQL ABS() Function	https://neon.com/postgresql/math-functions/abs
+170	3276	PostgreSQL CBRT() Function	https://neon.com/postgresql/math-functions/cbrt
+171	1870	PostgreSQL CEIL() Function	https://neon.com/postgresql/math-functions/ceil
+172	2480	PostgreSQL DEGREES() Function	https://neon.com/postgresql/math-functions/degrees
+173	3437	PostgreSQL DIV() Function By Practical Examples	https://neon.com/postgresql/math-functions/div
+174	2582	PostgreSQL EXP() Function	https://neon.com/postgresql/math-functions/exp
+175	1571	PostgreSQL factorial() Function	https://neon.com/postgresql/math-functions/factorial
+176	1762	PostgreSQL FLOOR() Function By Practical Examples	https://neon.com/postgresql/math-functions/floor
+177	6112	PostgreSQL GCD() Function	https://neon.com/postgresql/math-functions/gcd
+178	3510	PostgreSQL LCM() Function	https://neon.com/postgresql/math-functions/lcm
+179	2933	PostgreSQL LN() Function	https://neon.com/postgresql/math-functions/ln
+180	3235	PostgreSQL LOG() Function	https://neon.com/postgresql/math-functions/log
+181	2111	PostgreSQL MIN_SCALE() Function	https://neon.com/postgresql/math-functions/min_scale
+182	2397	PostgreSQL MOD() Function	https://neon.com/postgresql/math-functions/mod
+183	2514	PostgreSQL PI() Function	https://neon.com/postgresql/math-functions/pi-function
+184	3923	PostgreSQL POWER() Function	https://neon.com/postgresql/math-functions/power
+185	2477	PostgreSQL RADIANS() Function	https://neon.com/postgresql/math-functions/radians
+186	2968	PostgreSQL RANDOM() Function	https://neon.com/postgresql/math-functions/random
+187	3939	PostgreSQL ROUND() Function	https://neon.com/postgresql/math-functions/round
+188	3361	PostgreSQL SCALE() Function	https://neon.com/postgresql/math-functions/scale
+189	4284	PostgreSQL SIGN() Function	https://neon.com/postgresql/math-functions/sign
+190	2404	PostgreSQL SQRT() Function	https://neon.com/postgresql/math-functions/sqrt
+191	3101	PostgreSQL TRIM_SCALE() Function	https://neon.com/postgresql/math-functions/trim_scale
+192	2854	PostgreSQL TRUNC() Function: Truncating Numbers	https://neon.com/postgresql/math-functions/trunc
+193	7061	PostgreSQL WIDTH_BUCKET() Function By Practical Examples	https://neon.com/postgresql/math-functions/width_bucket
+194	2655	PostgreSQL PHP - Using PHP PDO to Access PostgreSQL	https://neon.com/postgresql/php
+195	7445	PostgreSQL PHP: Working with Binary Data	https://neon.com/postgresql/php/blob
+196	5941	PostgreSQL PHP: Calling Stored Procedures	https://neon.com/postgresql/php/call-stored-procedures
+197	6389	PostgreSQL PHP: Connect to PostgreSQL Database Using PDO	https://neon.com/postgresql/php/connect
+198	5153	PostgreSQL PHP: Create New Tables	https://neon.com/postgresql/php/create-tables
+199	4383	PostgreSQL PHP: Delete Data In a Table	https://neon.com/postgresql/php/delete
+200	5209	PostgreSQL PHP: Insert Data Into Tables	https://neon.com/postgresql/php/insert
+201	5953	PostgreSQL PHP: Querying Data From PostgreSQL Tables	https://neon.com/postgresql/php/query
+202	7328	PostgreSQL PHP: Transaction	https://neon.com/postgresql/php/transaction
+203	4333	PostgreSQL PHP: Updating Data in a Table Using PDO API	https://neon.com/postgresql/php/update
+204	4577	PostgreSQL PL/pgSQL	https://neon.com/postgresql/plpgsql
+205	6187	PostgreSQL CREATE FUNCTION Statement	https://neon.com/postgresql/plpgsql/create-function
+206	4109	PostgreSQL CREATE PROCEDURE By Examples	https://neon.com/postgresql/plpgsql/create-procedure
+207	4894	PostgreSQL Dollar-quoted String Constants	https://neon.com/postgresql/plpgsql/dollar-quoted-string-constants
+208	4387	PostgreSQL DROP FUNCTION Statement	https://neon.com/postgresql/plpgsql/drop-function
+209	4924	PostgreSQL DROP PROCEDURE Statement	https://neon.com/postgresql/plpgsql/drop-procedure
+210	5424	PostgreSQL Exception	https://neon.com/postgresql/plpgsql/exception
+211	2700	Introduction to PostgreSQL PL/pgSQL Procedural Language	https://neon.com/postgresql/plpgsql/introduction-to-postgresql-stored-procedures
+212	3044	PL/pgSQL Assert Statement	https://neon.com/postgresql/plpgsql/pl-pgsql-assert
+213	2612	PL/pgSQL Continue Statement By Examples	https://neon.com/postgresql/plpgsql/pl-pgsql-continue
+214	2244	PL/pgSQL Row Types	https://neon.com/postgresql/plpgsql/pl-pgsql-row-types
+215	3997	PL/pgSQL SELECT INTO Statement	https://neon.com/postgresql/plpgsql/pl-pgsql-select-into
+216	2298	PostgreSQL PL/pgSQL While Loop	https://neon.com/postgresql/plpgsql/pl-pgsql-while-loop
+217	5259	PL/pgSQL Block Structure	https://neon.com/postgresql/plpgsql/plpgsql-block-structure
+218	5333	PL/pgSQL CASE Statements	https://neon.com/postgresql/plpgsql/plpgsql-case-statement
+219	3622	PL/pgSQL Constants	https://neon.com/postgresql/plpgsql/plpgsql-constants
+220	4352	PL/pgSQL Cursor By Examples	https://neon.com/postgresql/plpgsql/plpgsql-cursor
+221	3719	PL/pgSQL Errors and Messages	https://neon.com/postgresql/plpgsql/plpgsql-errors-messages
+222	4324	PL/pgSQL EXIT Statement	https://neon.com/postgresql/plpgsql/plpgsql-exit
+223	5793	PL/pgSQL For Loop in PostgreSQL	https://neon.com/postgresql/plpgsql/plpgsql-for-loop
+224	4657	PL/pgSQL Function Overloading	https://neon.com/postgresql/plpgsql/plpgsql-function-overloading
+225	4345	PL/pgSQL Function Parameter Modes: IN, OUT, and INOUT	https://neon.com/postgresql/plpgsql/plpgsql-function-parameters
+226	4600	PL/pgSQL Function Returns a Table	https://neon.com/postgresql/plpgsql/plpgsql-function-returns-a-table
+227	5725	PL/pgSQL IF Statement	https://neon.com/postgresql/plpgsql/plpgsql-if-else-statements
+228	5092	PL/pgSQL Loop Statements	https://neon.com/postgresql/plpgsql/plpgsql-loop-statements
+229	3510	PL/pgSQL Record Types Explained Clearly By Examples	https://neon.com/postgresql/plpgsql/plpgsql-record-types
+230	4679	PL/pgSQL Returns SetOf	https://neon.com/postgresql/plpgsql/plpgsql-returns-setof
+231	7727	PL/pgSQL Variables	https://neon.com/postgresql/plpgsql/plpgsql-variables
+232	3472	PostgreSQL Stored Procedure with INOUT Parameters	https://neon.com/postgresql/plpgsql/stored-procedure-with-inout-parameters
+233	13491	PostgreSQL 19 Breaking Changes - What to Check Before Upgrading	https://neon.com/postgresql/postgresql-19/breaking-changes
+234	7602	PostgreSQL 19 JSON COPY TO - Native JSON Data Export	https://neon.com/postgresql/postgresql-19/json-copy-to
+235	7825	PostgreSQL 19 Logical Replication - Sequence Sync, EXCEPT TABLE, and More	https://neon.com/postgresql/postgresql-19/logical-replication-improvements
+236	14630	PostgreSQL 19 Monitoring and Operations Improvements	https://neon.com/postgresql/postgresql-19/monitoring-operations
+237	9838	PostgreSQL 19 ON CONFLICT DO SELECT - Atomic Get-or-Create	https://neon.com/postgresql/postgresql-19/on-conflict-do-select
+238	7591	PostgreSQL 19 Parallel Autovacuum - Faster Index Cleanup	https://neon.com/postgresql/postgresql-19/parallel-autovacuum
+239	8245	PostgreSQL 19 pg_plan_advice - Query Plan Hints for PostgreSQL	https://neon.com/postgresql/postgresql-19/pg-plan-advice
+240	7036	PostgreSQL 19 Query Improvements - IGNORE NULLS and Memoize Estimates	https://neon.com/postgresql/postgresql-19/query-improvements
+241	7533	PostgreSQL 19 REPACK Command - Online Table Maintenance	https://neon.com/postgresql/postgresql-19/repack-command
+242	7527	PostgreSQL 19 pg_get_*_ddl() Functions and pg_dumpall Improvements	https://neon.com/postgresql/postgresql-19/schema-management
+243	12486	PostgreSQL 19 SQL/PGQ - Graph Queries on Existing Tables	https://neon.com/postgresql/postgresql-19/sql-pgq-graph-queries
+244	9569	PostgreSQL 19 UPDATE/DELETE FOR PORTION OF - Temporal Data Operations	https://neon.com/postgresql/postgresql-19/temporal-data-operations
+245	16264	PostgreSQL 19 New Features: What's New and Why It Matters	https://neon.com/postgresql/postgresql-19-new-features
+246	3160	PostgreSQL Python	https://neon.com/postgresql/python
+247	4612	PostgreSQL Python: Handling Binary Data	https://neon.com/postgresql/python/blob
+248	4263	PostgreSQL Python: Call PostgreSQL Stored Procedures	https://neon.com/postgresql/python/call-stored-procedures
+249	5530	PostgreSQL Python: Connecting to PostgreSQL Server	https://neon.com/postgresql/python/connect
+250	5497	PostgreSQL Python: Create Tables	https://neon.com/postgresql/python/create-tables
+251	3684	PostgreSQL Python: Delete Data from Tables	https://neon.com/postgresql/python/delete
+252	4848	PostgreSQL Python: Insert Data Into a Table	https://neon.com/postgresql/python/insert
+253	4266	PostgreSQL Python: Call PostgreSQL Functions	https://neon.com/postgresql/python/python-call-postgresql-functions
+254	6589	PostgreSQL Python: Querying Data	https://neon.com/postgresql/python/query
+255	6834	PostgreSQL Python: Managing Transactions	https://neon.com/postgresql/python/transaction
+256	3308	PostgreSQL Python: Update Data in a Table	https://neon.com/postgresql/python/update
+257	2956	PostgreSQL String Functions	https://neon.com/postgresql/string-functions
+258	2066	PostgreSQL ASCII: Get ASCII code or Unicode Code Point of a Character	https://neon.com/postgresql/string-functions/ascii
+259	1698	PostgreSQL CHR: Get Character Based on ASCII or Unicode Code Point	https://neon.com/postgresql/string-functions/chr
+260	2832	PostgreSQL CONCAT_WS	https://neon.com/postgresql/string-functions/concat_ws
+261	4294	PostgreSQL CONCAT() Function	https://neon.com/postgresql/string-functions/concat-function
+262	5219	PostgreSQL FORMAT: Formats Arguments based on a Format String	https://neon.com/postgresql/string-functions/format
+263	3146	PostgreSQL INITCAP() Function	https://neon.com/postgresql/string-functions/initcap
+264	2543	PostgreSQL LEFT: Get First N Characters in a String	https://neon.com/postgresql/string-functions/left
+265	2333	PostgreSQL LENGTH() function	https://neon.com/postgresql/string-functions/length-function
+266	2288	PostgreSQL LOWER() Function	https://neon.com/postgresql/string-functions/lower
+267	4052	PostgreSQL LPAD() Function	https://neon.com/postgresql/string-functions/lpad
+268	3094	PostgreSQL LTRIM() Function	https://neon.com/postgresql/string-functions/ltrim
+269	1289	PostgreSQL MD5() Function	https://neon.com/postgresql/string-functions/md5
+270	3233	PostgreSQL POSITION: Locate a Substring in a String	https://neon.com/postgresql/string-functions/position
+271	3961	PostgreSQL REGEXP_MATCHES() Function	https://neon.com/postgresql/string-functions/regexp_matches
+272	3511	PostgreSQL REGEXP_REPLACE() Function By Examples	https://neon.com/postgresql/string-functions/regexp_replace
+273	2817	PostgreSQL REPEAT() Function	https://neon.com/postgresql/string-functions/repeat
+274	3875	PostgreSQL REPLACE() Function	https://neon.com/postgresql/string-functions/replace
+275	3016	PostgreSQL REVERSE() Function	https://neon.com/postgresql/string-functions/reverse
+276	2576	PostgreSQL RIGHT() Function	https://neon.com/postgresql/string-functions/right
+277	3267	PostgreSQL RPAD() Function	https://neon.com/postgresql/string-functions/rpad
+278	3051	PostgreSQL RTRIM() Function	https://neon.com/postgresql/string-functions/rtrim
+279	2870	PostgreSQL SPLIT_PART() Function	https://neon.com/postgresql/string-functions/split_part
+280	5402	PostgreSQL SUBSTRING() Function	https://neon.com/postgresql/string-functions/substring
+281	6175	PostgreSQL TO_CHAR Function By Practical Examples	https://neon.com/postgresql/string-functions/to_char
+282	4979	PostgreSQL TO_NUMBER() Function By Examples	https://neon.com/postgresql/string-functions/to_number
+283	3023	PostgreSQL TRANSLATE() Function	https://neon.com/postgresql/string-functions/translate
+284	4103	PostgreSQL TRIM() Function	https://neon.com/postgresql/string-functions/trim-function
+285	2366	PostgreSQL UPPER() Function	https://neon.com/postgresql/string-functions/upper
+286	2945	PostgreSQL Triggers	https://neon.com/postgresql/triggers
+287	4312	PostgreSQL AFTER DELETE Trigger	https://neon.com/postgresql/triggers/after-delete-trigger
+288	4045	PostgreSQL AFTER INSERT Trigger	https://neon.com/postgresql/triggers/after-insert-trigger
+289	4276	PostgreSQL AFTER UPDATE Trigger	https://neon.com/postgresql/triggers/after-update-trigger
+290	4177	PostgreSQL ALTER TRIGGER Statement	https://neon.com/postgresql/triggers/alter-trigger
+291	3492	PostgreSQL BEFORE DELETE Trigger	https://neon.com/postgresql/triggers/before-delete-trigger
+292	3498	PostgreSQL BEFORE INSERT Trigger	https://neon.com/postgresql/triggers/before-insert-trigger
+293	3583	PostgreSQL BEFORE TRUNCATE Trigger	https://neon.com/postgresql/triggers/before-truncate-trigger
+294	3880	PostgreSQL BEFORE UPDATE Trigger	https://neon.com/postgresql/triggers/before-update-trigger
+295	5960	PostgreSQL CREATE TRIGGER Statement	https://neon.com/postgresql/triggers/creating-first-trigger-postgresql
+296	3008	PostgreSQL DROP TRIGGER Statement	https://neon.com/postgresql/triggers/drop-trigger
+297	1906	How to Enable Triggers in PostgreSQL	https://neon.com/postgresql/triggers/enable-triggers
+298	4746	PostgreSQL Event Trigger	https://neon.com/postgresql/triggers/event-trigger
+299	5916	How to List All Triggers in PostgreSQL	https://neon.com/postgresql/triggers/how-to-list-all-triggers-in-postgresql
+300	6679	PostgreSQL INSTEAD OF Triggers	https://neon.com/postgresql/triggers/instead-of-triggers
+301	3327	Introduction to PostgreSQL Trigger	https://neon.com/postgresql/triggers/introduction-postgresql-trigger
+302	1781	How to Disable PostgreSQL Triggers	https://neon.com/postgresql/triggers/managing-postgresql-trigger
+303	4021	PostgreSQL Trigger When Condition	https://neon.com/postgresql/triggers/trigger-when-condition
+304	12087	PostgreSQL Tutorial	https://neon.com/postgresql/tutorial
+305	5487	PostgreSQL ADD COLUMN: Add One or More Columns to a Table	https://neon.com/postgresql/tutorial/add-column
+306	4367	PostgreSQL Table Aliases	https://neon.com/postgresql/tutorial/alias
+307	4505	PostgreSQL ALL Operator	https://neon.com/postgresql/tutorial/all
+308	4976	PostgreSQL ALTER TABLE	https://neon.com/postgresql/tutorial/alter-table
+309	4234	PostgreSQL AND Operator	https://neon.com/postgresql/tutorial/and
+310	6288	PostgreSQL ANY Operator	https://neon.com/postgresql/tutorial/any
+311	5481	PostgreSQL Array	https://neon.com/postgresql/tutorial/array
+312	3793	PostgreSQL BETWEEN	https://neon.com/postgresql/tutorial/between
+313	3934	PostgreSQL BOOLEAN Data Type with Practical Examples	https://neon.com/postgresql/tutorial/boolean
+314	2008	PostgreSQL BYTEA Data Type	https://neon.com/postgresql/tutorial/bytea-data-type
+315	7068	PostgreSQL CASE	https://neon.com/postgresql/tutorial/case
+316	7283	PostgreSQL CAST: Convert a Value of One Data Type to Another	https://neon.com/postgresql/tutorial/cast
+317	4426	PostgreSQL Change Column Type	https://neon.com/postgresql/tutorial/change-column-type
+318	4463	PostgreSQL Character Types: CHAR, VARCHAR, And TEXT	https://neon.com/postgresql/tutorial/char-varchar-text
+319	5584	PostgreSQL CHECK Constraints	https://neon.com/postgresql/tutorial/check-constraint
+320	4796	PostgreSQL COALESCE() Function	https://neon.com/postgresql/tutorial/coalesce
+321	3292	PostgreSQL Column Alias	https://neon.com/postgresql/tutorial/column-alias
+322	3290	How to Compare two Tables in PostgreSQL	https://neon.com/postgresql/tutorial/compare-two-tables-in-postgresql
+323	5258	PostgreSQL Composite Types	https://neon.com/postgresql/tutorial/composite-types
+324	4672	PostgreSQL Copy Table: A Step-by-Step Guide	https://neon.com/postgresql/tutorial/copy-table
+325	3084	PostgreSQL Correlated Subquery	https://neon.com/postgresql/tutorial/correlated-subquery
+326	6054	PostgreSQL CREATE TABLE Statement	https://neon.com/postgresql/tutorial/create-table
+327	3740	PostgreSQL CREATE TABLE AS Statement By Examples	https://neon.com/postgresql/tutorial/create-table-as
+328	3437	PostgreSQL CROSS JOIN	https://neon.com/postgresql/tutorial/cross-join
+329	6319	PostgreSQL Common Table Expression (CTE)	https://neon.com/postgresql/tutorial/cte
+330	2715	PostgreSQL CUBE	https://neon.com/postgresql/tutorial/cube
+331	4979	Getting Started with PostgreSQL Data Types	https://neon.com/postgresql/tutorial/data-types
+332	7389	PostgreSQL DATE Data Type	https://neon.com/postgresql/tutorial/date
+333	6435	PostgreSQL DEFAULT Value	https://neon.com/postgresql/tutorial/default-value
+334	5806	PostgreSQL DELETE Statement	https://neon.com/postgresql/tutorial/delete
+335	3926	PostgreSQL DELETE CASCADE	https://neon.com/postgresql/tutorial/delete-cascade
+336	4135	PostgreSQL DELETE JOIN - How to Emulate it Correctly	https://neon.com/postgresql/tutorial/delete-join
+337	3243	PostgreSQL DISTINCT ON	https://neon.com/postgresql/tutorial/distinct-on
+338	4705	PostgreSQL DOUBLE PRECISION Data Type	https://neon.com/postgresql/tutorial/double-precision-type
+339	6605	PostgreSQL DROP COLUMN	https://neon.com/postgresql/tutorial/drop-column
+340	4527	PostgreSQL DROP TABLE	https://neon.com/postgresql/tutorial/drop-table
+341	8009	PostgreSQL Enum	https://neon.com/postgresql/tutorial/enum
+342	4047	PostgreSQL EXCEPT	https://neon.com/postgresql/tutorial/except
+343	4381	PostgreSQL EXISTS Operator	https://neon.com/postgresql/tutorial/exists
+344	4884	PostgreSQL EXPLAIN Explained	https://neon.com/postgresql/tutorial/explain
+345	3770	Export a PostgreSQL Table to a CSV File	https://neon.com/postgresql/tutorial/export-postgresql-table-to-csv-file
+346	3928	PostgreSQL FETCH NEXT n ROWS ONLY OFFSET m ROWS	https://neon.com/postgresql/tutorial/fetch
+347	10308	PostgreSQL Foreign Key	https://neon.com/postgresql/tutorial/foreign-key
+348	6153	PostgreSQL FULL OUTER JOIN	https://neon.com/postgresql/tutorial/full-outer-join
+349	8195	PostgreSQL generate_series() Function	https://neon.com/postgresql/tutorial/generate_series
+350	5129	PostgreSQL Generated Columns	https://neon.com/postgresql/tutorial/generated-columns
+351	6193	PostgreSQL GROUP BY Clause	https://neon.com/postgresql/tutorial/group-by
+352	6599	PostgreSQL GROUPING SETS	https://neon.com/postgresql/tutorial/grouping-sets
+353	3835	PostgreSQL HAVING	https://neon.com/postgresql/tutorial/having
+354	5260	How to Delete Duplicate Rows in PostgreSQL	https://neon.com/postgresql/tutorial/how-to-delete-duplicate-rows-in-postgresql
+355	6385	PostgreSQL hstore Tutorial	https://neon.com/postgresql/tutorial/hstore
+356	6774	PostgreSQL Identity Column	https://neon.com/postgresql/tutorial/identity-column
+357	3378	Import CSV File Into PostgreSQL Table	https://neon.com/postgresql/tutorial/import-csv-file-into-posgresql-table
+358	5274	PostgreSQL IN - Matching Against a List of Values	https://neon.com/postgresql/tutorial/in
+359	6014	PostgreSQL INNER JOIN	https://neon.com/postgresql/tutorial/inner-join
+360	6403	PostgreSQL INSERT	https://neon.com/postgresql/tutorial/insert
+361	4250	PostgreSQL INSERT - Inserting Multiple Rows into a Table	https://neon.com/postgresql/tutorial/insert-multiple-rows
+362	2933	PostgreSQL Integer Data Types	https://neon.com/postgresql/tutorial/integer
+363	4227	PostgreSQL INTERSECT Operator	https://neon.com/postgresql/tutorial/intersect
+364	9287	PostgreSQL Interval Data Type	https://neon.com/postgresql/tutorial/interval
+365	3548	PostgreSQL IS NULL	https://neon.com/postgresql/tutorial/is-null
+366	1424	Looking for PostgreSQL ISNULL? Use COALESCE or CASE	https://neon.com/postgresql/tutorial/isnull
+367	9896	PostgreSQL Joins: A Visual Explanation of PostgreSQL Joins	https://neon.com/postgresql/tutorial/joins
+368	7864	PostgreSQL JSON Tutorial	https://neon.com/postgresql/tutorial/json
+369	4701	PostgreSQL LEFT JOIN	https://neon.com/postgresql/tutorial/left-join
+370	7840	PostgreSQL LIKE Operator	https://neon.com/postgresql/tutorial/like
+371	4781	PostgreSQL LIMIT Clause	https://neon.com/postgresql/tutorial/limit
+372	10908	PostgreSQL MERGE Statement	https://neon.com/postgresql/tutorial/merge
+373	6187	PostgreSQL NATURAL JOIN Explained By Example	https://neon.com/postgresql/tutorial/natural-join
+374	6449	PostgreSQL NOT NULL Constraints	https://neon.com/postgresql/tutorial/not-null-constraint
+375	6375	PostgreSQL NULLIF function	https://neon.com/postgresql/tutorial/nullif
+376	5514	PostgreSQL NUMERIC Data Type	https://neon.com/postgresql/tutorial/numeric
+377	3919	PostgreSQL OR Operator	https://neon.com/postgresql/tutorial/or
+378	6671	PostgreSQL ORDER BY	https://neon.com/postgresql/tutorial/order-by
+379	6369	PostgreSQL Primary Key	https://neon.com/postgresql/tutorial/primary-key
+380	2302	How to Generate a Random Number in A Range	https://neon.com/postgresql/tutorial/random-range
+381	2747	PostgreSQL REAL Data Type	https://neon.com/postgresql/tutorial/real-data-type
+382	6668	PostgreSQL Recursive Query	https://neon.com/postgresql/tutorial/recursive-query
+383	4447	PostgreSQL RENAME COLUMN	https://neon.com/postgresql/tutorial/rename-column
+384	5622	PostgreSQL Rename Table	https://neon.com/postgresql/tutorial/rename-table
+385	4591	PostgreSQL RIGHT JOIN	https://neon.com/postgresql/tutorial/right-join
+386	4115	PostgreSQL ROLLUP	https://neon.com/postgresql/tutorial/rollup
+387	9279	PostgreSQL SELECT	https://neon.com/postgresql/tutorial/select
+388	4876	PostgreSQL SELECT DISTINCT	https://neon.com/postgresql/tutorial/select-distinct
+389	3553	PostgreSQL SELECT INTO Statement by Practical Examples	https://neon.com/postgresql/tutorial/select-into
+390	6137	PostgreSQL Self-join By Practical Examples	https://neon.com/postgresql/tutorial/self-join
+391	7190	PostgreSQL Sequences	https://neon.com/postgresql/tutorial/sequences
+392	5176	Using PostgreSQL SERIAL to Create Auto-increment Columns	https://neon.com/postgresql/tutorial/serial
+393	3767	PostgreSQL Server and Database Objects	https://neon.com/postgresql/tutorial/server-and-database-objects
+394	3543	PostgreSQL Subquery	https://neon.com/postgresql/tutorial/subquery
+395	5306	PostgreSQL Temporary Table	https://neon.com/postgresql/tutorial/temporary-table
+396	5719	PostgreSQL TIME Data Type	https://neon.com/postgresql/tutorial/time
+397	8033	PostgreSQL Timestamp Data Types	https://neon.com/postgresql/tutorial/timestamp
+398	4607	PostgreSQL Transaction	https://neon.com/postgresql/tutorial/transaction
+399	7598	PostgreSQL TRUNCATE TABLE	https://neon.com/postgresql/tutorial/truncate-table
+400	5772	PostgreSQL UNION Operator	https://neon.com/postgresql/tutorial/union
+401	4202	PostgreSQL UNIQUE Constraint	https://neon.com/postgresql/tutorial/unique-constraint
+402	5617	PostgreSQL UPDATE Statement	https://neon.com/postgresql/tutorial/update
+403	4609	PostgreSQL UPDATE Join with Practical Examples	https://neon.com/postgresql/tutorial/update-join
+404	5581	PostgreSQL UPSERT Statement	https://neon.com/postgresql/tutorial/upsert
+405	5255	A Look at PostgreSQL User-defined Data Types	https://neon.com/postgresql/tutorial/user-defined-data-types
+406	4543	PostgreSQL UUID Data Type	https://neon.com/postgresql/tutorial/uuid
+407	3945	PostgreSQL vs. MySQL: A Comprehensive Comparison	https://neon.com/postgresql/tutorial/vs-mysql
+408	6212	PostgreSQL WHERE: Filtering Rows of a Query	https://neon.com/postgresql/tutorial/where
+409	7391	PostgreSQL XML Data Type	https://neon.com/postgresql/tutorial/xml-data-type
+410	3808	PostgreSQL Views	https://neon.com/postgresql/views
+411	5114	PostgreSQL ALTER VIEW Statement	https://neon.com/postgresql/views/alter-view
+412	4527	PostgreSQL DROP VIEW Statement Explained By Practical Examples	https://neon.com/postgresql/views/drop-view
+413	6264	PostgreSQL List Views	https://neon.com/postgresql/views/list-views
+414	6123	PostgreSQL CREATE VIEW	https://neon.com/postgresql/views/managing-postgresql-views
+415	5820	PostgreSQL Materialized Views	https://neon.com/postgresql/views/materialized-views
+416	4566	How To Create a PostgreSQL Recursive View	https://neon.com/postgresql/views/recursive-view
+417	4339	PostgreSQL Updatable Views	https://neon.com/postgresql/views/updatable-views
+418	8088	Creating PostgreSQL Views WITH CHECK OPTION	https://neon.com/postgresql/views/views-with-check-option
+419	10999	PostgreSQL Window Functions: The Ultimate Guide	https://neon.com/postgresql/window-function
+420	3958	PostgreSQL CUME_DIST Function By Practical Examples	https://neon.com/postgresql/window-function/cume_dist-function
+421	4008	PostgreSQL DENSE_RANK() Function By Practical Examples	https://neon.com/postgresql/window-function/dense_rank-function
+422	3829	PostgreSQL FIRST_VALUE() Function By Practical Examples	https://neon.com/postgresql/window-function/first_value-function
+423	4990	PostgreSQL LAG() Function By Practical Examples	https://neon.com/postgresql/window-function/lag-function
+424	3844	PostgreSQL LAST_VALUE Function By Practical Examples	https://neon.com/postgresql/window-function/last_value-function
+425	4840	PostgreSQL LEAD() Function By Practical Examples	https://neon.com/postgresql/window-function/lead-function
+426	3646	PostgreSQL NTH_VALUE() Function By Practical Examples	https://neon.com/postgresql/window-function/nth_value-function
+427	3247	PostgreSQL NTILE Function By Practical Examples	https://neon.com/postgresql/window-function/ntile-function
+428	3077	PostgreSQL PERCENT_RANK() Function By Practical Examples	https://neon.com/postgresql/window-function/percent_rank-function
+429	3848	PostgreSQL RANK() Function By Practical Examples	https://neon.com/postgresql/window-function/rank-function
+430	5508	PostgreSQL ROW_NUMBER() Explained with Practical Examples	https://neon.com/postgresql/window-function/row_number

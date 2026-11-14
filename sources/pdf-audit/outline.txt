@@ -1,0 +1,4030 @@
+PostgreSQL 18.7 Documentation
+Table of Contents
+Preface
+  1.  What Is PostgreSQL?
+  2. A Brief History of PostgreSQL
+    2.1. The Berkeley POSTGRES Project
+    2.2. Postgres95
+    2.3. PostgreSQL
+  3. Conventions
+  4. Further Information
+  5. Bug Reporting Guidelines
+    5.1. Identifying Bugs
+    5.2. What to Report
+    5.3. Where to Report Bugs
+Part I. Tutorial
+  Chapter 1. Getting Started
+    1.1. Installation
+    1.2. Architectural Fundamentals
+    1.3. Creating a Database
+    1.4. Accessing a Database
+  Chapter 2. The SQL Language
+    2.1. Introduction
+    2.2. Concepts
+    2.3. Creating a New Table
+    2.4. Populating a Table With Rows
+    2.5. Querying a Table
+    2.6. Joins Between Tables
+    2.7. Aggregate Functions
+    2.8. Updates
+    2.9. Deletions
+  Chapter 3. Advanced Features
+    3.1. Introduction
+    3.2. Views
+    3.3. Foreign Keys
+    3.4. Transactions
+    3.5. Window Functions
+    3.6. Inheritance
+    3.7. Conclusion
+Part II. The SQL Language
+  Chapter 4. SQL Syntax
+    4.1. Lexical Structure
+      4.1.1. Identifiers and Key Words
+      4.1.2. Constants
+        4.1.2.1. String Constants
+        4.1.2.2. String Constants with C-Style Escapes
+        4.1.2.3. String Constants with Unicode Escapes
+        4.1.2.4. Dollar-Quoted String Constants
+        4.1.2.5. Bit-String Constants
+        4.1.2.6. Numeric Constants
+        4.1.2.7. Constants of Other Types
+      4.1.3. Operators
+      4.1.4. Special Characters
+      4.1.5. Comments
+      4.1.6. Operator Precedence
+    4.2. Value Expressions
+      4.2.1. Column References
+      4.2.2. Positional Parameters
+      4.2.3. Subscripts
+      4.2.4. Field Selection
+      4.2.5. Operator Invocations
+      4.2.6. Function Calls
+      4.2.7. Aggregate Expressions
+      4.2.8. Window Function Calls
+      4.2.9. Type Casts
+      4.2.10. Collation Expressions
+      4.2.11. Scalar Subqueries
+      4.2.12. Array Constructors
+      4.2.13. Row Constructors
+      4.2.14. Expression Evaluation Rules
+    4.3. Calling Functions
+      4.3.1. Using Positional Notation
+      4.3.2. Using Named Notation
+      4.3.3. Using Mixed Notation
+  Chapter 5. Data Definition
+    5.1. Table Basics
+    5.2. Default Values
+    5.3. Identity Columns
+    5.4. Generated Columns
+    5.5. Constraints
+      5.5.1. Check Constraints
+      5.5.2. Not-Null Constraints
+      5.5.3. Unique Constraints
+      5.5.4. Primary Keys
+      5.5.5. Foreign Keys
+      5.5.6. Exclusion Constraints
+    5.6. System Columns
+    5.7. Modifying Tables
+      5.7.1. Adding a Column
+      5.7.2. Removing a Column
+      5.7.3. Adding a Constraint
+      5.7.4. Removing a Constraint
+      5.7.5. Changing a Column's Default Value
+      5.7.6. Changing a Column's Data Type
+      5.7.7. Renaming a Column
+      5.7.8. Renaming a Table
+    5.8. Privileges
+    5.9. Row Security Policies
+    5.10. Schemas
+      5.10.1. Creating a Schema
+      5.10.2. The Public Schema
+      5.10.3. The Schema Search Path
+      5.10.4. Schemas and Privileges
+      5.10.5. The System Catalog Schema
+      5.10.6. Usage Patterns
+      5.10.7. Portability
+    5.11. Inheritance
+      5.11.1. Caveats
+    5.12. Table Partitioning
+      5.12.1. Overview
+      5.12.2. Declarative Partitioning
+        5.12.2.1. Example
+        5.12.2.2. Partition Maintenance
+        5.12.2.3. Limitations
+      5.12.3. Partitioning Using Inheritance
+        5.12.3.1. Example
+        5.12.3.2. Maintenance for Inheritance Partitioning
+        5.12.3.3. Caveats
+      5.12.4. Partition Pruning
+      5.12.5. Partitioning and Constraint Exclusion
+      5.12.6. Best Practices for Declarative Partitioning
+    5.13. Foreign Data
+    5.14. Other Database Objects
+    5.15. Dependency Tracking
+  Chapter 6. Data Manipulation
+    6.1. Inserting Data
+    6.2. Updating Data
+    6.3. Deleting Data
+    6.4. Returning Data from Modified Rows
+  Chapter 7. Queries
+    7.1. Overview
+    7.2. Table Expressions
+      7.2.1. The FROM Clause
+        7.2.1.1. Joined Tables
+        7.2.1.2. Table and Column Aliases
+        7.2.1.3. Subqueries
+        7.2.1.4. Table Functions
+        7.2.1.5. LATERAL Subqueries
+      7.2.2. The WHERE Clause
+      7.2.3. The GROUP BY and HAVING Clauses
+      7.2.4. GROUPING SETS, CUBE, and ROLLUP
+      7.2.5. Window Function Processing
+    7.3. Select Lists
+      7.3.1. Select-List Items
+      7.3.2. Column Labels
+      7.3.3. DISTINCT
+    7.4. Combining Queries (UNION, INTERSECT, EXCEPT)
+    7.5. Sorting Rows (ORDER BY)
+    7.6. LIMIT and OFFSET
+    7.7. VALUES Lists
+    7.8. WITH Queries (Common Table Expressions)
+      7.8.1. SELECT in WITH
+      7.8.2. Recursive Queries
+        7.8.2.1. Search Order
+        7.8.2.2. Cycle Detection
+      7.8.3. Common Table Expression Materialization
+      7.8.4. Data-Modifying Statements in WITH
+  Chapter 8. Data Types
+    8.1. Numeric Types
+      8.1.1. Integer Types
+      8.1.2. Arbitrary Precision Numbers
+      8.1.3. Floating-Point Types
+      8.1.4. Serial Types
+    8.2. Monetary Types
+    8.3. Character Types
+    8.4. Binary Data Types
+      8.4.1. bytea Hex Format
+      8.4.2. bytea Escape Format
+    8.5. Date/Time Types
+      8.5.1. Date/Time Input
+        8.5.1.1. Dates
+        8.5.1.2. Times
+        8.5.1.3. Time Stamps
+        8.5.1.4. Special Values
+      8.5.2. Date/Time Output
+      8.5.3. Time Zones
+      8.5.4. Interval Input
+      8.5.5. Interval Output
+    8.6. Boolean Type
+    8.7. Enumerated Types
+      8.7.1. Declaration of Enumerated Types
+      8.7.2. Ordering
+      8.7.3. Type Safety
+      8.7.4. Implementation Details
+    8.8. Geometric Types
+      8.8.1. Points
+      8.8.2. Lines
+      8.8.3. Line Segments
+      8.8.4. Boxes
+      8.8.5. Paths
+      8.8.6. Polygons
+      8.8.7. Circles
+    8.9. Network Address Types
+      8.9.1. inet
+      8.9.2. cidr
+      8.9.3. inet vs. cidr
+      8.9.4. macaddr
+      8.9.5. macaddr8
+    8.10. Bit String Types
+    8.11. Text Search Types
+      8.11.1. tsvector
+      8.11.2. tsquery
+    8.12. UUID Type
+    8.13. XML Type
+      8.13.1. Creating XML Values
+      8.13.2. Encoding Handling
+      8.13.3. Accessing XML Values
+    8.14. JSON Types
+      8.14.1. JSON Input and Output Syntax
+      8.14.2. Designing JSON Documents
+      8.14.3. jsonb Containment and Existence
+      8.14.4. jsonb Indexing
+      8.14.5. jsonb Subscripting
+      8.14.6. Transforms
+      8.14.7. jsonpath Type
+    8.15. Arrays
+      8.15.1. Declaration of Array Types
+      8.15.2. Array Value Input
+      8.15.3. Accessing Arrays
+      8.15.4. Modifying Arrays
+      8.15.5. Searching in Arrays
+      8.15.6. Array Input and Output Syntax
+    8.16. Composite Types
+      8.16.1. Declaration of Composite Types
+      8.16.2. Constructing Composite Values
+      8.16.3. Accessing Composite Types
+      8.16.4. Modifying Composite Types
+      8.16.5. Using Composite Types in Queries
+      8.16.6. Composite Type Input and Output Syntax
+    8.17. Range Types
+      8.17.1. Built-in Range and Multirange Types
+      8.17.2. Examples
+      8.17.3. Inclusive and Exclusive Bounds
+      8.17.4. Infinite (Unbounded) Ranges
+      8.17.5. Range Input/Output
+      8.17.6. Constructing Ranges and Multiranges
+      8.17.7. Discrete Range Types
+      8.17.8. Defining New Range Types
+      8.17.9. Indexing
+      8.17.10. Constraints on Ranges
+    8.18. Domain Types
+    8.19. Object Identifier Types
+    8.20. pg_lsn Type
+    8.21. Pseudo-Types
+  Chapter 9. Functions and Operators
+    9.1. Logical Operators
+    9.2. Comparison Functions and Operators
+    9.3. Mathematical Functions and Operators
+    9.4. String Functions and Operators
+      9.4.1. format
+    9.5. Binary String Functions and Operators
+    9.6. Bit String Functions and Operators
+    9.7. Pattern Matching
+      9.7.1. LIKE
+      9.7.2. SIMILAR TO Regular Expressions
+      9.7.3. POSIX Regular Expressions
+        9.7.3.1. Regular Expression Details
+        9.7.3.2. Bracket Expressions
+        9.7.3.3. Regular Expression Escapes
+        9.7.3.4. Regular Expression Metasyntax
+        9.7.3.5. Regular Expression Matching Rules
+        9.7.3.6. Limits and Compatibility
+        9.7.3.7. Basic Regular Expressions
+        9.7.3.8. Differences from SQL Standard and XQuery
+    9.8. Data Type Formatting Functions
+    9.9. Date/Time Functions and Operators
+      9.9.1. EXTRACT, date_part
+      9.9.2. date_trunc
+      9.9.3. date_bin
+      9.9.4. AT TIME ZONE and AT LOCAL
+      9.9.5. Current Date/Time
+      9.9.6. Delaying Execution
+    9.10. Enum Support Functions
+    9.11. Geometric Functions and Operators
+    9.12. Network Address Functions and Operators
+    9.13. Text Search Functions and Operators
+    9.14. UUID Functions
+    9.15. XML Functions
+      9.15.1. Producing XML Content
+        9.15.1.1. xmltext
+        9.15.1.2. xmlcomment
+        9.15.1.3. xmlconcat
+        9.15.1.4. xmlelement
+        9.15.1.5. xmlforest
+        9.15.1.6. xmlpi
+        9.15.1.7. xmlroot
+        9.15.1.8. xmlagg
+      9.15.2. XML Predicates
+        9.15.2.1. IS DOCUMENT
+        9.15.2.2. IS NOT DOCUMENT
+        9.15.2.3. XMLEXISTS
+        9.15.2.4. xml_is_well_formed
+      9.15.3. Processing XML
+        9.15.3.1. xpath
+        9.15.3.2. xpath_exists
+        9.15.3.3. xmltable
+      9.15.4. Mapping Tables to XML
+    9.16. JSON Functions and Operators
+      9.16.1. Processing and Creating JSON Data
+      9.16.2. The SQL/JSON Path Language
+        9.16.2.1. Deviations from the SQL Standard
+          9.16.2.1.1. Boolean Predicate Check Expressions
+          9.16.2.1.2. Regular Expression Interpretation
+        9.16.2.2. Strict and Lax Modes
+        9.16.2.3. SQL/JSON Path Operators and Methods
+        9.16.2.4. SQL/JSON Regular Expressions
+      9.16.3. SQL/JSON Query Functions
+      9.16.4. JSON_TABLE
+    9.17. Sequence Manipulation Functions
+    9.18. Conditional Expressions
+      9.18.1. CASE
+      9.18.2. COALESCE
+      9.18.3. NULLIF
+      9.18.4. GREATEST and LEAST
+    9.19. Array Functions and Operators
+    9.20. Range/Multirange Functions and Operators
+    9.21. Aggregate Functions
+    9.22. Window Functions
+    9.23. Merge Support Functions
+    9.24. Subquery Expressions
+      9.24.1. EXISTS
+      9.24.2. IN
+      9.24.3. NOT IN
+      9.24.4. ANY/SOME
+      9.24.5. ALL
+      9.24.6. Single-Row Comparison
+    9.25. Row and Array Comparisons
+      9.25.1. IN
+      9.25.2. NOT IN
+      9.25.3. ANY/SOME (array)
+      9.25.4. ALL (array)
+      9.25.5. Row Constructor Comparison
+      9.25.6. Composite Type Comparison
+    9.26. Set Returning Functions
+    9.27. System Information Functions and Operators
+      9.27.1. Session Information Functions
+      9.27.2. Access Privilege Inquiry Functions
+      9.27.3. Schema Visibility Inquiry Functions
+      9.27.4. System Catalog Information Functions
+      9.27.5. Object Information and Addressing Functions
+      9.27.6. Comment Information Functions
+      9.27.7. Data Validity Checking Functions
+      9.27.8. Transaction ID and Snapshot Information Functions
+      9.27.9. Committed Transaction Information Functions
+      9.27.10. Control Data Functions
+      9.27.11. Version Information Functions
+      9.27.12. WAL Summarization Information Functions
+    9.28. System Administration Functions
+      9.28.1. Configuration Settings Functions
+      9.28.2. Server Signaling Functions
+      9.28.3. Backup Control Functions
+      9.28.4. Recovery Control Functions
+      9.28.5. Snapshot Synchronization Functions
+      9.28.6. Replication Management Functions
+      9.28.7. Database Object Management Functions
+      9.28.8. Index Maintenance Functions
+      9.28.9. Generic File Access Functions
+      9.28.10. Advisory Lock Functions
+    9.29. Trigger Functions
+    9.30. Event Trigger Functions
+      9.30.1. Capturing Changes at Command End
+      9.30.2. Processing Objects Dropped by a DDL Command
+      9.30.3. Handling a Table Rewrite Event
+    9.31. Statistics Information Functions
+      9.31.1. Inspecting MCV Lists
+  Chapter 10. Type Conversion
+    10.1. Overview
+    10.2. Operators
+    10.3. Functions
+    10.4. Value Storage
+    10.5. UNION, CASE, and Related Constructs
+    10.6. SELECT Output Columns
+  Chapter 11. Indexes
+    11.1. Introduction
+    11.2. Index Types
+      11.2.1. B-Tree
+      11.2.2. Hash
+      11.2.3. GiST
+      11.2.4. SP-GiST
+      11.2.5. GIN
+      11.2.6. BRIN
+    11.3. Multicolumn Indexes
+    11.4. Indexes and ORDER BY
+    11.5. Combining Multiple Indexes
+    11.6. Unique Indexes
+    11.7. Indexes on Expressions
+    11.8. Partial Indexes
+    11.9. Index-Only Scans and Covering Indexes
+    11.10. Operator Classes and Operator Families
+    11.11. Indexes and Collations
+    11.12. Examining Index Usage
+  Chapter 12. Full Text Search
+    12.1. Introduction
+      12.1.1. What Is a Document?
+      12.1.2. Basic Text Matching
+      12.1.3. Configurations
+    12.2. Tables and Indexes
+      12.2.1. Searching a Table
+      12.2.2. Creating Indexes
+    12.3. Controlling Text Search
+      12.3.1. Parsing Documents
+      12.3.2. Parsing Queries
+      12.3.3. Ranking Search Results
+      12.3.4. Highlighting Results
+    12.4. Additional Features
+      12.4.1. Manipulating Documents
+      12.4.2. Manipulating Queries
+        12.4.2.1. Query Rewriting
+      12.4.3. Triggers for Automatic Updates
+      12.4.4. Gathering Document Statistics
+    12.5. Parsers
+    12.6. Dictionaries
+      12.6.1. Stop Words
+      12.6.2. Simple Dictionary
+      12.6.3. Synonym Dictionary
+      12.6.4. Thesaurus Dictionary
+        12.6.4.1. Thesaurus Configuration
+        12.6.4.2. Thesaurus Example
+      12.6.5. Ispell Dictionary
+      12.6.6. Snowball Dictionary
+    12.7. Configuration Example
+    12.8. Testing and Debugging Text Search
+      12.8.1. Configuration Testing
+      12.8.2. Parser Testing
+      12.8.3. Dictionary Testing
+    12.9. Preferred Index Types for Text Search
+    12.10. psql Support
+    12.11. Limitations
+  Chapter 13. Concurrency Control
+    13.1. Introduction
+    13.2. Transaction Isolation
+      13.2.1. Read Committed Isolation Level
+      13.2.2. Repeatable Read Isolation Level
+      13.2.3. Serializable Isolation Level
+    13.3. Explicit Locking
+      13.3.1. Table-Level Locks
+      13.3.2. Row-Level Locks
+      13.3.3. Page-Level Locks
+      13.3.4. Deadlocks
+      13.3.5. Advisory Locks
+    13.4. Data Consistency Checks at the Application Level
+      13.4.1. Enforcing Consistency with Serializable Transactions
+      13.4.2. Enforcing Consistency with Explicit Blocking Locks
+    13.5. Serialization Failure Handling
+    13.6. Caveats
+    13.7. Locking and Indexes
+  Chapter 14. Performance Tips
+    14.1. Using EXPLAIN
+      14.1.1. EXPLAIN Basics
+      14.1.2. EXPLAIN ANALYZE
+      14.1.3. Caveats
+    14.2. Statistics Used by the Planner
+      14.2.1. Single-Column Statistics
+      14.2.2. Extended Statistics
+        14.2.2.1. Functional Dependencies
+          14.2.2.1.1. Limitations of Functional Dependencies
+        14.2.2.2. Multivariate N-Distinct Counts
+        14.2.2.3. Multivariate MCV Lists
+    14.3. Controlling the Planner with Explicit JOIN Clauses
+    14.4. Populating a Database
+      14.4.1. Disable Autocommit
+      14.4.2. Use COPY
+      14.4.3. Remove Indexes
+      14.4.4. Remove Foreign Key Constraints
+      14.4.5. Increase maintenance_work_mem
+      14.4.6. Increase max_wal_size
+      14.4.7. Disable WAL Archival and Streaming Replication
+      14.4.8. Run ANALYZE Afterwards
+      14.4.9. Some Notes about pg_dump
+    14.5. Non-Durable Settings
+  Chapter 15. Parallel Query
+    15.1. How Parallel Query Works
+    15.2. When Can Parallel Query Be Used?
+    15.3. Parallel Plans
+      15.3.1. Parallel Scans
+      15.3.2. Parallel Joins
+      15.3.3. Parallel Aggregation
+      15.3.4. Parallel Append
+      15.3.5. Parallel Plan Tips
+    15.4. Parallel Safety
+      15.4.1. Parallel Labeling for Functions and Aggregates
+Part III. Server Administration
+  Chapter 16. Installation from Binaries
+  Chapter 17. Installation from Source Code
+    17.1. Requirements
+    17.2. Getting the Source
+    17.3. Building and Installation with Autoconf and Make
+      17.3.1. Short Version
+      17.3.2. Installation Procedure
+      17.3.3. configure Options
+        17.3.3.1. Installation Locations
+        17.3.3.2. PostgreSQL Features
+        17.3.3.3. Anti-Features
+        17.3.3.4. Build Process Details
+        17.3.3.5. Miscellaneous
+        17.3.3.6. Developer Options
+      17.3.4. configure Environment Variables
+    17.4. Building and Installation with Meson
+      17.4.1. Short Version
+      17.4.2. Installation Procedure
+      17.4.3. meson setup Options
+        17.4.3.1. Installation Locations
+        17.4.3.2. PostgreSQL Features
+        17.4.3.3. Anti-Features
+        17.4.3.4. Build Process Details
+        17.4.3.5. Documentation
+        17.4.3.6. Miscellaneous
+        17.4.3.7. Developer Options
+      17.4.4. meson Build Targets
+        17.4.4.1. Code Targets
+        17.4.4.2. Developer Targets
+        17.4.4.3. Documentation Targets
+        17.4.4.4. Installation Targets
+        17.4.4.5. Other Targets
+    17.5. Post-Installation Setup
+      17.5.1. Shared Libraries
+      17.5.2. Environment Variables
+    17.6. Supported Platforms
+    17.7. Platform-Specific Notes
+      17.7.1. Cygwin
+      17.7.2. macOS
+      17.7.3. MinGW
+        17.7.3.1. Collecting Crash Dumps
+      17.7.4. Solaris
+        17.7.4.1. Required Tools
+        17.7.4.2. configure Complains About a Failed Test Program
+        17.7.4.3. Compiling for Optimal Performance
+        17.7.4.4. Using DTrace for Tracing PostgreSQL
+      17.7.5. Visual Studio
+        17.7.5.1. Requirements
+        17.7.5.2. Special Considerations for 64-Bit Windows
+        17.7.5.3. Collecting Crash Dumps
+  Chapter 18. Server Setup and Operation
+    18.1. The PostgreSQL User Account
+    18.2. Creating a Database Cluster
+      18.2.1. Use of Secondary File Systems
+      18.2.2. File Systems
+        18.2.2.1. NFS
+    18.3. Starting the Database Server
+      18.3.1. Server Start-up Failures
+      18.3.2. Client Connection Problems
+    18.4. Managing Kernel Resources
+      18.4.1. Shared Memory and Semaphores
+      18.4.2. systemd RemoveIPC
+      18.4.3. Resource Limits
+      18.4.4. Linux Memory Overcommit
+      18.4.5. Linux Huge Pages
+    18.5. Shutting Down the Server
+    18.6. Upgrading a PostgreSQL Cluster
+      18.6.1. Upgrading Data via pg_dumpall
+      18.6.2. Upgrading Data via pg_upgrade
+      18.6.3. Upgrading Data via Replication
+    18.7. Preventing Server Spoofing
+    18.8. Encryption Options
+    18.9. Secure TCP/IP Connections with SSL
+      18.9.1. Basic Setup
+      18.9.2. OpenSSL Configuration
+      18.9.3. Using Client Certificates
+      18.9.4. SSL Server File Usage
+      18.9.5. Creating Certificates
+    18.10. Secure TCP/IP Connections with GSSAPI Encryption
+      18.10.1. Basic Setup
+    18.11. Secure TCP/IP Connections with SSH Tunnels
+    18.12. Registering Event Log on Windows
+  Chapter 19. Server Configuration
+    19.1. Setting Parameters
+      19.1.1. Parameter Names and Values
+      19.1.2. Parameter Interaction via the Configuration File
+      19.1.3. Parameter Interaction via SQL
+      19.1.4. Parameter Interaction via the Shell
+      19.1.5. Managing Configuration File Contents
+    19.2. File Locations
+    19.3. Connections and Authentication
+      19.3.1. Connection Settings
+      19.3.2. TCP Settings
+      19.3.3. Authentication
+      19.3.4. SSL
+    19.4. Resource Consumption
+      19.4.1. Memory
+      19.4.2. Disk
+      19.4.3. Kernel Resource Usage
+      19.4.4. Background Writer
+      19.4.5. I/O
+      19.4.6. Worker Processes
+    19.5. Write Ahead Log
+      19.5.1. Settings
+      19.5.2. Checkpoints
+      19.5.3. Archiving
+      19.5.4. Recovery
+      19.5.5. Archive Recovery
+      19.5.6. Recovery Target
+      19.5.7. WAL Summarization
+    19.6. Replication
+      19.6.1. Sending Servers
+      19.6.2. Primary Server
+      19.6.3. Standby Servers
+      19.6.4. Subscribers
+    19.7. Query Planning
+      19.7.1. Planner Method Configuration
+      19.7.2. Planner Cost Constants
+      19.7.3. Genetic Query Optimizer
+      19.7.4. Other Planner Options
+    19.8. Error Reporting and Logging
+      19.8.1. Where to Log
+      19.8.2. When to Log
+      19.8.3. What to Log
+      19.8.4. Using CSV-Format Log Output
+      19.8.5. Using JSON-Format Log Output
+      19.8.6. Process Title
+    19.9. Run-time Statistics
+      19.9.1. Cumulative Query and Index Statistics
+      19.9.2. Statistics Monitoring
+    19.10. Vacuuming
+      19.10.1. Automatic Vacuuming
+      19.10.2. Cost-based Vacuum Delay
+      19.10.3. Default Behavior
+      19.10.4. Freezing
+    19.11. Client Connection Defaults
+      19.11.1. Statement Behavior
+      19.11.2. Locale and Formatting
+      19.11.3. Shared Library Preloading
+      19.11.4. Other Defaults
+    19.12. Lock Management
+    19.13. Version and Platform Compatibility
+      19.13.1. Previous PostgreSQL Versions
+      19.13.2. Platform and Client Compatibility
+    19.14. Error Handling
+    19.15. Preset Options
+    19.16. Customized Options
+    19.17. Developer Options
+    19.18. Short Options
+  Chapter 20. Client Authentication
+    20.1. The pg_hba.conf File
+    20.2. User Name Maps
+    20.3. Authentication Methods
+    20.4. Trust Authentication
+    20.5. Password Authentication
+    20.6. GSSAPI Authentication
+    20.7. SSPI Authentication
+    20.8. Ident Authentication
+    20.9. Peer Authentication
+    20.10. LDAP Authentication
+    20.11. RADIUS Authentication
+    20.12. Certificate Authentication
+    20.13. PAM Authentication
+    20.14. BSD Authentication
+    20.15. OAuth Authorization/Authentication
+    20.16. Authentication Problems
+  Chapter 21. Database Roles
+    21.1. Database Roles
+    21.2. Role Attributes
+    21.3. Role Membership
+    21.4. Dropping Roles
+    21.5. Predefined Roles
+    21.6. Function Security
+  Chapter 22. Managing Databases
+    22.1. Overview
+    22.2. Creating a Database
+    22.3. Template Databases
+    22.4. Database Configuration
+    22.5. Destroying a Database
+    22.6. Tablespaces
+  Chapter 23. Localization
+    23.1. Locale Support
+      23.1.1. Overview
+      23.1.2. Behavior
+      23.1.3. Selecting Locales
+      23.1.4. Locale Providers
+      23.1.5. ICU Locales
+        23.1.5.1. ICU Locale Names
+        23.1.5.2. Locale Canonicalization and Validation
+        23.1.5.3. Language Tag
+      23.1.6. Problems
+    23.2. Collation Support
+      23.2.1. Concepts
+      23.2.2. Managing Collations
+        23.2.2.1. Standard Collations
+        23.2.2.2. Predefined Collations
+          23.2.2.2.1. libc Collations
+          23.2.2.2.2. ICU Collations
+        23.2.2.3. Creating New Collation Objects
+          23.2.2.3.1. libc Collations
+          23.2.2.3.2. ICU Collations
+          23.2.2.3.3. Copying Collations
+        23.2.2.4. Nondeterministic Collations
+      23.2.3. ICU Custom Collations
+        23.2.3.1. ICU Comparison Levels
+          23.2.3.1.1. Collation Level Examples
+        23.2.3.2. Collation Settings for an ICU Locale
+        23.2.3.3. Collation Settings Examples
+        23.2.3.4. ICU Tailoring Rules
+        23.2.3.5. External References for ICU
+    23.3. Character Set Support
+      23.3.1. Supported Character Sets
+      23.3.2. Setting the Character Set
+      23.3.3. Automatic Character Set Conversion Between Server and Client
+      23.3.4. Available Character Set Conversions
+      23.3.5. Further Reading
+  Chapter 24. Routine Database Maintenance Tasks
+    24.1. Routine Vacuuming
+      24.1.1. Vacuuming Basics
+      24.1.2. Recovering Disk Space
+      24.1.3. Updating Planner Statistics
+      24.1.4. Updating the Visibility Map
+      24.1.5. Preventing Transaction ID Wraparound Failures
+        24.1.5.1. Multixacts and Wraparound
+      24.1.6. The Autovacuum Daemon
+    24.2. Routine Reindexing
+    24.3. Log File Maintenance
+  Chapter 25. Backup and Restore
+    25.1. SQL Dump
+      25.1.1. Restoring the Dump
+      25.1.2. Using pg_dumpall
+      25.1.3. Handling Large Databases
+    25.2. File System Level Backup
+    25.3. Continuous Archiving and Point-in-Time Recovery (PITR)
+      25.3.1. Setting Up WAL Archiving
+      25.3.2. Making a Base Backup
+      25.3.3. Making an Incremental Backup
+      25.3.4. Making a Base Backup Using the Low Level API
+        25.3.4.1. Backing Up the Data Directory
+      25.3.5. Recovering Using a Continuous Archive Backup
+      25.3.6. Timelines
+      25.3.7. Tips and Examples
+        25.3.7.1. Standalone Hot Backups
+        25.3.7.2. Compressed Archive Logs
+        25.3.7.3. archive_command Scripts
+      25.3.8. Caveats
+  Chapter 26. High Availability, Load Balancing, and Replication
+    26.1. Comparison of Different Solutions
+    26.2. Log-Shipping Standby Servers
+      26.2.1. Planning
+      26.2.2. Standby Server Operation
+      26.2.3. Preparing the Primary for Standby Servers
+      26.2.4. Setting Up a Standby Server
+      26.2.5. Streaming Replication
+        26.2.5.1. Authentication
+        26.2.5.2. Monitoring
+      26.2.6. Replication Slots
+        26.2.6.1. Querying and Manipulating Replication Slots
+        26.2.6.2. Configuration Example
+      26.2.7. Cascading Replication
+      26.2.8. Synchronous Replication
+        26.2.8.1. Basic Configuration
+        26.2.8.2. Multiple Synchronous Standbys
+        26.2.8.3. Planning for Performance
+        26.2.8.4. Planning for High Availability
+      26.2.9. Continuous Archiving in Standby
+    26.3. Failover
+    26.4. Hot Standby
+      26.4.1. User's Overview
+      26.4.2. Handling Query Conflicts
+      26.4.3. Administrator's Overview
+      26.4.4. Hot Standby Parameter Reference
+      26.4.5. Caveats
+  Chapter 27. Monitoring Database Activity
+    27.1. Standard Unix Tools
+    27.2. The Cumulative Statistics System
+      27.2.1. Statistics Collection Configuration
+      27.2.2. Viewing Statistics
+      27.2.3. pg_stat_activity
+      27.2.4. pg_stat_replication
+      27.2.5. pg_stat_replication_slots
+      27.2.6. pg_stat_wal_receiver
+      27.2.7. pg_stat_recovery_prefetch
+      27.2.8. pg_stat_subscription
+      27.2.9. pg_stat_subscription_stats
+      27.2.10. pg_stat_ssl
+      27.2.11. pg_stat_gssapi
+      27.2.12. pg_stat_archiver
+      27.2.13. pg_stat_io
+      27.2.14. pg_stat_bgwriter
+      27.2.15. pg_stat_checkpointer
+      27.2.16. pg_stat_wal
+      27.2.17. pg_stat_database
+      27.2.18. pg_stat_database_conflicts
+      27.2.19. pg_stat_all_tables
+      27.2.20. pg_stat_all_indexes
+      27.2.21. pg_statio_all_tables
+      27.2.22. pg_statio_all_indexes
+      27.2.23. pg_statio_all_sequences
+      27.2.24. pg_stat_user_functions
+      27.2.25. pg_stat_slru
+      27.2.26. Statistics Functions
+    27.3. Viewing Locks
+    27.4. Progress Reporting
+      27.4.1. ANALYZE Progress Reporting
+      27.4.2. CLUSTER Progress Reporting
+      27.4.3. COPY Progress Reporting
+      27.4.4. CREATE INDEX Progress Reporting
+      27.4.5. VACUUM Progress Reporting
+      27.4.6. Base Backup Progress Reporting
+    27.5. Dynamic Tracing
+      27.5.1. Compiling for Dynamic Tracing
+      27.5.2. Built-in Probes
+      27.5.3. Using Probes
+      27.5.4. Defining New Probes
+    27.6. Monitoring Disk Usage
+      27.6.1. Determining Disk Usage
+      27.6.2. Disk Full Failure
+  Chapter 28. Reliability and the Write-Ahead Log
+    28.1. Reliability
+    28.2. Data Checksums
+      28.2.1. Off-line Enabling of Checksums
+    28.3. Write-Ahead Logging (WAL)
+    28.4. Asynchronous Commit
+    28.5. WAL Configuration
+    28.6. WAL Internals
+  Chapter 29. Logical Replication
+    29.1. Publication
+      29.1.1. Replica Identity
+    29.2. Subscription
+      29.2.1. Replication Slot Management
+      29.2.2. Examples: Set Up Logical Replication
+      29.2.3. Examples: Deferred Replication Slot Creation
+    29.3. Logical Replication Failover
+    29.4. Row Filters
+      29.4.1. Row Filter Rules
+      29.4.2. Expression Restrictions
+      29.4.3. UPDATE Transformations
+      29.4.4. Partitioned Tables
+      29.4.5. Initial Data Synchronization
+      29.4.6. Combining Multiple Row Filters
+      29.4.7. Examples
+    29.5. Column Lists
+      29.5.1. Examples
+    29.6. Generated Column Replication
+    29.7. Conflicts
+    29.8. Restrictions
+    29.9. Architecture
+      29.9.1. Initial Snapshot
+    29.10. Monitoring
+    29.11. Security
+    29.12. Configuration Settings
+      29.12.1. Publishers
+      29.12.2. Subscribers
+    29.13. Upgrade
+      29.13.1. Prepare for Publisher Upgrades
+      29.13.2. Prepare for Subscriber Upgrades
+      29.13.3. Upgrading Logical Replication Clusters
+        29.13.3.1. Steps to Upgrade a Two-node Logical Replication Cluster
+        29.13.3.2. Steps to Upgrade a Cascaded Logical Replication Cluster
+        29.13.3.3. Steps to Upgrade a Two-node Circular Logical Replication Cluster
+    29.14. Quick Setup
+  Chapter 30. Just-in-Time Compilation (JIT)
+    30.1. What Is JIT compilation?
+      30.1.1. JIT Accelerated Operations
+      30.1.2. Inlining
+      30.1.3. Optimization
+    30.2. When to JIT?
+    30.3. Configuration
+    30.4. Extensibility
+      30.4.1. Inlining Support for Extensions
+      30.4.2. Pluggable JIT Providers
+        30.4.2.1. JIT Provider Interface
+  Chapter 31. Regression Tests
+    31.1. Running the Tests
+      31.1.1. Running the Tests Against a Temporary Installation
+      31.1.2. Running the Tests Against an Existing Installation
+      31.1.3. Additional Test Suites
+      31.1.4. Locale and Encoding
+      31.1.5. Custom Server Settings
+      31.1.6. Extra Tests
+    31.2. Test Evaluation
+      31.2.1. Error Message Differences
+      31.2.2. Locale Differences
+      31.2.3. Date and Time Differences
+      31.2.4. Floating-Point Differences
+      31.2.5. Row Ordering Differences
+      31.2.6. Insufficient Stack Depth
+      31.2.7. The “random” Test
+      31.2.8. Configuration Parameters
+    31.3. Variant Comparison Files
+    31.4. TAP Tests
+      31.4.1. Environment Variables
+    31.5. Test Coverage Examination
+      31.5.1. Coverage with Autoconf and Make
+      31.5.2. Coverage with Meson
+Part IV. Client Interfaces
+  Chapter 32. libpq — C Library
+    32.1. Database Connection Control Functions
+      32.1.1. Connection Strings
+        32.1.1.1. Keyword/Value Connection Strings
+        32.1.1.2. Connection URIs
+        32.1.1.3. Specifying Multiple Hosts
+      32.1.2. Parameter Key Words
+    32.2. Connection Status Functions
+    32.3. Command Execution Functions
+      32.3.1. Main Functions
+      32.3.2. Retrieving Query Result Information
+      32.3.3. Retrieving Other Result Information
+      32.3.4. Escaping Strings for Inclusion in SQL Commands
+    32.4. Asynchronous Command Processing
+    32.5. Pipeline Mode
+      32.5.1. Using Pipeline Mode
+        32.5.1.1. Issuing Queries
+        32.5.1.2. Processing Results
+        32.5.1.3. Error Handling
+        32.5.1.4. Interleaving Result Processing and Query Dispatch
+      32.5.2. Functions Associated with Pipeline Mode
+      32.5.3. When to Use Pipeline Mode
+    32.6. Retrieving Query Results in Chunks
+    32.7. Canceling Queries in Progress
+      32.7.1. Functions for Sending Cancel Requests
+      32.7.2. Obsolete Functions for Sending Cancel Requests
+    32.8. The Fast-Path Interface
+    32.9. Asynchronous Notification
+    32.10. Functions Associated with the COPY Command
+      32.10.1. Functions for Sending COPY Data
+      32.10.2. Functions for Receiving COPY Data
+      32.10.3. Obsolete Functions for COPY
+    32.11. Control Functions
+    32.12. Miscellaneous Functions
+    32.13. Notice Processing
+    32.14. Event System
+      32.14.1. Event Types
+      32.14.2. Event Callback Procedure
+      32.14.3. Event Support Functions
+      32.14.4. Event Example
+    32.15. Environment Variables
+    32.16. The Password File
+    32.17. The Connection Service File
+    32.18. LDAP Lookup of Connection Parameters
+    32.19. SSL Support
+      32.19.1. Client Verification of Server Certificates
+      32.19.2. Client Certificates
+      32.19.3. Protection Provided in Different Modes
+      32.19.4. SSL Client File Usage
+      32.19.5. SSL Library Initialization
+    32.20. OAuth Support
+      32.20.1. Authdata Hooks
+        32.20.1.1. Hook Types
+      32.20.2. Debugging and Developer Settings
+    32.21. Behavior in Threaded Programs
+    32.22. Building libpq Programs
+    32.23. Example Programs
+  Chapter 33. Large Objects
+    33.1. Introduction
+    33.2. Implementation Features
+    33.3. Client Interfaces
+      33.3.1. Creating a Large Object
+      33.3.2. Importing a Large Object
+      33.3.3. Exporting a Large Object
+      33.3.4. Opening an Existing Large Object
+      33.3.5. Writing Data to a Large Object
+      33.3.6. Reading Data from a Large Object
+      33.3.7. Seeking in a Large Object
+      33.3.8. Obtaining the Seek Position of a Large Object
+      33.3.9. Truncating a Large Object
+      33.3.10. Closing a Large Object Descriptor
+      33.3.11. Removing a Large Object
+    33.4. Server-Side Functions
+    33.5. Example Program
+  Chapter 34. ECPG — Embedded SQL in C
+    34.1. The Concept
+    34.2. Managing Database Connections
+      34.2.1. Connecting to the Database Server
+      34.2.2. Choosing a Connection
+      34.2.3. Closing a Connection
+    34.3. Running SQL Commands
+      34.3.1. Executing SQL Statements
+      34.3.2. Using Cursors
+      34.3.3. Managing Transactions
+      34.3.4. Prepared Statements
+    34.4. Using Host Variables
+      34.4.1. Overview
+      34.4.2. Declare Sections
+      34.4.3. Retrieving Query Results
+      34.4.4. Type Mapping
+        34.4.4.1. Handling Character Strings
+        34.4.4.2. Accessing Special Data Types
+          34.4.4.2.1. timestamp, date
+          34.4.4.2.2. interval
+          34.4.4.2.3. numeric, decimal
+          34.4.4.2.4. bytea
+        34.4.4.3. Host Variables with Nonprimitive Types
+          34.4.4.3.1. Arrays
+          34.4.4.3.2. Structures
+          34.4.4.3.3. Typedefs
+          34.4.4.3.4. Pointers
+      34.4.5. Handling Nonprimitive SQL Data Types
+        34.4.5.1. Arrays
+        34.4.5.2. Composite Types
+        34.4.5.3. User-Defined Base Types
+      34.4.6. Indicators
+    34.5. Dynamic SQL
+      34.5.1. Executing Statements without a Result Set
+      34.5.2. Executing a Statement with Input Parameters
+      34.5.3. Executing a Statement with a Result Set
+    34.6. pgtypes Library
+      34.6.1. Character Strings
+      34.6.2. The numeric Type
+      34.6.3. The date Type
+      34.6.4. The timestamp Type
+      34.6.5. The interval Type
+      34.6.6. The decimal Type
+      34.6.7. errno Values of pgtypeslib
+      34.6.8. Special Constants of pgtypeslib
+    34.7. Using Descriptor Areas
+      34.7.1. Named SQL Descriptor Areas
+      34.7.2. SQLDA Descriptor Areas
+        34.7.2.1. SQLDA Data Structure
+          34.7.2.1.1. sqlda_t Structure
+          34.7.2.1.2. sqlvar_t Structure
+          34.7.2.1.3. struct sqlname Structure
+        34.7.2.2. Retrieving a Result Set Using an SQLDA
+        34.7.2.3. Passing Query Parameters Using an SQLDA
+        34.7.2.4. A Sample Application Using SQLDA
+    34.8. Error Handling
+      34.8.1. Setting Callbacks
+      34.8.2. sqlca
+      34.8.3. SQLSTATE vs. SQLCODE
+    34.9. Preprocessor Directives
+      34.9.1. Including Files
+      34.9.2. The define and undef Directives
+      34.9.3. ifdef, ifndef, elif, else, and endif Directives
+    34.10. Processing Embedded SQL Programs
+    34.11. Library Functions
+    34.12. Large Objects
+    34.13. C++ Applications
+      34.13.1. Scope for Host Variables
+      34.13.2. C++ Application Development with External C Module
+    34.14. Embedded SQL Commands
+      ALLOCATE DESCRIPTOR
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      CONNECT
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      DEALLOCATE DESCRIPTOR
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      DECLARE
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      DECLARE STATEMENT
+        Description
+        Parameters
+        Notes
+        Examples
+        Compatibility
+        See Also
+      DESCRIBE
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      DISCONNECT
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      EXECUTE IMMEDIATE
+        Description
+        Parameters
+        Notes
+        Examples
+        Compatibility
+      GET DESCRIPTOR
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      OPEN
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      PREPARE
+        Description
+        Parameters
+        Notes
+        Examples
+        Compatibility
+        See Also
+      SET AUTOCOMMIT
+        Description
+        Compatibility
+      SET CONNECTION
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      SET DESCRIPTOR
+        Description
+        Parameters
+        Examples
+        Compatibility
+        See Also
+      TYPE
+        Description
+        Parameters
+        Examples
+        Compatibility
+      VAR
+        Description
+        Parameters
+        Examples
+        Compatibility
+      WHENEVER
+        Description
+        Parameters
+        Examples
+        Compatibility
+    34.15. Informix Compatibility Mode
+      34.15.1. Additional Types
+      34.15.2. Additional/Missing Embedded SQL Statements
+      34.15.3. Informix-compatible SQLDA Descriptor Areas
+      34.15.4. Additional Functions
+      34.15.5. Additional Constants
+    34.16. Oracle Compatibility Mode
+    34.17. Internals
+  Chapter 35. The Information Schema
+    35.1. The Schema
+    35.2. Data Types
+    35.3. information_schema_catalog_name
+    35.4. administrable_role_​authorizations
+    35.5. applicable_roles
+    35.6. attributes
+    35.7. character_sets
+    35.8. check_constraint_routine_usage
+    35.9. check_constraints
+    35.10. collations
+    35.11. collation_character_set_​applicability
+    35.12. column_column_usage
+    35.13. column_domain_usage
+    35.14. column_options
+    35.15. column_privileges
+    35.16. column_udt_usage
+    35.17. columns
+    35.18. constraint_column_usage
+    35.19. constraint_table_usage
+    35.20. data_type_privileges
+    35.21. domain_constraints
+    35.22. domain_udt_usage
+    35.23. domains
+    35.24. element_types
+    35.25. enabled_roles
+    35.26. foreign_data_wrapper_options
+    35.27. foreign_data_wrappers
+    35.28. foreign_server_options
+    35.29. foreign_servers
+    35.30. foreign_table_options
+    35.31. foreign_tables
+    35.32. key_column_usage
+    35.33. parameters
+    35.34. referential_constraints
+    35.35. role_column_grants
+    35.36. role_routine_grants
+    35.37. role_table_grants
+    35.38. role_udt_grants
+    35.39. role_usage_grants
+    35.40. routine_column_usage
+    35.41. routine_privileges
+    35.42. routine_routine_usage
+    35.43. routine_sequence_usage
+    35.44. routine_table_usage
+    35.45. routines
+    35.46. schemata
+    35.47. sequences
+    35.48. sql_features
+    35.49. sql_implementation_info
+    35.50. sql_parts
+    35.51. sql_sizing
+    35.52. table_constraints
+    35.53. table_privileges
+    35.54. tables
+    35.55. transforms
+    35.56. triggered_update_columns
+    35.57. triggers
+    35.58. udt_privileges
+    35.59. usage_privileges
+    35.60. user_defined_types
+    35.61. user_mapping_options
+    35.62. user_mappings
+    35.63. view_column_usage
+    35.64. view_routine_usage
+    35.65. view_table_usage
+    35.66. views
+Part V. Server Programming
+  Chapter 36. Extending SQL
+    36.1. How Extensibility Works
+    36.2. The PostgreSQL Type System
+      36.2.1. Base Types
+      36.2.2. Container Types
+      36.2.3. Domains
+      36.2.4. Pseudo-Types
+      36.2.5. Polymorphic Types
+    36.3. User-Defined Functions
+    36.4. User-Defined Procedures
+    36.5. Query Language (SQL) Functions
+      36.5.1. Arguments for SQL Functions
+      36.5.2. SQL Functions on Base Types
+      36.5.3. SQL Functions on Composite Types
+      36.5.4. SQL Functions with Output Parameters
+      36.5.5. SQL Procedures with Output Parameters
+      36.5.6. SQL Functions with Variable Numbers of Arguments
+      36.5.7. SQL Functions with Default Values for Arguments
+      36.5.8. SQL Functions as Table Sources
+      36.5.9. SQL Functions Returning Sets
+      36.5.10. SQL Functions Returning TABLE
+      36.5.11. Polymorphic SQL Functions
+      36.5.12. SQL Functions with Collations
+    36.6. Function Overloading
+    36.7. Function Volatility Categories
+    36.8. Procedural Language Functions
+    36.9. Internal Functions
+    36.10. C-Language Functions
+      36.10.1. Dynamic Loading
+      36.10.2. Base Types in C-Language Functions
+      36.10.3. Version 1 Calling Conventions
+      36.10.4. Writing Code
+      36.10.5. Compiling and Linking Dynamically-Loaded Functions
+      36.10.6. Server API and ABI Stability Guidance
+        36.10.6.1. General
+        36.10.6.2. API Compatibility
+          36.10.6.2.1. Major Versions
+          36.10.6.2.2. Minor Versions
+        36.10.6.3. ABI Compatibility
+          36.10.6.3.1. Major Versions
+          36.10.6.3.2. Minor Versions
+      36.10.7. Composite-Type Arguments
+      36.10.8. Returning Rows (Composite Types)
+      36.10.9. Returning Sets
+      36.10.10. Polymorphic Arguments and Return Types
+      36.10.11. Shared Memory
+        36.10.11.1. Requesting Shared Memory at Startup
+        36.10.11.2. Requesting Shared Memory After Startup
+      36.10.12. LWLocks
+        36.10.12.1. Requesting LWLocks at Startup
+        36.10.12.2. Requesting LWLocks After Startup
+      36.10.13. Custom Wait Events
+      36.10.14. Injection Points
+      36.10.15. Custom Cumulative Statistics
+      36.10.16. Using C++ for Extensibility
+    36.11. Function Optimization Information
+    36.12. User-Defined Aggregates
+      36.12.1. Moving-Aggregate Mode
+      36.12.2. Polymorphic and Variadic Aggregates
+      36.12.3. Ordered-Set Aggregates
+      36.12.4. Partial Aggregation
+      36.12.5. Support Functions for Aggregates
+    36.13. User-Defined Types
+      36.13.1. TOAST Considerations
+    36.14. User-Defined Operators
+    36.15. Operator Optimization Information
+      36.15.1. COMMUTATOR
+      36.15.2. NEGATOR
+      36.15.3. RESTRICT
+      36.15.4. JOIN
+      36.15.5. HASHES
+      36.15.6. MERGES
+    36.16. Interfacing Extensions to Indexes
+      36.16.1. Index Methods and Operator Classes
+      36.16.2. Index Method Strategies
+      36.16.3. Index Method Support Routines
+      36.16.4. An Example
+      36.16.5. Operator Classes and Operator Families
+      36.16.6. System Dependencies on Operator Classes
+      36.16.7. Ordering Operators
+      36.16.8. Special Features of Operator Classes
+    36.17. Packaging Related Objects into an Extension
+      36.17.1. Extension Files
+      36.17.2. Extension Relocatability
+      36.17.3. Extension Configuration Tables
+      36.17.4. Extension Updates
+      36.17.5. Installing Extensions Using Update Scripts
+      36.17.6. Security Considerations for Extensions
+        36.17.6.1. Security Considerations for Extension Functions
+        36.17.6.2. Security Considerations for Extension Scripts
+      36.17.7. Extension Example
+    36.18. Extension Building Infrastructure
+  Chapter 37. Triggers
+    37.1. Overview of Trigger Behavior
+    37.2. Visibility of Data Changes
+    37.3. Writing Trigger Functions in C
+    37.4. A Complete Trigger Example
+  Chapter 38. Event Triggers
+    38.1. Overview of Event Trigger Behavior
+      38.1.1. login
+      38.1.2. ddl_command_start
+      38.1.3. ddl_command_end
+      38.1.4. sql_drop
+      38.1.5. table_rewrite
+      38.1.6. Event Triggers in Aborted Transactions
+      38.1.7. Creating Event Triggers
+    38.2. Writing Event Trigger Functions in C
+    38.3. A Complete Event Trigger Example
+    38.4. A Table Rewrite Event Trigger Example
+    38.5. A Database Login Event Trigger Example
+  Chapter 39. The Rule System
+    39.1. The Query Tree
+    39.2. Views and the Rule System
+      39.2.1. How SELECT Rules Work
+      39.2.2. View Rules in Non-SELECT Statements
+      39.2.3. The Power of Views in PostgreSQL
+      39.2.4. Updating a View
+    39.3. Materialized Views
+    39.4. Rules on INSERT, UPDATE, and DELETE
+      39.4.1. How Update Rules Work
+        39.4.1.1. A First Rule Step by Step
+      39.4.2. Cooperation with Views
+    39.5. Rules and Privileges
+    39.6. Rules and Command Status
+    39.7. Rules Versus Triggers
+  Chapter 40. Procedural Languages
+    40.1. Installing Procedural Languages
+  Chapter 41. PL/pgSQL — SQL Procedural Language
+    41.1. Overview
+      41.1.1. Advantages of Using PL/pgSQL
+      41.1.2. Supported Argument and Result Data Types
+    41.2. Structure of PL/pgSQL
+    41.3. Declarations
+      41.3.1. Declaring Function Parameters
+      41.3.2. ALIAS
+      41.3.3. Copying Types
+      41.3.4. Row Types
+      41.3.5. Record Types
+      41.3.6. Collation of PL/pgSQL Variables
+    41.4. Expressions
+    41.5. Basic Statements
+      41.5.1. Assignment
+      41.5.2. Executing SQL Commands
+      41.5.3. Executing a Command with a Single-Row Result
+      41.5.4. Executing Dynamic Commands
+      41.5.5. Obtaining the Result Status
+      41.5.6. Doing Nothing At All
+    41.6. Control Structures
+      41.6.1. Returning from a Function
+        41.6.1.1. RETURN
+        41.6.1.2. RETURN NEXT and RETURN QUERY
+      41.6.2. Returning from a Procedure
+      41.6.3. Calling a Procedure
+      41.6.4. Conditionals
+        41.6.4.1. IF-THEN
+        41.6.4.2. IF-THEN-ELSE
+        41.6.4.3. IF-THEN-ELSIF
+        41.6.4.4. Simple CASE
+        41.6.4.5. Searched CASE
+      41.6.5. Simple Loops
+        41.6.5.1. LOOP
+        41.6.5.2. EXIT
+        41.6.5.3. CONTINUE
+        41.6.5.4. WHILE
+        41.6.5.5. FOR (Integer Variant)
+      41.6.6. Looping through Query Results
+      41.6.7. Looping through Arrays
+      41.6.8. Trapping Errors
+        41.6.8.1. Obtaining Information about an Error
+      41.6.9. Obtaining Execution Location Information
+    41.7. Cursors
+      41.7.1. Declaring Cursor Variables
+      41.7.2. Opening Cursors
+        41.7.2.1. OPEN FOR query
+        41.7.2.2. OPEN FOR EXECUTE
+        41.7.2.3. Opening a Bound Cursor
+      41.7.3. Using Cursors
+        41.7.3.1. FETCH
+        41.7.3.2. MOVE
+        41.7.3.3. UPDATE/DELETE WHERE CURRENT OF
+        41.7.3.4. CLOSE
+        41.7.3.5. Returning Cursors
+      41.7.4. Looping through a Cursor's Result
+    41.8. Transaction Management
+    41.9. Errors and Messages
+      41.9.1. Reporting Errors and Messages
+      41.9.2. Checking Assertions
+    41.10. Trigger Functions
+      41.10.1. Triggers on Data Changes
+      41.10.2. Triggers on Events
+    41.11. PL/pgSQL under the Hood
+      41.11.1. Variable Substitution
+      41.11.2. Plan Caching
+    41.12. Tips for Developing in PL/pgSQL
+      41.12.1. Handling of Quotation Marks
+      41.12.2. Additional Compile-Time and Run-Time Checks
+    41.13. Porting from Oracle PL/SQL
+      41.13.1. Porting Examples
+      41.13.2. Other Things to Watch For
+        41.13.2.1. Implicit Rollback after Exceptions
+        41.13.2.2. EXECUTE
+        41.13.2.3. Optimizing PL/pgSQL Functions
+      41.13.3. Appendix
+  Chapter 42. PL/Tcl — Tcl Procedural Language
+    42.1. Overview
+    42.2. PL/Tcl Functions and Arguments
+    42.3. Data Values in PL/Tcl
+    42.4. Global Data in PL/Tcl
+    42.5. Database Access from PL/Tcl
+    42.6. Trigger Functions in PL/Tcl
+    42.7. Event Trigger Functions in PL/Tcl
+    42.8. Error Handling in PL/Tcl
+    42.9. Explicit Subtransactions in PL/Tcl
+    42.10. Transaction Management
+    42.11. PL/Tcl Configuration
+    42.12. Tcl Procedure Names
+  Chapter 43. PL/Perl — Perl Procedural Language
+    43.1. PL/Perl Functions and Arguments
+    43.2. Data Values in PL/Perl
+    43.3. Built-in Functions
+      43.3.1. Database Access from PL/Perl
+      43.3.2. Utility Functions in PL/Perl
+    43.4. Global Values in PL/Perl
+    43.5. Trusted and Untrusted PL/Perl
+    43.6. PL/Perl Triggers
+    43.7. PL/Perl Event Triggers
+    43.8. PL/Perl Under the Hood
+      43.8.1. Configuration
+      43.8.2. Limitations and Missing Features
+  Chapter 44. PL/Python — Python Procedural Language
+    44.1. PL/Python Functions
+    44.2. Data Values
+      44.2.1. Data Type Mapping
+      44.2.2. Null, None
+      44.2.3. Arrays, Lists
+      44.2.4. Composite Types
+      44.2.5. Set-Returning Functions
+    44.3. Sharing Data
+    44.4. Anonymous Code Blocks
+    44.5. Trigger Functions
+    44.6. Database Access
+      44.6.1. Database Access Functions
+      44.6.2. Trapping Errors
+    44.7. Explicit Subtransactions
+      44.7.1. Subtransaction Context Managers
+    44.8. Transaction Management
+    44.9. Utility Functions
+    44.10. Python 2 vs. Python 3
+    44.11. Environment Variables
+  Chapter 45. Server Programming Interface
+    45.1. Interface Functions
+      SPI_connect
+        Description
+        Return Value
+      SPI_finish
+        Description
+        Return Value
+      SPI_execute
+        Description
+        Arguments
+        Return Value
+        Notes
+      SPI_exec
+        Description
+        Arguments
+        Return Value
+      SPI_execute_extended
+        Description
+        Arguments
+        Return Value
+      SPI_execute_with_args
+        Description
+        Arguments
+        Return Value
+      SPI_prepare
+        Description
+        Arguments
+        Return Value
+        Notes
+      SPI_prepare_cursor
+        Description
+        Arguments
+        Return Value
+        Notes
+      SPI_prepare_extended
+        Description
+        Arguments
+        Return Value
+      SPI_prepare_params
+        Description
+        Arguments
+        Return Value
+      SPI_getargcount
+        Description
+        Arguments
+        Return Value
+      SPI_getargtypeid
+        Description
+        Arguments
+        Return Value
+      SPI_is_cursor_plan
+        Description
+        Arguments
+        Return Value
+      SPI_execute_plan
+        Description
+        Arguments
+        Return Value
+      SPI_execute_plan_extended
+        Description
+        Arguments
+        Return Value
+      SPI_execute_plan_with_paramlist
+        Description
+        Arguments
+        Return Value
+      SPI_execp
+        Description
+        Arguments
+        Return Value
+      SPI_cursor_open
+        Description
+        Arguments
+        Return Value
+      SPI_cursor_open_with_args
+        Description
+        Arguments
+        Return Value
+      SPI_cursor_open_with_paramlist
+        Description
+        Arguments
+        Return Value
+      SPI_cursor_parse_open
+        Description
+        Arguments
+        Return Value
+      SPI_cursor_find
+        Description
+        Arguments
+        Return Value
+        Notes
+      SPI_cursor_fetch
+        Description
+        Arguments
+        Return Value
+        Notes
+      SPI_cursor_move
+        Description
+        Arguments
+        Notes
+      SPI_scroll_cursor_fetch
+        Description
+        Arguments
+        Return Value
+        Notes
+      SPI_scroll_cursor_move
+        Description
+        Arguments
+        Return Value
+        Notes
+      SPI_cursor_close
+        Description
+        Arguments
+      SPI_keepplan
+        Description
+        Arguments
+        Return Value
+        Notes
+      SPI_saveplan
+        Description
+        Arguments
+        Return Value
+        Notes
+      SPI_register_relation
+        Description
+        Arguments
+        Return Value
+      SPI_unregister_relation
+        Description
+        Arguments
+        Return Value
+      SPI_register_trigger_data
+        Description
+        Arguments
+        Return Value
+    45.2. Interface Support Functions
+      SPI_fname
+        Description
+        Arguments
+        Return Value
+      SPI_fnumber
+        Description
+        Arguments
+        Return Value
+      SPI_getvalue
+        Description
+        Arguments
+        Return Value
+      SPI_getbinval
+        Description
+        Arguments
+        Return Value
+      SPI_gettype
+        Description
+        Arguments
+        Return Value
+      SPI_gettypeid
+        Description
+        Arguments
+        Return Value
+      SPI_getrelname
+        Description
+        Arguments
+        Return Value
+      SPI_getnspname
+        Description
+        Arguments
+        Return Value
+      SPI_result_code_string
+        Description
+        Arguments
+        Return Value
+    45.3. Memory Management
+      SPI_palloc
+        Description
+        Arguments
+        Return Value
+      SPI_repalloc
+        Description
+        Arguments
+        Return Value
+      SPI_pfree
+        Description
+        Arguments
+      SPI_copytuple
+        Description
+        Arguments
+        Return Value
+      SPI_returntuple
+        Description
+        Arguments
+        Return Value
+      SPI_modifytuple
+        Description
+        Arguments
+        Return Value
+      SPI_freetuple
+        Description
+        Arguments
+      SPI_freetuptable
+        Description
+        Arguments
+      SPI_freeplan
+        Description
+        Arguments
+        Return Value
+    45.4. Transaction Management
+      SPI_commit
+        Description
+      SPI_rollback
+        Description
+      SPI_start_transaction
+        Description
+    45.5. Visibility of Data Changes
+    45.6. Examples
+  Chapter 46. Background Worker Processes
+  Chapter 47. Logical Decoding
+    47.1. Logical Decoding Examples
+    47.2. Logical Decoding Concepts
+      47.2.1. Logical Decoding
+      47.2.2. Replication Slots
+      47.2.3. Replication Slot Synchronization
+      47.2.4. Output Plugins
+      47.2.5. Exported Snapshots
+    47.3. Streaming Replication Protocol Interface
+    47.4. Logical Decoding SQL Interface
+    47.5. System Catalogs Related to Logical Decoding
+    47.6. Logical Decoding Output Plugins
+      47.6.1. Initialization Function
+      47.6.2. Capabilities
+      47.6.3. Output Modes
+      47.6.4. Output Plugin Callbacks
+        47.6.4.1. Startup Callback
+        47.6.4.2. Shutdown Callback
+        47.6.4.3. Transaction Begin Callback
+        47.6.4.4. Transaction End Callback
+        47.6.4.5. Change Callback
+        47.6.4.6. Truncate Callback
+        47.6.4.7. Origin Filter Callback
+        47.6.4.8. Generic Message Callback
+        47.6.4.9. Prepare Filter Callback
+        47.6.4.10. Transaction Begin Prepare Callback
+        47.6.4.11. Transaction Prepare Callback
+        47.6.4.12. Transaction Commit Prepared Callback
+        47.6.4.13. Transaction Rollback Prepared Callback
+        47.6.4.14. Stream Start Callback
+        47.6.4.15. Stream Stop Callback
+        47.6.4.16. Stream Abort Callback
+        47.6.4.17. Stream Prepare Callback
+        47.6.4.18. Stream Commit Callback
+        47.6.4.19. Stream Change Callback
+        47.6.4.20. Stream Message Callback
+        47.6.4.21. Stream Truncate Callback
+      47.6.5. Functions for Producing Output
+    47.7. Logical Decoding Output Writers
+    47.8. Synchronous Replication Support for Logical Decoding
+      47.8.1. Overview
+      47.8.2. Caveats
+    47.9. Streaming of Large Transactions for Logical Decoding
+    47.10. Two-phase Commit Support for Logical Decoding
+  Chapter 48. Replication Progress Tracking
+  Chapter 49. Archive Modules
+    49.1. Initialization Functions
+    49.2. Archive Module Callbacks
+      49.2.1. Startup Callback
+      49.2.2. Check Callback
+      49.2.3. Archive Callback
+      49.2.4. Shutdown Callback
+  Chapter 50. OAuth Validator Modules
+    50.1. Safely Designing a Validator Module
+      50.1.1. Validator Responsibilities
+      50.1.2. General Coding Guidelines
+      50.1.3. Authorizing Users (Usermap Delegation)
+    50.2. Initialization Functions
+    50.3. OAuth Validator Callbacks
+      50.3.1. Startup Callback
+      50.3.2. Validate Callback
+      50.3.3. Shutdown Callback
+Part VI. Reference
+  SQL Commands
+    ABORT
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER AGGREGATE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER COLLATION
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER CONVERSION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER DATABASE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER DEFAULT PRIVILEGES
+      Description
+        Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER DOMAIN
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER EVENT TRIGGER
+      Description
+      Parameters
+      Compatibility
+      See Also
+    ALTER EXTENSION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER FOREIGN DATA WRAPPER
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER FOREIGN TABLE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER FUNCTION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER GROUP
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER INDEX
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER LANGUAGE
+      Description
+      Parameters
+      Compatibility
+      See Also
+    ALTER LARGE OBJECT
+      Description
+      Parameters
+      Compatibility
+      See Also
+    ALTER MATERIALIZED VIEW
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER OPERATOR
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER OPERATOR CLASS
+      Description
+      Parameters
+      Compatibility
+      See Also
+    ALTER OPERATOR FAMILY
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER POLICY
+      Description
+      Parameters
+      Compatibility
+      See Also
+    ALTER PROCEDURE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER PUBLICATION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER ROLE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER ROUTINE
+      Description
+      Examples
+      Compatibility
+      See Also
+    ALTER RULE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER SCHEMA
+      Description
+      Parameters
+      Compatibility
+      See Also
+    ALTER SEQUENCE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER SERVER
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER STATISTICS
+      Description
+      Parameters
+      Compatibility
+      See Also
+    ALTER SUBSCRIPTION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER SYSTEM
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER TABLE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER TABLESPACE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER TEXT SEARCH CONFIGURATION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER TEXT SEARCH DICTIONARY
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER TEXT SEARCH PARSER
+      Description
+      Parameters
+      Compatibility
+      See Also
+    ALTER TEXT SEARCH TEMPLATE
+      Description
+      Parameters
+      Compatibility
+      See Also
+    ALTER TRIGGER
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER TYPE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ALTER USER
+      Description
+      Compatibility
+      See Also
+    ALTER USER MAPPING
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    ALTER VIEW
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ANALYZE
+      Description
+      Parameters
+      Outputs
+      Notes
+      Compatibility
+      See Also
+    BEGIN
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CALL
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CHECKPOINT
+      Description
+      Compatibility
+    CLOSE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CLUSTER
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    COMMENT
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+    COMMIT
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    COMMIT PREPARED
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    COPY
+      Description
+      Parameters
+      Outputs
+      Notes
+      File Formats
+        Text Format
+        CSV Format
+        Binary Format
+          File Header
+          Tuples
+          File Trailer
+      Examples
+      Compatibility
+      See Also
+    CREATE ACCESS METHOD
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    CREATE AGGREGATE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE CAST
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE COLLATION
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE CONVERSION
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE DATABASE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE DOMAIN
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE EVENT TRIGGER
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE EXTENSION
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE FOREIGN DATA WRAPPER
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE FOREIGN TABLE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE FUNCTION
+      Description
+      Parameters
+      Overloading
+      Notes
+      Examples
+      Writing SECURITY DEFINER Functions Safely
+      Compatibility
+      See Also
+    CREATE GROUP
+      Description
+      Compatibility
+      See Also
+    CREATE INDEX
+      Description
+      Parameters
+        Index Storage Parameters
+        Building Indexes Concurrently
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE LANGUAGE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE MATERIALIZED VIEW
+      Description
+      Parameters
+      Compatibility
+      See Also
+    CREATE OPERATOR
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE OPERATOR CLASS
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE OPERATOR FAMILY
+      Description
+      Parameters
+      Compatibility
+      See Also
+    CREATE POLICY
+      Description
+      Parameters
+        Per-Command Policies
+        Application of Multiple Policies
+      Notes
+      Compatibility
+      See Also
+    CREATE PROCEDURE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE PUBLICATION
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE ROLE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE RULE
+      Description
+      Parameters
+      Notes
+      Compatibility
+      See Also
+    CREATE SCHEMA
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE SEQUENCE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE SERVER
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE STATISTICS
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE SUBSCRIPTION
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE TABLE
+      Description
+      Parameters
+        Storage Parameters
+      Notes
+      Examples
+      Compatibility
+        Temporary Tables
+        Non-Deferred Uniqueness Constraints
+        Column Check Constraints
+        EXCLUDE Constraint
+        Foreign Key Constraints
+        NULL “Constraint”
+        Constraint Naming
+        Inheritance
+        Zero-Column Tables
+        Multiple Identity Columns
+        Generated Columns
+        LIKE Clause
+        WITH Clause
+        Tablespaces
+        Typed Tables
+        PARTITION BY Clause
+        PARTITION OF Clause
+      See Also
+    CREATE TABLE AS
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE TABLESPACE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE TEXT SEARCH CONFIGURATION
+      Description
+      Parameters
+      Notes
+      Compatibility
+      See Also
+    CREATE TEXT SEARCH DICTIONARY
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    CREATE TEXT SEARCH PARSER
+      Description
+      Parameters
+      Compatibility
+      See Also
+    CREATE TEXT SEARCH TEMPLATE
+      Description
+      Parameters
+      Compatibility
+      See Also
+    CREATE TRANSFORM
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE TRIGGER
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE TYPE
+      Description
+        Composite Types
+        Enumerated Types
+        Range Types
+        Base Types
+        Array Types
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    CREATE USER
+      Description
+      Compatibility
+      See Also
+    CREATE USER MAPPING
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    CREATE VIEW
+      Description
+      Parameters
+      Notes
+        Updatable Views
+      Examples
+      Compatibility
+      See Also
+    DEALLOCATE
+      Description
+      Parameters
+      Compatibility
+      See Also
+    DECLARE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DELETE
+      Description
+      Parameters
+      Outputs
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DISCARD
+      Description
+      Parameters
+      Notes
+      Compatibility
+    DO
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DROP ACCESS METHOD
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP AGGREGATE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DROP CAST
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP COLLATION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP CONVERSION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP DATABASE
+      Description
+      Parameters
+      Notes
+      Compatibility
+      See Also
+    DROP DOMAIN
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP EVENT TRIGGER
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP EXTENSION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP FOREIGN DATA WRAPPER
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP FOREIGN TABLE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP FUNCTION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP GROUP
+      Description
+      Compatibility
+      See Also
+    DROP INDEX
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP LANGUAGE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP MATERIALIZED VIEW
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP OPERATOR
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP OPERATOR CLASS
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DROP OPERATOR FAMILY
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP OWNED
+      Description
+      Parameters
+      Notes
+      Compatibility
+      See Also
+    DROP POLICY
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP PROCEDURE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DROP PUBLICATION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP ROLE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DROP ROUTINE
+      Description
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DROP RULE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP SCHEMA
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DROP SEQUENCE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP SERVER
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP STATISTICS
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP SUBSCRIPTION
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DROP TABLE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP TABLESPACE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    DROP TEXT SEARCH CONFIGURATION
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP TEXT SEARCH DICTIONARY
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP TEXT SEARCH PARSER
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP TEXT SEARCH TEMPLATE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP TRANSFORM
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP TRIGGER
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP TYPE
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP USER
+      Description
+      Compatibility
+      See Also
+    DROP USER MAPPING
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    DROP VIEW
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    END
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    EXECUTE
+      Description
+      Parameters
+      Outputs
+      Examples
+      Compatibility
+      See Also
+    EXPLAIN
+      Description
+      Parameters
+      Outputs
+      Notes
+      Examples
+      Compatibility
+      See Also
+    FETCH
+      Description
+      Parameters
+      Outputs
+      Notes
+      Examples
+      Compatibility
+      See Also
+    GRANT
+      Description
+        GRANT on Database Objects
+        GRANT on Roles
+      Notes
+      Examples
+      Compatibility
+      See Also
+    IMPORT FOREIGN SCHEMA
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    INSERT
+      Description
+      Parameters
+        Inserting
+        ON CONFLICT Clause
+      Outputs
+      Notes
+      Examples
+      Compatibility
+    LISTEN
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    LOAD
+      Description
+      Compatibility
+      See Also
+    LOCK
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+    MERGE
+      Description
+      Parameters
+      Outputs
+      Notes
+      Examples
+      Compatibility
+    MOVE
+      Description
+      Outputs
+      Examples
+      Compatibility
+      See Also
+    NOTIFY
+      Description
+      Parameters
+      Notes
+        pg_notify
+      Examples
+      Compatibility
+      See Also
+    PREPARE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    PREPARE TRANSACTION
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    REASSIGN OWNED
+      Description
+      Parameters
+      Notes
+      Compatibility
+      See Also
+    REFRESH MATERIALIZED VIEW
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    REINDEX
+      Description
+      Parameters
+      Notes
+        Rebuilding Indexes Concurrently
+      Examples
+      Compatibility
+      See Also
+    RELEASE SAVEPOINT
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    RESET
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    REVOKE
+      Description
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ROLLBACK
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ROLLBACK PREPARED
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    ROLLBACK TO SAVEPOINT
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    SAVEPOINT
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    SECURITY LABEL
+      Description
+      Parameters
+      Examples
+      Compatibility
+      See Also
+    SELECT
+      Description
+      Parameters
+        WITH Clause
+        FROM Clause
+        WHERE Clause
+        GROUP BY Clause
+        HAVING Clause
+        WINDOW Clause
+        SELECT List
+        DISTINCT Clause
+        UNION Clause
+        INTERSECT Clause
+        EXCEPT Clause
+        ORDER BY Clause
+        LIMIT Clause
+        The Locking Clause
+        TABLE Command
+      Examples
+      Compatibility
+        Omitted FROM Clauses
+        Empty SELECT Lists
+        Omitting the AS Key Word
+        Omitting Sub-SELECT Aliases in FROM
+        ONLY and Inheritance
+        TABLESAMPLE Clause Restrictions
+        Function Calls in FROM
+        Namespace Available to GROUP BY and ORDER BY
+        Functional Dependencies
+        LIMIT and OFFSET
+        FOR NO KEY UPDATE, FOR UPDATE, FOR SHARE, FOR KEY SHARE
+        Data-Modifying Statements in WITH
+        Nonstandard Clauses
+    SELECT INTO
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    SET
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    SET CONSTRAINTS
+      Description
+      Notes
+      Compatibility
+    SET ROLE
+      Description
+      Notes
+      Examples
+      Compatibility
+      See Also
+    SET SESSION AUTHORIZATION
+      Description
+      Notes
+      Examples
+      Compatibility
+      See Also
+    SET TRANSACTION
+      Description
+      Notes
+      Examples
+      Compatibility
+    SHOW
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    START TRANSACTION
+      Description
+      Parameters
+      Compatibility
+      See Also
+    TRUNCATE
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    UNLISTEN
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+    UPDATE
+      Description
+      Parameters
+      Outputs
+      Notes
+      Examples
+      Compatibility
+    VACUUM
+      Description
+      Parameters
+      Outputs
+      Notes
+      Examples
+      Compatibility
+      See Also
+    VALUES
+      Description
+      Parameters
+      Notes
+      Examples
+      Compatibility
+      See Also
+  PostgreSQL Client Applications
+    clusterdb
+      Description
+      Options
+      Environment
+      Diagnostics
+      Examples
+      See Also
+    createdb
+      Description
+      Options
+      Environment
+      Diagnostics
+      Examples
+      See Also
+    createuser
+      Description
+      Options
+      Environment
+      Diagnostics
+      Examples
+      See Also
+    dropdb
+      Description
+      Options
+      Environment
+      Diagnostics
+      Examples
+      See Also
+    dropuser
+      Description
+      Options
+      Environment
+      Diagnostics
+      Examples
+      See Also
+    ecpg
+      Description
+      Options
+      Notes
+      Examples
+    pg_amcheck
+      Description
+      Options
+      Environment
+      Notes
+      See Also
+    pg_basebackup
+      Description
+      Options
+      Environment
+      Notes
+      Examples
+      See Also
+    pgbench
+      Description
+      Options
+        Initialization Options
+        Benchmarking Options
+        Common Options
+      Exit Status
+      Environment
+      Notes
+        What Is the “Transaction” Actually Performed in pgbench?
+        Custom Scripts
+        Built-in Operators
+        Built-In Functions
+        Per-Transaction Logging
+        Aggregated Logging
+        Per-Statement Report
+        Failures and Serialization/Deadlock Retries
+        Table Access Methods
+        Good Practices
+        Security
+    pg_combinebackup
+      Description
+      Options
+      Limitations
+      Environment
+      See Also
+    pg_config
+      Description
+      Options
+      Notes
+      Example
+    pg_dump
+      Description
+      Options
+      Environment
+      Diagnostics
+      Notes
+      Examples
+      See Also
+    pg_dumpall
+      Description
+      Options
+      Environment
+      Notes
+      Examples
+      See Also
+    pg_isready
+      Description
+      Options
+      Exit Status
+      Environment
+      Notes
+      Examples
+    pg_receivewal
+      Description
+      Options
+      Exit Status
+      Environment
+      Notes
+      Examples
+      See Also
+    pg_recvlogical
+      Description
+      Options
+      Exit Status
+      Environment
+      Notes
+      Examples
+      See Also
+    pg_restore
+      Description
+      Options
+      Environment
+      Diagnostics
+      Notes
+      Examples
+      See Also
+    pg_verifybackup
+      Description
+      Options
+      Examples
+      See Also
+    psql
+      Description
+      Options
+      Exit Status
+      Usage
+        Connecting to a Database
+        Entering SQL Commands
+        Meta-Commands
+          Patterns
+        Advanced Features
+          Variables
+          SQL Interpolation
+          Prompting
+          Command-Line Editing
+      Environment
+      Files
+      Notes
+      Notes for Windows Users
+      Examples
+    reindexdb
+      Description
+      Options
+      Environment
+      Diagnostics
+      Examples
+      See Also
+    vacuumdb
+      Description
+      Options
+      Environment
+      Diagnostics
+      Examples
+      See Also
+  PostgreSQL Server Applications
+    initdb
+      Description
+      Options
+      Environment
+      Notes
+      See Also
+    pg_archivecleanup
+      Description
+      Options
+      Environment
+      Notes
+      Examples
+    pg_checksums
+      Description
+      Options
+      Environment
+      Notes
+    pg_controldata
+      Description
+      Environment
+    pg_createsubscriber
+      Description
+      Options
+      Notes
+        Prerequisites
+        Warnings
+        How It Works
+      Examples
+      See Also
+    pg_ctl
+      Description
+      Options
+        Options for Windows
+      Environment
+      Files
+      Examples
+        Starting the Server
+        Stopping the Server
+        Restarting the Server
+        Showing the Server Status
+      See Also
+    pg_resetwal
+      Description
+      Options
+      Environment
+      Notes
+      See Also
+    pg_rewind
+      Description
+      Options
+      Environment
+      Notes
+        How It Works
+    pg_test_fsync
+      Description
+      Options
+      Environment
+      See Also
+    pg_test_timing
+      Description
+      Options
+      Usage
+        Interpreting Results
+        Measuring Executor Timing Overhead
+        Changing Time Sources
+        Clock Hardware and Timing Accuracy
+      See Also
+    pg_upgrade
+      Description
+      Options
+      Usage
+      Environment
+      Notes
+      See Also
+    pg_waldump
+      Description
+      Options
+      Environment
+      Notes
+      See Also
+    pg_walsummary
+      Description
+      Options
+      Environment
+      See Also
+    postgres
+      Description
+      Options
+        General Purpose
+        Semi-Internal Options
+        Options for Single-User Mode
+      Environment
+      Diagnostics
+      Notes
+      Bugs
+      Single-User Mode
+      Examples
+      See Also
+Part VII. Internals
+  Chapter 51. Overview of PostgreSQL Internals
+    51.1. The Path of a Query
+    51.2. How Connections Are Established
+    51.3. The Parser Stage
+      51.3.1. Parser
+      51.3.2. Transformation Process
+    51.4. The PostgreSQL Rule System
+    51.5. Planner/Optimizer
+      51.5.1. Generating Possible Plans
+    51.6. Executor
+  Chapter 52. System Catalogs
+    52.1. Overview
+    52.2. pg_aggregate
+    52.3. pg_am
+    52.4. pg_amop
+    52.5. pg_amproc
+    52.6. pg_attrdef
+    52.7. pg_attribute
+    52.8. pg_authid
+    52.9. pg_auth_members
+    52.10. pg_cast
+    52.11. pg_class
+    52.12. pg_collation
+    52.13. pg_constraint
+    52.14. pg_conversion
+    52.15. pg_database
+    52.16. pg_db_role_setting
+    52.17. pg_default_acl
+    52.18. pg_depend
+    52.19. pg_description
+    52.20. pg_enum
+    52.21. pg_event_trigger
+    52.22. pg_extension
+    52.23. pg_foreign_data_wrapper
+    52.24. pg_foreign_server
+    52.25. pg_foreign_table
+    52.26. pg_index
+    52.27. pg_inherits
+    52.28. pg_init_privs
+    52.29. pg_language
+    52.30. pg_largeobject
+    52.31. pg_largeobject_metadata
+    52.32. pg_namespace
+    52.33. pg_opclass
+    52.34. pg_operator
+    52.35. pg_opfamily
+    52.36. pg_parameter_acl
+    52.37. pg_partitioned_table
+    52.38. pg_policy
+    52.39. pg_proc
+    52.40. pg_publication
+    52.41. pg_publication_namespace
+    52.42. pg_publication_rel
+    52.43. pg_range
+    52.44. pg_replication_origin
+    52.45. pg_rewrite
+    52.46. pg_seclabel
+    52.47. pg_sequence
+    52.48. pg_shdepend
+    52.49. pg_shdescription
+    52.50. pg_shseclabel
+    52.51. pg_statistic
+    52.52. pg_statistic_ext
+    52.53. pg_statistic_ext_data
+    52.54. pg_subscription
+    52.55. pg_subscription_rel
+    52.56. pg_tablespace
+    52.57. pg_transform
+    52.58. pg_trigger
+    52.59. pg_ts_config
+    52.60. pg_ts_config_map
+    52.61. pg_ts_dict
+    52.62. pg_ts_parser
+    52.63. pg_ts_template
+    52.64. pg_type
+    52.65. pg_user_mapping
+  Chapter 53. System Views
+    53.1. Overview
+    53.2. pg_aios
+    53.3. pg_available_extensions
+    53.4. pg_available_extension_versions
+    53.5. pg_backend_memory_contexts
+    53.6. pg_config
+    53.7. pg_cursors
+    53.8. pg_file_settings
+    53.9. pg_group
+    53.10. pg_hba_file_rules
+    53.11. pg_ident_file_mappings
+    53.12. pg_indexes
+    53.13. pg_locks
+    53.14. pg_matviews
+    53.15. pg_policies
+    53.16. pg_prepared_statements
+    53.17. pg_prepared_xacts
+    53.18. pg_publication_tables
+    53.19. pg_replication_origin_status
+    53.20. pg_replication_slots
+    53.21. pg_roles
+    53.22. pg_rules
+    53.23. pg_seclabels
+    53.24. pg_sequences
+    53.25. pg_settings
+    53.26. pg_shadow
+    53.27. pg_shmem_allocations
+    53.28. pg_shmem_allocations_numa
+    53.29. pg_stats
+    53.30. pg_stats_ext
+    53.31. pg_stats_ext_exprs
+    53.32. pg_tables
+    53.33. pg_timezone_abbrevs
+    53.34. pg_timezone_names
+    53.35. pg_user
+    53.36. pg_user_mappings
+    53.37. pg_views
+    53.38. pg_wait_events
+  Chapter 54. Frontend/Backend Protocol
+    54.1. Overview
+      54.1.1. Messaging Overview
+      54.1.2. Extended Query Overview
+      54.1.3. Formats and Format Codes
+      54.1.4. Protocol Versions
+    54.2. Message Flow
+      54.2.1. Start-up
+      54.2.2. Simple Query
+        54.2.2.1. Multiple Statements in a Simple Query
+      54.2.3. Extended Query
+      54.2.4. Pipelining
+      54.2.5. Function Call
+      54.2.6. COPY Operations
+      54.2.7. Asynchronous Operations
+      54.2.8. Canceling Requests in Progress
+      54.2.9. Termination
+      54.2.10. SSL Session Encryption
+      54.2.11. GSSAPI Session Encryption
+    54.3. SASL Authentication
+      54.3.1. SCRAM-SHA-256 Authentication
+      54.3.2. OAUTHBEARER Authentication
+    54.4. Streaming Replication Protocol
+    54.5. Logical Streaming Replication Protocol
+      54.5.1. Logical Streaming Replication Parameters
+      54.5.2. Logical Replication Protocol Messages
+      54.5.3. Logical Replication Protocol Message Flow
+    54.6. Message Data Types
+    54.7. Message Formats
+    54.8. Error and Notice Message Fields
+    54.9. Logical Replication Message Formats
+    54.10. Summary of Changes since Protocol 2.0
+  Chapter 55. PostgreSQL Coding Conventions
+    55.1. Formatting
+    55.2. Reporting Errors Within the Server
+    55.3. Error Message Style Guide
+    55.4. Miscellaneous Coding Conventions
+  Chapter 56. Native Language Support
+    56.1. For the Translator
+      56.1.1. Requirements
+      56.1.2. Concepts
+      56.1.3. Creating and Maintaining Message Catalogs
+      56.1.4. Editing the PO Files
+    56.2. For the Programmer
+      56.2.1. Mechanics
+      56.2.2. Message-Writing Guidelines
+  Chapter 57. Writing a Procedural Language Handler
+  Chapter 58. Writing a Foreign Data Wrapper
+    58.1. Foreign Data Wrapper Functions
+    58.2. Foreign Data Wrapper Callback Routines
+      58.2.1. FDW Routines for Scanning Foreign Tables
+      58.2.2. FDW Routines for Scanning Foreign Joins
+      58.2.3. FDW Routines for Planning Post-Scan/Join Processing
+      58.2.4. FDW Routines for Updating Foreign Tables
+      58.2.5. FDW Routines for TRUNCATE
+      58.2.6. FDW Routines for Row Locking
+      58.2.7. FDW Routines for EXPLAIN
+      58.2.8. FDW Routines for ANALYZE
+      58.2.9. FDW Routines for IMPORT FOREIGN SCHEMA
+      58.2.10. FDW Routines for Parallel Execution
+      58.2.11. FDW Routines for Asynchronous Execution
+      58.2.12. FDW Routines for Reparameterization of Paths
+    58.3. Foreign Data Wrapper Helper Functions
+    58.4. Foreign Data Wrapper Query Planning
+    58.5. Row Locking in Foreign Data Wrappers
+  Chapter 59. Writing a Table Sampling Method
+    59.1. Sampling Method Support Functions
+  Chapter 60. Writing a Custom Scan Provider
+    60.1. Creating Custom Scan Paths
+      60.1.1. Custom Scan Path Callbacks
+    60.2. Creating Custom Scan Plans
+      60.2.1. Custom Scan Plan Callbacks
+    60.3. Executing Custom Scans
+      60.3.1. Custom Scan Execution Callbacks
+  Chapter 61. Genetic Query Optimizer
+    61.1. Query Handling as a Complex Optimization Problem
+    61.2. Genetic Algorithms
+    61.3. Genetic Query Optimization (GEQO) in PostgreSQL
+      61.3.1. Generating Possible Plans with GEQO
+      61.3.2. Future Implementation Tasks for PostgreSQL GEQO
+    61.4. Further Reading
+  Chapter 62. Table Access Method Interface Definition
+  Chapter 63. Index Access Method Interface Definition
+    63.1. Basic API Structure for Indexes
+    63.2. Index Access Method Functions
+    63.3. Index Scanning
+    63.4. Index Locking Considerations
+    63.5. Index Uniqueness Checks
+    63.6. Index Cost Estimation Functions
+  Chapter 64. Write Ahead Logging for Extensions
+    64.1. Generic WAL Records
+    64.2. Custom WAL Resource Managers
+  Chapter 65. Built-in Index Access Methods
+    65.1. B-Tree Indexes
+      65.1.1. Introduction
+      65.1.2. Behavior of B-Tree Operator Classes
+      65.1.3. B-Tree Support Functions
+      65.1.4. Implementation
+        65.1.4.1. B-Tree Structure
+        65.1.4.2. Bottom-up Index Deletion
+        65.1.4.3. Deduplication
+    65.2. GiST Indexes
+      65.2.1. Introduction
+      65.2.2. Built-in Operator Classes
+      65.2.3. Extensibility
+      65.2.4. Implementation
+        65.2.4.1. GiST Index Build Methods
+      65.2.5. Examples
+    65.3. SP-GiST Indexes
+      65.3.1. Introduction
+      65.3.2. Built-in Operator Classes
+      65.3.3. Extensibility
+      65.3.4. Implementation
+        65.3.4.1. SP-GiST Limits
+        65.3.4.2. SP-GiST Without Node Labels
+        65.3.4.3. “All-the-Same” Inner Tuples
+      65.3.5. Examples
+    65.4. GIN Indexes
+      65.4.1. Introduction
+      65.4.2. Built-in Operator Classes
+      65.4.3. Extensibility
+      65.4.4. Implementation
+        65.4.4.1. GIN Fast Update Technique
+        65.4.4.2. Partial Match Algorithm
+      65.4.5. GIN Tips and Tricks
+      65.4.6. Limitations
+      65.4.7. Examples
+    65.5. BRIN Indexes
+      65.5.1. Introduction
+        65.5.1.1. Index Maintenance
+      65.5.2. Built-in Operator Classes
+        65.5.2.1. Operator Class Parameters
+      65.5.3. Extensibility
+    65.6. Hash Indexes
+      65.6.1. Overview
+      65.6.2. Implementation
+  Chapter 66. Database Physical Storage
+    66.1. Database File Layout
+    66.2. TOAST
+      66.2.1. Out-of-Line, On-Disk TOAST Storage
+      66.2.2. Out-of-Line, In-Memory TOAST Storage
+    66.3. Free Space Map
+    66.4. Visibility Map
+    66.5. The Initialization Fork
+    66.6. Database Page Layout
+      66.6.1. Table Row Layout
+    66.7. Heap-Only Tuples (HOT)
+  Chapter 67. Transaction Processing
+    67.1. Transactions and Identifiers
+    67.2. Transactions and Locking
+    67.3. Subtransactions
+    67.4. Two-Phase Transactions
+  Chapter 68. System Catalog Declarations and Initial Contents
+    68.1. System Catalog Declaration Rules
+    68.2. System Catalog Initial Data
+      68.2.1. Data File Format
+      68.2.2. OID Assignment
+      68.2.3. OID Reference Lookup
+      68.2.4. Automatic Creation of Array Types
+      68.2.5. Recipes for Editing Data Files
+    68.3. BKI File Format
+    68.4. BKI Commands
+    68.5. Structure of the Bootstrap BKI File
+    68.6. BKI Example
+  Chapter 69. How the Planner Uses Statistics
+    69.1. Row Estimation Examples
+    69.2. Multivariate Statistics Examples
+      69.2.1. Functional Dependencies
+      69.2.2. Multivariate N-Distinct Counts
+      69.2.3. MCV Lists
+    69.3. Planner Statistics and Security
+  Chapter 70. Backup Manifest Format
+    70.1. Backup Manifest Top-level Object
+    70.2. Backup Manifest File Object
+    70.3. Backup Manifest WAL Range Object
+Part VIII. Appendixes
+  Appendix A. PostgreSQL Error Codes
+  Appendix B. Date/Time Support
+    B.1. Date/Time Input Interpretation
+    B.2. Handling of Invalid or Ambiguous Timestamps
+    B.3. Date/Time Key Words
+    B.4. Date/Time Configuration Files
+    B.5. POSIX Time Zone Specifications
+    B.6. History of Units
+    B.7. Julian Dates
+  Appendix C. SQL Key Words
+  Appendix D. SQL Conformance
+    D.1. Supported Features
+    D.2. Unsupported Features
+    D.3. XML Limits and Conformance to SQL/XML
+      D.3.1. Queries Are Restricted to XPath 1.0
+        D.3.1.1. Restriction of XQuery to XPath
+        D.3.1.2. Restriction of XPath to 1.0
+        D.3.1.3. Mappings between SQL and XML Data Types and Values
+      D.3.2. Incidental Limits of the Implementation
+        D.3.2.1. Only BY VALUE Passing Mechanism Is Supported
+        D.3.2.2. Cannot Pass Named Parameters to Queries
+        D.3.2.3. No XML(SEQUENCE) Type
+  Appendix E. Release Notes
+    E.1. Release 18.7
+      E.1.1. Migration to Version 18.7
+      E.1.2. Changes
+    E.2. Release 18.6
+      E.2.1. Migration to Version 18.6
+      E.2.2. Changes
+    E.3. Release 18.4
+      E.3.1. Migration to Version 18.4
+      E.3.2. Changes
+    E.4. Release 18.3
+      E.4.1. Migration to Version 18.3
+      E.4.2. Changes
+    E.5. Release 18.2
+      E.5.1. Migration to Version 18.2
+      E.5.2. Changes
+    E.6. Release 18.1
+      E.6.1. Migration to Version 18.1
+      E.6.2. Changes
+    E.7. Release 18
+      E.7.1. Overview
+      E.7.2. Migration to Version 18
+      E.7.3. Changes
+        E.7.3.1. Server
+          E.7.3.1.1. Optimizer
+          E.7.3.1.2. Indexes
+          E.7.3.1.3. General Performance
+          E.7.3.1.4. Monitoring
+          E.7.3.1.5. Privileges
+          E.7.3.1.6. Server Configuration
+          E.7.3.1.7. Streaming Replication and Recovery
+          E.7.3.1.8. Logical Replication
+        E.7.3.2. Utility Commands
+          E.7.3.2.1. Constraints
+          E.7.3.2.2. COPY
+          E.7.3.2.3. EXPLAIN
+        E.7.3.3. Data Types
+        E.7.3.4. Functions
+        E.7.3.5. Libpq
+        E.7.3.6. psql
+        E.7.3.7. Server Applications
+          E.7.3.7.1. pg_dump/pg_dumpall/pg_restore
+          E.7.3.7.2. pg_upgrade
+          E.7.3.7.3. Logical Replication Applications
+        E.7.3.8. Source Code
+        E.7.3.9. Additional Modules
+          E.7.3.9.1. pg_stat_statements
+          E.7.3.9.2. pgcrypto
+      E.7.4. Acknowledgments
+    E.8. Prior Releases
+  Appendix F. Additional Supplied Modules and Extensions
+    F.1. amcheck — tools to verify table and index consistency
+      F.1.1. Functions
+      F.1.2. Optional heapallindexed Verification
+      F.1.3. Using amcheck Effectively
+      F.1.4. Repairing Corruption
+    F.2. auth_delay — pause on authentication failure
+      F.2.1. Configuration Parameters
+      F.2.2. Author
+    F.3. auto_explain — log execution plans of slow queries
+      F.3.1. Configuration Parameters
+      F.3.2. Example
+      F.3.3. Author
+    F.4. basebackup_to_shell — example "shell" pg_basebackup module
+      F.4.1. Configuration Parameters
+      F.4.2. Author
+    F.5. basic_archive — an example WAL archive module
+      F.5.1. Configuration Parameters
+      F.5.2. Notes
+      F.5.3. Author
+    F.6. bloom — bloom filter index access method
+      F.6.1. Parameters
+      F.6.2. Examples
+      F.6.3. Operator Class Interface
+      F.6.4. Limitations
+      F.6.5. Authors
+    F.7. btree_gin — GIN operator classes with B-tree behavior
+      F.7.1. Example Usage
+      F.7.2. Authors
+    F.8. btree_gist — GiST operator classes with B-tree behavior
+      F.8.1. Example Usage
+      F.8.2. Authors
+    F.9. citext — a case-insensitive character string type
+      F.9.1. Rationale
+      F.9.2. How to Use It
+      F.9.3. String Comparison Behavior
+      F.9.4. Limitations
+      F.9.5. Author
+    F.10. cube — a multi-dimensional cube data type
+      F.10.1. Syntax
+      F.10.2. Precision
+      F.10.3. Usage
+      F.10.4. Defaults
+      F.10.5. Notes
+      F.10.6. Credits
+    F.11. dblink — connect to other PostgreSQL databases
+      dblink_connect
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+      dblink_connect_u
+        Description
+      dblink_disconnect
+        Description
+        Arguments
+        Return Value
+        Examples
+      dblink
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+      dblink_exec
+        Description
+        Arguments
+        Return Value
+        Examples
+      dblink_open
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+      dblink_fetch
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+      dblink_close
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+      dblink_get_connections
+        Description
+        Return Value
+        Examples
+      dblink_error_message
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+      dblink_send_query
+        Description
+        Arguments
+        Return Value
+        Examples
+      dblink_is_busy
+        Description
+        Arguments
+        Return Value
+        Examples
+      dblink_get_notify
+        Description
+        Arguments
+        Return Value
+        Examples
+      dblink_get_result
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+      dblink_cancel_query
+        Description
+        Arguments
+        Return Value
+        Examples
+      dblink_get_pkey
+        Description
+        Arguments
+        Return Value
+        Examples
+      dblink_build_sql_insert
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+      dblink_build_sql_delete
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+      dblink_build_sql_update
+        Description
+        Arguments
+        Return Value
+        Notes
+        Examples
+    F.12. dict_int — example full-text search dictionary for integers
+      F.12.1. Configuration
+      F.12.2. Usage
+    F.13. dict_xsyn — example synonym full-text search dictionary
+      F.13.1. Configuration
+      F.13.2. Usage
+    F.14. earthdistance — calculate great-circle distances
+      F.14.1. Cube-Based Earth Distances
+      F.14.2. Point-Based Earth Distances
+    F.15. file_fdw — access data files in the server's file system
+    F.16. fuzzystrmatch — determine string similarities and distance
+      F.16.1. Soundex
+      F.16.2. Daitch-Mokotoff Soundex
+      F.16.3. Levenshtein
+      F.16.4. Metaphone
+      F.16.5. Double Metaphone
+    F.17. hstore — hstore key/value datatype
+      F.17.1. hstore External Representation
+      F.17.2. hstore Operators and Functions
+      F.17.3. Indexes
+      F.17.4. Examples
+      F.17.5. Statistics
+      F.17.6. Compatibility
+      F.17.7. Transforms
+      F.17.8. Authors
+    F.18. intagg — integer aggregator and enumerator
+      F.18.1. Functions
+      F.18.2. Sample Uses
+    F.19. intarray — manipulate arrays of integers
+      F.19.1. intarray Functions and Operators
+      F.19.2. Index Support
+      F.19.3. Example
+      F.19.4. Benchmark
+      F.19.5. Authors
+    F.20. isn — data types for international standard numbers (ISBN, EAN, UPC, etc.)
+      F.20.1. Data Types
+      F.20.2. Casts
+      F.20.3. Functions and Operators
+      F.20.4. Configuration Parameters
+      F.20.5. Examples
+      F.20.6. Bibliography
+      F.20.7. Author
+    F.21. lo — manage large objects
+      F.21.1. Rationale
+      F.21.2. How to Use It
+      F.21.3. Limitations
+      F.21.4. Author
+    F.22. ltree — hierarchical tree-like data type
+      F.22.1. Definitions
+      F.22.2. Operators and Functions
+      F.22.3. Indexes
+      F.22.4. Example
+      F.22.5. Transforms
+      F.22.6. Authors
+    F.23. pageinspect — low-level inspection of database pages
+      F.23.1. General Functions
+      F.23.2. Heap Functions
+      F.23.3. B-Tree Functions
+      F.23.4. BRIN Functions
+      F.23.5. GIN Functions
+      F.23.6. GiST Functions
+      F.23.7. Hash Functions
+    F.24. passwordcheck — verify password strength
+      F.24.1. Configuration Parameters
+    F.25. pg_buffercache — inspect PostgreSQL buffer cache state
+      F.25.1. The pg_buffercache View
+      F.25.2. The pg_buffercache_numa View
+      F.25.3. The pg_buffercache_summary() Function
+      F.25.4. The pg_buffercache_usage_counts() Function
+      F.25.5. The pg_buffercache_evict() Function
+      F.25.6. The pg_buffercache_evict_relation() Function
+      F.25.7. The pg_buffercache_evict_all() Function
+      F.25.8. Sample Output
+      F.25.9. Authors
+    F.26. pgcrypto — cryptographic functions
+      F.26.1. General Hashing Functions
+        F.26.1.1. digest()
+        F.26.1.2. hmac()
+      F.26.2. Password Hashing Functions
+        F.26.2.1. crypt()
+        F.26.2.2. gen_salt()
+      F.26.3. PGP Encryption Functions
+        F.26.3.1. pgp_sym_encrypt()
+        F.26.3.2. pgp_sym_decrypt()
+        F.26.3.3. pgp_pub_encrypt()
+        F.26.3.4. pgp_pub_decrypt()
+        F.26.3.5. pgp_key_id()
+        F.26.3.6. armor(), dearmor()
+        F.26.3.7. pgp_armor_headers
+        F.26.3.8. Options for PGP Functions
+          F.26.3.8.1. cipher-algo
+          F.26.3.8.2. compress-algo
+          F.26.3.8.3. compress-level
+          F.26.3.8.4. convert-crlf
+          F.26.3.8.5. disable-mdc
+          F.26.3.8.6. sess-key
+          F.26.3.8.7. s2k-mode
+          F.26.3.8.8. s2k-count
+          F.26.3.8.9. s2k-digest-algo
+          F.26.3.8.10. s2k-cipher-algo
+          F.26.3.8.11. unicode-mode
+          F.26.3.8.12. ignore-cipher-failure
+        F.26.3.9. Generating PGP Keys with GnuPG
+        F.26.3.10. Limitations of PGP Code
+      F.26.4. Raw Encryption Functions
+      F.26.5. Random-Data Functions
+      F.26.6. OpenSSL Support Functions
+      F.26.7. Configuration Parameters
+      F.26.8. Notes
+        F.26.8.1. Configuration
+        F.26.8.2. NULL Handling
+        F.26.8.3. Security Limitations
+      F.26.9. Author
+    F.27. pg_freespacemap — examine the free space map
+      F.27.1. Functions
+      F.27.2. Sample Output
+      F.27.3. Author
+    F.28. pg_logicalinspect — logical decoding components inspection
+      F.28.1. Functions
+      F.28.2. Author
+    F.29. pg_overexplain — allow EXPLAIN to dump even more details
+      F.29.1. EXPLAIN (DEBUG)
+      F.29.2. EXPLAIN (RANGE_TABLE)
+      F.29.3. Author
+    F.30. pg_prewarm — preload relation data into buffer caches
+      F.30.1. Functions
+      F.30.2. Configuration Parameters
+      F.30.3. Author
+    F.31. pgrowlocks — show a table's row locking information
+      F.31.1. Overview
+      F.31.2. Sample Output
+      F.31.3. Author
+    F.32. pg_stat_statements — track statistics of SQL planning and execution
+      F.32.1. The pg_stat_statements View
+      F.32.2. The pg_stat_statements_info View
+      F.32.3. Functions
+      F.32.4. Configuration Parameters
+      F.32.5. Sample Output
+      F.32.6. Authors
+    F.33. pgstattuple — obtain tuple-level statistics
+      F.33.1. Functions
+      F.33.2. Authors
+    F.34. pg_surgery — perform low-level surgery on relation data
+      F.34.1. Functions
+      F.34.2. Authors
+    F.35. pg_trgm — support for similarity of text using trigram matching
+      F.35.1. Trigram (or Trigraph) Concepts
+      F.35.2. Functions and Operators
+      F.35.3. GUC Parameters
+      F.35.4. Index Support
+      F.35.5. Text Search Integration
+      F.35.6. References
+      F.35.7. Authors
+    F.36. pg_visibility — visibility map information and utilities
+      F.36.1. Functions
+      F.36.2. Author
+    F.37. pg_walinspect — low-level WAL inspection
+      F.37.1. General Functions
+      F.37.2. Author
+    F.38. postgres_fdw — access data stored in external PostgreSQL servers
+      F.38.1. FDW Options of postgres_fdw
+        F.38.1.1. Connection Options
+        F.38.1.2. Object Name Options
+        F.38.1.3. Cost Estimation Options
+        F.38.1.4. Remote Execution Options
+        F.38.1.5. Asynchronous Execution Options
+        F.38.1.6. Transaction Management Options
+        F.38.1.7. Updatability Options
+        F.38.1.8. Truncatability Options
+        F.38.1.9. Importing Options
+        F.38.1.10. Connection Management Options
+      F.38.2. Functions
+      F.38.3. Connection Management
+      F.38.4. Transaction Management
+      F.38.5. Remote Query Optimization
+      F.38.6. Remote Query Execution Environment
+      F.38.7. Cross-Version Compatibility
+      F.38.8. Wait Events
+      F.38.9. Configuration Parameters
+      F.38.10. Examples
+      F.38.11. Author
+    F.39. seg — a datatype for line segments or floating point intervals
+      F.39.1. Rationale
+      F.39.2. Syntax
+      F.39.3. Precision
+      F.39.4. Usage
+      F.39.5. Notes
+      F.39.6. Credits
+    F.40. sepgsql — SELinux-, label-based mandatory access control (MAC) security module
+      F.40.1. Overview
+      F.40.2. Installation
+      F.40.3. Regression Tests
+      F.40.4. GUC Parameters
+      F.40.5. Features
+        F.40.5.1. Controlled Object Classes
+        F.40.5.2. DML Permissions
+        F.40.5.3. DDL Permissions
+        F.40.5.4. Trusted Procedures
+        F.40.5.5. Dynamic Domain Transitions
+        F.40.5.6. Miscellaneous
+      F.40.6. Sepgsql Functions
+      F.40.7. Limitations
+      F.40.8. External Resources
+      F.40.9. Author
+    F.41. spi — Server Programming Interface features/examples
+      F.41.1. refint — Functions for Implementing Referential Integrity
+      F.41.2. autoinc — Functions for Autoincrementing Fields
+      F.41.3. insert_username — Functions for Tracking Who Changed a Table
+      F.41.4. moddatetime — Functions for Tracking Last Modification Time
+    F.42. sslinfo — obtain client SSL information
+      F.42.1. Functions Provided
+      F.42.2. Author
+    F.43. tablefunc — functions that return tables (crosstab and others)
+      F.43.1. Functions Provided
+        F.43.1.1. normal_rand
+        F.43.1.2. crosstab(text)
+        F.43.1.3. crosstabN(text)
+        F.43.1.4. crosstab(text, text)
+        F.43.1.5. connectby
+      F.43.2. Author
+    F.44. tcn — a trigger function to notify listeners of changes to table content
+    F.45. test_decoding — SQL-based test/example module for WAL logical decoding
+    F.46. tsm_system_rows — the SYSTEM_ROWS sampling method for TABLESAMPLE
+      F.46.1. Examples
+    F.47. tsm_system_time — the SYSTEM_TIME sampling method for TABLESAMPLE
+      F.47.1. Examples
+    F.48. unaccent — a text search dictionary which removes diacritics
+      F.48.1. Configuration
+      F.48.2. Usage
+      F.48.3. Functions
+    F.49. uuid-ossp — a UUID generator
+      F.49.1. uuid-ossp Functions
+      F.49.2. Building uuid-ossp
+      F.49.3. Author
+    F.50. xml2 — XPath querying and XSLT functionality
+      F.50.1. Deprecation Notice
+      F.50.2. Description of Functions
+      F.50.3. xpath_table
+        F.50.3.1. Multivalued Results
+      F.50.4. XSLT Functions
+        F.50.4.1. xslt_process
+      F.50.5. Author
+  Appendix G. Additional Supplied Programs
+    G.1. Client Applications
+      oid2name
+        Description
+        Options
+        Environment
+        Notes
+        Examples
+        Author
+      vacuumlo
+        Description
+        Options
+        Environment
+        Notes
+        Author
+    G.2. Server Applications
+  Appendix H. External Projects
+    H.1. Client Interfaces
+    H.2. Administration Tools
+    H.3. Procedural Languages
+    H.4. Extensions
+  Appendix I. The Source Code Repository
+    I.1. Getting the Source via Git
+  Appendix J. Documentation
+    J.1. DocBook
+    J.2. Tool Sets
+      J.2.1. Installation on Fedora, RHEL, and Derivatives
+      J.2.2. Installation on FreeBSD
+      J.2.3. Debian Packages
+      J.2.4. macOS
+      J.2.5. Detection by configure
+    J.3. Building the Documentation with Make
+      J.3.1. HTML
+      J.3.2. Manpages
+      J.3.3. PDF
+      J.3.4. Syntax Check
+    J.4. Building the Documentation with Meson
+    J.5. Documentation Authoring
+      J.5.1. Emacs
+    J.6. Style Guide
+      J.6.1. Reference Pages
+  Appendix K. PostgreSQL Limits
+  Appendix L. Acronyms
+  Appendix M. Glossary
+  Appendix N. Color Support
+    N.1. When Color is Used
+    N.2. Configuring the Colors
+  Appendix O. Obsolete or Renamed Features
+    O.1. recovery.conf file merged into postgresql.conf
+    O.2. Default Roles Renamed to Predefined Roles
+    O.3. pg_xlogdump renamed to pg_waldump
+    O.4. pg_resetxlog renamed to pg_resetwal
+    O.5. pg_receivexlog renamed to pg_receivewal
+Bibliography
+Index

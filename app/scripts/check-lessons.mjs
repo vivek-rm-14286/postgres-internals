@@ -12,6 +12,7 @@ const execAll = async (db, sql) => { for (const st of splitStatements(sql)) awai
 
 const extImport = {
   vector: () => import('@electric-sql/pglite-pgvector').then((m) => m.vector),
+  postgis: () => import('@electric-sql/pglite-postgis').then((m) => m.postgis),
   uuid_ossp: () => import('@electric-sql/pglite/contrib/uuid_ossp').then((m) => m.uuid_ossp),
 }
 const loadExt = (n) => (extImport[n] ?? (() => import(`@electric-sql/pglite/contrib/${n}`).then((m) => m[n])))()

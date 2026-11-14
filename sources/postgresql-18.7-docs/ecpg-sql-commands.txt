@@ -1,0 +1,25 @@
+34.14. Embedded SQL Commands
+Prev 	Up	Chapter 34. ECPG — Embedded SQL in C	Home	 Next
+34.14. Embedded SQL Commands #
+ALLOCATE DESCRIPTOR — allocate an SQL descriptor area
+CONNECT — establish a database connection
+DEALLOCATE DESCRIPTOR — deallocate an SQL descriptor area
+DECLARE — define a cursor
+DECLARE STATEMENT — declare SQL statement identifier
+DESCRIBE — obtain information about a prepared statement or result set
+DISCONNECT — terminate a database connection
+EXECUTE IMMEDIATE — dynamically prepare and execute a statement
+GET DESCRIPTOR — get information from an SQL descriptor area
+OPEN — open a dynamic cursor
+PREPARE — prepare a statement for execution
+SET AUTOCOMMIT — set the autocommit behavior of the current session
+SET CONNECTION — select a database connection
+SET DESCRIPTOR — set information in an SQL descriptor area
+TYPE — define a new data type
+VAR — define a variable
+WHENEVER — specify the action to be taken when an SQL statement causes a specific class condition to be raised
+
+This section describes all SQL commands that are specific to embedded SQL. Also refer to the SQL commands listed in SQL Commands, which can also be used in embedded SQL, unless stated otherwise.
+
+Prev 	Up	 Next
+34.13. C++ Applications 	Home	 ALLOCATE DESCRIPTOR

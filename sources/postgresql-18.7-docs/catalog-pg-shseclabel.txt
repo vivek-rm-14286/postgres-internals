@@ -1,0 +1,48 @@
+52.50. pg_shseclabel
+Prev 	Up	Chapter 52. System Catalogs	Home	 Next
+52.50. pg_shseclabel #
+
+The catalog pg_shseclabel stores security labels on shared database objects. Security labels can be manipulated with the SECURITY LABEL command. For an easier way to view security labels, see Section 53.23.
+
+See also pg_seclabel, which performs a similar function for security labels involving objects within a single database.
+
+Unlike most system catalogs, pg_shseclabel is shared across all databases of a cluster: there is only one copy of pg_shseclabel per cluster, not one per database.
+
+Table 52.50. pg_shseclabel Columns
+
+Column Type
+
+Description
+
+
+
+
+objoid oid (references any OID column)
+
+The OID of the object this security label pertains to
+
+
+
+
+classoid oid (references pg_class.oid)
+
+The OID of the system catalog this object appears in
+
+
+
+
+provider text
+
+The label provider associated with this label.
+
+
+
+
+label text
+
+The security label applied to this object.
+
+
+
+Prev 	Up	 Next
+52.49. pg_shdescription 	Home	 52.51. pg_statistic

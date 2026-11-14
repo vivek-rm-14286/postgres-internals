@@ -32,6 +32,7 @@ check('error + sqlstate', await call('run_sql', { sql: 'insert into t values (1,
 check('isolated sessions', await call('run_sql', { sql: "select to_regclass('t')", session: 'other' }), (r) => /NULL/.test(r.text))
 check('vector', await call('run_sql', { sql: "create extension vector; select '[1,2,3]'::vector <-> '[1,2,4]'", session: 'other' }), (r) => /\b1\b/.test(r.text))
 check('timeout kills runaway query', await call('run_sql', { sql: 'select count(*) from generate_series(1, 1e12)', session: 'spin', timeout_ms: 2000 }), (r) => r.isError && /timed out/.test(r.text))
+check('postgis session', await call('run_sql', { sql: "create extension postgis; select round((ST_Distance('SRID=4326;POINT(-0.1278 51.5074)'::geography, 'SRID=4326;POINT(2.3522 48.8566)'::geography) / 1000)::numeric, 1) as km", session: 'gis', with_postgis: true, timeout_ms: 60000 }), (r) => /343\.9/.test(r.text))
 check('reset', await call('reset_sandbox', { session: 'default' }), (r) => /reset/.test(r.text))
 check('fresh after reset', await call('run_sql', { sql: "select to_regclass('t')" }), (r) => /NULL/.test(r.text))
 await client.close()

@@ -746,6 +746,154 @@
       "Check input with `pg_input_is_valid` and `pg_input_error_info` before casting; use `to_char`/`to_number`/`to_date` for custom formats.",
       "Going deeper: the Internals lesson [JSON vs JSONB](/m2/json-jsonb) shows how JSON values are stored and why `->>` hands you text."
      ]
+    },
+    {
+     "order": 6,
+     "slug": "working-with-json",
+     "title": "Working with JSON",
+     "tldr": "PostgreSQL can build JSON documents from ordinary rows, query them with path expressions, turn them back into rows, change parts of them and validate them with constraints. Applications speak JSON, so doing this shaping in one SQL statement replaces many round trips and loops in application code, as long as you pick the right function and the right index.",
+     "visualizer": {
+      "title": "Rows, paths and indexes",
+      "interaction": "**Rows → document**: press **Fold one level** and watch join rows nest into one document; switch the empty-group handling to see what a customer with no orders gets. **Path explorer**: click a node. **Index guide**: pick a query shape."
+     },
+     "playground": {
+      "extensions": [],
+      "presets": [
+       {
+        "label": "Rows become JSON",
+        "lookFor": "`to_jsonb(row)` turns a whole row into an object keyed by column name. `jsonb_build_object` picks the keys, `jsonb_agg(… ORDER BY …)` folds rows into an ordered array, and `jsonb_object_agg(key, value)` folds rows into one object."
+       },
+       {
+        "label": "Empty groups: [null], NULL or []",
+        "lookFor": "Dara has no orders. Plain `jsonb_agg` gives `[null]`, `FILTER` gives SQL NULL, and `COALESCE(…, '[]')` gives an empty array. `jsonb_agg_strict` skips NULL values but not an object full of nulls. A NULL **key** in `jsonb_object_agg` is an error; a NULL value is kept unless you use the `_strict` form."
+       },
+       {
+        "label": "SQL/JSON standard functions",
+        "lookFor": "The standard constructors return `json` unless you say `RETURNING jsonb`. `JSON_OBJECT` keeps NULLs by default, `JSON_ARRAY` drops them. Inbox row 2 has `13/11/2026`, which is not a valid date: `JSON_VALUE … RETURNING date` quietly returns NULL, unless you give a `DEFAULT … ON ERROR`."
+       },
+       {
+        "label": "Shred JSON into rows and load it",
+        "lookFor": "`jsonb_to_recordset` maps each array element to a typed row: the string `\"3\"` becomes the integer 3 and a missing `qty` becomes NULL. `WITH ORDINALITY` numbers the elements from 1. The `LEFT JOIN LATERAL … ON true` keeps inbox row 2, whose array is empty."
+       },
+       {
+        "label": "Update toolkit",
+        "lookFor": "`||` adds or replaces top-level keys, `-` removes a key, `#-` removes whatever sits at a path. `jsonb_insert` inserts into arrays (and refuses to overwrite an existing object key). `jsonb_set` with a missing **parent** returns the document unchanged, with no error. Mind the parentheses: `-` binds tighter than `||`."
+       },
+       {
+        "label": "Validate documents",
+        "lookFor": "`IS JSON` tests text without raising an error; `WITH UNIQUE KEYS` catches duplicate keys that jsonb would silently collapse. The CHECK constraints accept only the first cart: watch the notices for which constraint rejected each of the others."
+       },
+       {
+        "label": "Index decision guide",
+        "lookFor": "Containment and `?` use the GIN indexes; `->>` equality, the numeric range and top-N need the B-tree expression indexes; the jsonpath range stays a Seq Scan. In the last two plans compare the `rows=` estimate: a guess of 100 for `->>` against 50 (the true count) for the promoted column."
+       }
+      ]
+     },
+     "production": {
+      "title": "One query for an account page, with no [null]",
+      "problem": "The page made 1 + 4 + 4 = **9** round trips for the 4 customers here, and it grew with every order. A rewrite with `LEFT JOIN` and `jsonb_agg` cut that to one, but customers without orders came back as `\"orders\": [{\"id\": null, \"items\": null}]` and the mobile app crashed reading the fake order.",
+      "outcome": "One statement replaces nine on the playground data, and the count no longer grows with the number of orders. Dara now gets `\"orders\": []`, which every client can loop over."
+     },
+     "pitfalls": [
+      {
+       "title": "Customers with no children get [null]",
+       "fix": "Filter the fake row and default the empty case: `COALESCE(jsonb_agg(x) FILTER (WHERE child.id IS NOT NULL), '[]')`, or aggregate in a correlated subquery, which sees no fake row but still needs `COALESCE(…, '[]')`."
+      },
+      {
+       "title": "JSON_VALUE turns bad data into NULL",
+       "fix": "In loads, write `ERROR ON ERROR` so bad documents fail loudly, or `DEFAULT … ON ERROR` plus a check that counts the defaults. Use `ON EMPTY` for keys that may be missing."
+      },
+      {
+       "title": "jsonb_set silently does nothing",
+       "fix": "Create the parent first: `jsonb_set(doc, '{meta}', COALESCE(doc -> 'meta', '{}') || '{\"source\": \"web\"}')`, or rebuild the sub-object with `||`."
+      },
+      {
+       "title": "Expecting one index to serve every JSON query",
+       "fix": "Add a B-tree on the exact expression (`((attrs ->> 'sku'))`, `(((attrs ->> 'price')::numeric))`), or promote a hot key to a `STORED` generated column with its own index and statistics."
+      }
+     ],
+     "keyPointers": [
+      "Build: `to_jsonb(row)`, `jsonb_build_object`, `jsonb_agg(x ORDER BY …)`, `jsonb_object_agg(k, v)`. Empty groups: `COALESCE(jsonb_agg(x) FILTER (WHERE … IS NOT NULL), '[]')`.",
+      "Query: `JSON_VALUE` for one scalar (`RETURNING` a type), `JSON_QUERY` for objects, arrays or several items (`WITH WRAPPER`), `JSON_EXISTS` for a yes/no. `JSON_VALUE` and `JSON_QUERY` return NULL on error and `JSON_EXISTS` returns false, unless told otherwise.",
+      "Shred with `jsonb_to_recordset` or `jsonb_array_elements … WITH ORDINALITY`; update with `||`, `-`, `#-`, `jsonb_insert`, `jsonb_set`; validate with `IS JSON` and CHECK constraints.",
+      "Index guide: GIN for `@>`, `?` and jsonpath equality; B-tree on the expression for `->>`, ranges and sorting; a stored generated column for keys you filter, join or group on all the time.",
+      "Going deeper: [JSON vs JSONB](/m2/json-jsonb) shows how jsonb is stored and the `jsonb_set` NULL trap, and [GIN indexes](/m4/gin) shows what the GIN opclasses actually store."
+     ]
+    },
+    {
+     "order": 7,
+     "slug": "ranges-and-special-types",
+     "title": "Ranges and other special types",
+     "tldr": "A **range** stores an interval such as a booking time or a quantity band as one value with two bounds, and PostgreSQL also ships types for IP networks, geometry and your own composite records. These types let the database answer questions like \"do these overlap?\" or \"which subnet holds this address?\" with one operator and an index, and refuse bad data such as double bookings outright.",
+     "visualizer": {
+      "title": "Ranges, bookings and networks",
+      "interaction": "**Two ranges**: drag the dots, flip the brackets and pick an operation; **Next case** walks the key cases. **Bookings**: try inserts against an exclusion constraint. **IP networks**: pick an address and see which subnets contain it."
+     },
+     "playground": {
+      "extensions": [
+       "btree_gist"
+      ],
+      "presets": [
+       {
+        "label": "Range basics: bounds and canonical form",
+        "lookFor": "`[` and `]` include a bound, `(` and `)` exclude it; the default is `[)`. Discrete ranges (int4range, int8range, daterange) are stored in canonical `[)` form, so `[1,10]` reads back as `[1,11)`. An omitted bound is **unbounded** (`upper_inf` true), which is not the same as the value `infinity`."
+       },
+       {
+        "label": "Range operators and lookups",
+        "lookFor": "`@>` tests containment, `&&` overlap, `-|-` adjacency, `<<` \"entirely left of\". Half-open `[1,5)` and `[5,9)` do not overlap but are adjacent, so their union is one range. A quantity of 0 falls in no band; 150 falls in the unbounded `[100,)`."
+       },
+       {
+        "label": "Multiranges and free time",
+        "lookFor": "A **multirange** is a sorted set of non-overlapping ranges. `range_agg` merges touching bookings, so Lisbon's 09:00 and 10:00 meetings become one busy block. Subtracting it from the working day gives the free slots, even when the result has holes."
+       },
+       {
+        "label": "No double bookings",
+        "lookFor": "The two touching or other-room bookings are accepted; `sync` overlaps `review` in room 1 and the exclusion constraint rejects it (see the notice, SQLSTATE 23P01). `WITHOUT OVERLAPS` builds the same kind of GiST-backed rule into a primary key. The constraint's GiST index also serves `&&` searches."
+       },
+       {
+        "label": "Network types: inet and cidr",
+        "lookFor": "**inet** holds a host address with an optional netmask; **cidr** holds a network and rejects host bits (`'192.168.1.5/24'::cidr` is an error). `>>=` is \"contains or equals\", and sorting by `masklen` finds the longest prefix. A GiST index with `inet_ops` serves `<<` and `>>=`. Text comparison gets the order of addresses wrong."
+       },
+       {
+        "label": "Geometric types and nearest neighbours",
+        "lookFor": "`<->` is distance. A GiST index on a `point` column answers `ORDER BY loc <-> p LIMIT n` as an **index scan** that walks outward from p, without computing every distance. Points have no `=` operator; use `~=` (\"same as\")."
+       },
+       {
+        "label": "Composite types and xml",
+        "lookFor": "A **composite type** groups fields into one value. Read a field with `(column).field`: the parentheses stop PostgreSQL from reading `total` as a table name. In `SET`, write `total.amount` without them. Row comparison goes field by field, and NULL makes `=` unknown. `xml` values are checked for well-formedness; `xpath` and `XMLTABLE` pull data out."
+       }
+      ]
+     },
+     "production": {
+      "title": "Making double bookings impossible",
+      "problem": "Two people booking the same slot at the same moment both saw \"free\" and both inserted: a classic race between check and insert. Separate start and end columns also invited off-by-one bugs with `<=` against `<`.",
+      "outcome": "The check and the insert become one atomic step inside the database, so no interleaving of sessions can produce an overlap. In the playground the conflicting `sync` booking is rejected with SQLSTATE 23P01 while touching bookings are accepted."
+     },
+     "pitfalls": [
+      {
+       "title": "Closed upper bounds make back-to-back bookings collide",
+       "fix": "Use half-open `[)` bounds everywhere (the constructor default). Back-to-back ranges are then adjacent (`-|-`), not overlapping."
+      },
+      {
+       "title": "Exclusion constraint on an integer column fails to create",
+       "fix": "Run `CREATE EXTENSION btree_gist;` first. It adds GiST operator classes for the scalar types."
+      },
+      {
+       "title": "Range union or difference raises an error",
+       "fix": "Work with multiranges: `range_agg(r)` to merge many ranges, `multirange - multirange` for differences, and `unnest()` to list the pieces."
+      },
+      {
+       "title": "IP addresses stored as text",
+       "fix": "Store addresses in `inet` and networks in `cidr`. Filter with `<<=` / `>>=`, sort natively, and index with `USING gist (col inet_ops)`."
+      }
+     ],
+     "keyPointers": [
+      "Range bounds: `[` / `]` include, `(` / `)` exclude, default `[)`. Discrete ranges are stored canonically as `[)`. An omitted bound is unbounded; `empty` contains no points.",
+      "Operators: `@>` contains, `<@` contained by, `&&` overlaps, `-|-` adjacent, `<<` / `>>` strictly left / right, `+` `*` `-` union, intersection, difference.",
+      "Multiranges (`range_agg`, `unnest`) hold sets of ranges with gaps. `EXCLUDE USING gist (k WITH =, r WITH &&)` or `PRIMARY KEY (k, r WITHOUT OVERLAPS)` forbids overlaps; scalar columns need `btree_gist`.",
+      "`inet` = host plus netmask, `cidr` = network; use `>>=` and `masklen` for longest-prefix lookups. Geometric types measure with `<->`; composite fields read as `(col).field`.",
+      "Going deeper: [GiST and SP-GiST](/m4/gist-spgist) shows how the index behind ranges, exclusion constraints, `inet_ops` and nearest-neighbour search is organised."
+     ]
     }
    ]
   },
@@ -7557,6 +7705,314 @@
       "HAProxy routes by HTTP checks against Patroni's REST API: `/primary` for writes, `/replica?lag=` for reads. A pooler such as [PgBouncer](/m7/connection-pooling) sits behind it or beside it.",
       "`synchronous_mode` makes failover lose nothing acknowledged; asynchronous failover can lose the unreplicated tail.",
       "Switchover is the planned, lossless version: rehearse it regularly. A returning old primary needs `pg_rewind` or a rebuild."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "e4",
+   "track": "ecosystem",
+   "code": "E4",
+   "title": "Spatial Data with PostGIS",
+   "summary": "Geometry and geography, coordinate systems, spatial indexes, nearest-neighbour search and the spatial queries maps are built on.",
+   "lessons": [
+    {
+     "order": 1,
+     "slug": "spatial-basics",
+     "title": "Geometry, geography and coordinate systems",
+     "tldr": "PostGIS adds two spatial types to PostgreSQL: **geometry**, measured on a flat plane in the units of its coordinate system (its **SRID**), and **geography**, measured on the curved Earth in metres. Every coordinate means nothing without its SRID, so picking the right type and coordinate system up front is what makes distances, areas and joins come out right.",
+     "visualizer": {
+      "title": "One pair of cities, three rulers",
+      "interaction": "Switch the ruler and watch the grid morph from longitude/latitude to Web Mercator. **Next city pair** moves north and south; the checkbox shows what swapped coordinates do."
+     },
+     "playground": {
+      "extensions": [
+       "postgis"
+      ],
+      "presets": [
+       {
+        "label": "Make a point",
+        "lookFor": "The same point in four encodings. The default text output is **HEXEWKB**. `ST_MakePoint` alone has SRID **0** (unknown); `ST_Point(x, y, 4326)` sets it in one call."
+       },
+       {
+        "label": "Coordinate systems",
+        "lookFor": "**8500** coordinate systems ship in `spatial_ref_sys`. 4326 is longitude/latitude on WGS 84, 3857 is Web Mercator, and 3035, 27700 and 32618 are local projections in metres."
+       },
+       {
+        "label": "Three rulers",
+        "lookFor": "geometry in 4326 returns **3.63 degrees**. geography returns **343.9 km**. Web Mercator says 537 km, about 56% too long at this latitude. The local equal-area projection 3035 is within 0.5 km."
+       },
+       {
+        "label": "Swap lat and lon",
+        "lookFor": "Latitude first puts \"London\" in the Indian Ocean, and the distance comes out as **402.7 km**, with no error. Out-of-range geography input is silently wrapped to `POINT(-160 80)`."
+       },
+       {
+        "label": "Area by latitude",
+        "lookFor": "A 1° × 1° cell is **1 square degree** everywhere, but its true area falls from 12 309 km² at the equator to 6 123 km² at 60°. Mercator grows it to 25 168 km²."
+       },
+       {
+        "label": "Typmods guard the column",
+        "lookFor": "`geometry(Point, 4326)` rejects a wrong SRID and a wrong shape. A point that really is in 27700 must be **transformed**, not relabelled; the third insert works and lands on London."
+       },
+       {
+        "label": "The antimeridian",
+        "lookFor": "Two points 1° apart across the date line. The plane thinks they are **359 degrees** apart; geography knows the Earth is round and says **111 km**."
+       }
+      ]
+     },
+     "production": {
+      "title": "A delivery app that measured in the wrong units",
+      "problem": "Web Mercator stretches lengths by about 1/cos(latitude). At 51.5° N every distance came out about **1.6×** too long, so customers were overcharged. Moving the code to `ST_Distance(geom, geom)` in 4326 made it worse: the result was in **degrees**.",
+      "outcome": "For London–Paris the three answers are 537.3 km (3857), 3.63 (degrees) and 343.9 km (geography). The fee now uses the 343.9 km kind of number, and the local projection agrees to within half a kilometre."
+     },
+     "pitfalls": [
+      {
+       "title": "Latitude written first",
+       "fix": "Always pass longitude first to `ST_Point`/`ST_MakePoint`. Add a check constraint for your region to catch swaps."
+      },
+      {
+       "title": "Reading degrees as metres",
+       "fix": "Cast to geography for metres, or transform to a projected SRID whose unit is metres."
+      },
+      {
+       "title": "ST_SetSRID where ST_Transform was needed",
+       "fix": "Set the SRID the data was really produced in, then transform."
+      },
+      {
+       "title": "Measuring in Web Mercator",
+       "fix": "Keep 3857 for display. Measure with geography or with a local equal-area or conformal projection."
+      }
+     ],
+     "keyPointers": [
+      "**geometry**: planar, units of its SRID, the richest function set. **geography**: spheroid, metres, the right default for lon/lat data spread over a wide area.",
+      "Coordinates are **(x, y) = (longitude, latitude)**. `ST_Point(lon, lat, 4326)` builds a point with its SRID in one call.",
+      "`ST_Transform` changes coordinates; `ST_SetSRID` only changes the label.",
+      "Use typmods such as `geometry(Point, 4326)` so the column rejects the wrong SRID or shape.",
+      "Next: how a spatial index answers \"what is near here\" in [Spatial indexes](/e4/spatial-indexes)."
+     ]
+    },
+    {
+     "order": 2,
+     "slug": "spatial-indexes",
+     "title": "Spatial indexes",
+     "tldr": "A PostGIS **GiST** index is an R-tree of **bounding boxes**: each page stores boxes, and each box covers everything beneath it. It lets a query skip whole regions with the cheap `&&` box test and run the exact, expensive geometry test only on the few rows that survive.",
+     "visualizer": {
+      "title": "Two-step filtering through a GiST tree",
+      "interaction": "Drag the ✕, set the radius, and step the phases. Then switch to **geom::geography** to see the same query lose its index."
+     },
+     "playground": {
+      "extensions": [
+       "postgis"
+      ],
+      "presets": [
+       {
+        "label": "Box overlap: &&",
+        "lookFor": "`&&` is answered by the GiST index alone: **Bitmap Index Scan**, about 5 index buffers. The long hex string is the query box in WKB."
+       },
+       {
+        "label": "ST_DWithin, indexed",
+        "lookFor": "Read the **Index Cond**: `geom && st_expand(…, 0.005)`. Two-step filtering in one plan. The radius is **0.005 degrees**, because the column is geometry in 4326."
+       },
+       {
+        "label": "The geography cast trap",
+        "lookFor": "Metres at last, but the plan is a **Seq Scan** over the whole table: **19 995** rows removed by the filter. The index is on `geom`, not on `geom::geography`."
+       },
+       {
+        "label": "Fix: expression index",
+        "lookFor": "Same query, now a **Bitmap Index Scan** on `places_geog_gist` with `_st_expand` on geography. A few index pages, 8 heap blocks, and only 3 rows removed."
+       },
+       {
+        "label": "ST_Distance is never indexed",
+        "lookFor": "Same 5 rows, but **Seq Scan** even with the geography index: `ST_Distance` has no index support. Write radius filters with `ST_DWithin`."
+       },
+       {
+        "label": "GiST vs SP-GiST vs BRIN",
+        "lookFor": "GiST 864 kB, SP-GiST 968 kB, BRIN **24 kB**. BRIN is tiny because it stores one box per range of 4 pages. Whether it helps depends on row order (next preset)."
+       },
+       {
+        "label": "BRIN needs sorted rows",
+        "lookFor": "On `places` the rows are scattered, so every range box covers the whole area: **lossy=171**, all pages. `ORDER BY geom` lays rows out along a space-filling curve, and BRIN then reads only about **16** pages."
+       }
+      ]
+     },
+     "production": {
+      "title": "A store finder that slowed down as it grew",
+      "problem": "Latency grew in step with the table. `EXPLAIN` showed a **Seq Scan** with almost every row removed by the filter. The cast to geography made the filter an expression that the GiST index on `geom` cannot serve.",
+      "outcome": "In the playground the same pattern goes from a Seq Scan that discards 19 995 of 20 000 rows to a Bitmap Index Scan that reads a few index pages and 8 heap blocks. The gap grows with the table: the seq scan is linear, the index descent is logarithmic."
+     },
+     "pitfalls": [
+      {
+       "title": "Wrapping the indexed column in a cast or function",
+       "fix": "Put the transformation on the **constant** side, or create an expression index that matches."
+      },
+      {
+       "title": "Filtering with ST_Distance",
+       "fix": "Use `ST_DWithin(a, b, 500)`. It adds `&&` against the expanded box, so the index cuts the candidates first."
+      },
+      {
+       "title": "Using && when you mean \"inside\"",
+       "fix": "Use `ST_Intersects` for the exact answer. It does the `&&` index step for you and then the exact test."
+      },
+      {
+       "title": "BRIN on unsorted or frequently updated data",
+       "fix": "Use BRIN only for append-mostly data written in spatial order (or rewritten with `ORDER BY geom`). Use GiST otherwise."
+      }
+     ],
+     "keyPointers": [
+      "Indexes store **boxes**; queries run in two steps: box filter (index) then exact test (recheck).",
+      "Index-aware: `&&`, `~`, `@`, `ST_Intersects`, `ST_Contains`, `ST_Within`, `ST_Covers`, `ST_DWithin` and friends. Not `ST_Distance`.",
+      "Casting the column (`geom::geography`) needs a matching **expression index** or the plan becomes a Seq Scan.",
+      "GiST is the default; SP-GiST suits points; BRIN is tiny but needs spatially sorted rows. Compare [GiST and SP-GiST](/m4/gist-spgist) and [BRIN](/m4/brin) internals.",
+      "Read the plan for `Index Cond` and `Rows Removed by Filter`, as in [EXPLAIN ANALYZE](/m4/explain-analyze)."
+     ]
+    },
+    {
+     "order": 3,
+     "slug": "nearest-neighbour",
+     "title": "Nearest-neighbour search",
+     "tldr": "`ORDER BY geom <-> point LIMIT k` asks for the k nearest rows, and a GiST index answers it directly by returning rows in distance order. It exists because \"the closest five\" has no radius to filter on, and sorting every row by distance gets slower as the table grows.",
+     "visualizer": {
+      "title": "Best-first search through the index",
+      "interaction": "Pop entries off the priority queue and watch pages open and rows come out in order. Drag the ✕ or change **LIMIT k**, then compare the work with a full sort."
+     },
+     "playground": {
+      "extensions": [
+       "postgis"
+      ],
+      "presets": [
+       {
+        "label": "KNN plan",
+        "lookFor": "**Index Scan** with `Order By: (geom <-> …)`. No Sort node: the index hands rows over already in distance order, after about 10 buffers."
+       },
+       {
+        "label": "Degrees can mis-rank",
+        "lookFor": "The first five agree, but the 6th differs: ordering in **degrees** picks #9976 at 652 m, while the true 6th nearest is #11179 at **524 m**. At 51.5° N a degree east is shorter than a degree north."
+       },
+       {
+        "label": "Geography KNN",
+        "lookFor": "Without a geography index the plan is **Seq Scan + Sort**. With the expression index it becomes an ordered Index Scan. Geography `<->` measures on a sphere, in metres."
+       },
+       {
+        "label": "KNN with a filter",
+        "lookFor": "The index walks outward in distance order and the filter throws away non-pharmacies: **Rows Removed by Filter: 11**. A rare kind would mean walking much further."
+       },
+       {
+        "label": "Nearest per row: LATERAL",
+        "lookFor": "For each rider, `r.geom` is a constant inside the subquery, so every probe is an index KNN scan: **Index Searches: 50**, one per rider."
+       },
+       {
+        "label": "Trap: join without LATERAL",
+        "lookFor": "The distance is between two **columns**, so no index can order it: Seq Scan on `places`, then Sort. Rewrite with LATERAL or a scalar subquery."
+       },
+       {
+        "label": "Radius and order",
+        "lookFor": "With a radius the planner filters through the index and **top-N sorts** the 14 survivors. `<#>` is box distance: 0 for a point inside a diagonal line's box, even though the line is 7.07 away."
+       }
+      ]
+     },
+     "production": {
+      "title": "Assigning the nearest courier",
+      "problem": "The first version joined orders to couriers and sorted by `ST_Distance` with a 5 km `ST_DWithin` cap. On busy evenings every order computed distances to hundreds of couriers, and quiet suburbs found nobody inside 5 km.",
+      "outcome": "Each order costs one short index descent instead of a scan. In the playground, 50 riders find their nearest pharmacy with 50 index probes in a few milliseconds. Taking 3 by degrees and re-ranking in metres fixes the degree mis-ranking."
+     },
+     "pitfalls": [
+      {
+       "title": "<-> between two columns",
+       "fix": "Use `CROSS JOIN LATERAL (… ORDER BY t.geom <-> outer.geom LIMIT k)`. Inside the subquery the outer value is a constant."
+      },
+      {
+       "title": "Nearest in degrees",
+       "fix": "Order by geography (`geom::geography <-> $1::geography` with a matching index), use a projected SRID, or fetch a few extra rows and re-rank by `ST_Distance` on geography."
+      },
+      {
+       "title": "Ordering by ST_Distance",
+       "fix": "Order by `geom <-> $1`; select `ST_Distance` in the column list for display."
+      },
+      {
+       "title": "A selective filter on top of KNN",
+       "fix": "Use a partial index per hot filter value, or a separate table for the rare kind."
+      }
+     ],
+     "keyPointers": [
+      "`ORDER BY geom <-> constant LIMIT k` is an **index-ordered scan**: rows leave the index already sorted, with no Sort node.",
+      "The scan is **best-first** over a priority queue: boxes are keyed by a lower-bound distance, rows by their exact distance.",
+      "geometry `<->` uses SRID units (degrees in 4326); geography `<->` gives metres on a sphere and needs a geography index.",
+      "`<#>` orders by **bounding-box** distance; nearest-per-row needs **LATERAL**. The same idea for vectors is in [Distance metrics and exact search](/e1/distance-and-exact-search)."
+     ]
+    },
+    {
+     "order": 4,
+     "slug": "spatial-queries",
+     "title": "Everyday spatial queries",
+     "tldr": "Most map features are built from a handful of spatial operations: point-in-polygon joins, buffers, unions, clusters and GeoJSON output. Running them inside PostgreSQL keeps the data, its indexes and its validity rules in one place, so the answers stay correct and fast as the data grows.",
+     "visualizer": {
+      "title": "A point-in-polygon join and a DBSCAN run, step by step",
+      "interaction": "Step the join zone by zone: box candidates first, then the exact test. Switch to **ST_ClusterDBSCAN**, set eps and minpoints, and watch core, border and noise points appear."
+     },
+     "playground": {
+      "extensions": [
+       "postgis"
+      ],
+      "presets": [
+       {
+        "label": "Orders per zone",
+        "lookFor": "Z25, Z15 and Z07 hold the hubs (about 1 000 orders each). The plan loops over 33 zones and probes the orders index with `Index Cond: (geom @ z.geom)`, then `Filter: st_contains`: **Rows Removed by Filter: 44** per zone on average."
+       },
+       {
+        "label": "Contains vs covers",
+        "lookFor": "A point exactly on a zone corner: `ST_Contains` says **0** zones (a polygon does not contain its own boundary), `ST_Covers` and `ST_Intersects` say **2**. Pick the one that matches your counting rule."
+       },
+       {
+        "label": "Buffer, length, area",
+        "lookFor": "The road is **15 097 m** long; its 300 m corridor covers 9.34 km². To count orders near it, `ST_DWithin` (index-aware) beats testing against a buffer polygon."
+       },
+       {
+        "label": "ST_Union vs ST_Collect",
+        "lookFor": "`ST_Union` **dissolves** the shared edges: 7 hexagons (49 vertices) become one Polygon of 19 vertices and 40.92 km² (7 × 5.85). `ST_Collect` only bundles them into a 7-part collection: much cheaper, but the inner edges stay."
+       },
+       {
+        "label": "Clusters: DBSCAN and k-means",
+        "lookFor": "DBSCAN finds the **4 hubs** (about 800 orders each), one small extra cluster, and **1 745** noise orders with a NULL id. k-means returns exactly k clusters (more only if you pass `max_radius`), so every order is forced into one of 4."
+       },
+       {
+        "label": "GeoJSON for a web map",
+        "lookFor": "GeoJSON coordinates must be **longitude/latitude (4326)**, so transform first. Six decimals is about 0.1 m. Simplifying the outline by 500 m and trimming decimals cuts the payload from 1 285 to 752 characters."
+       },
+       {
+        "label": "Validity",
+        "lookFor": "A \"bow-tie\" ring crosses itself at (1 1). Its signed areas cancel, so `ST_Area` says **0**. `ST_MakeValid` splits it into two triangles with area **2**. PostGIS does not validate on insert."
+       }
+      ]
+     },
+     "production": {
+      "title": "A delivery-zone dashboard",
+      "problem": "Counts were wrong in two ways. Orders on a shared zone border were counted twice, because the query used `ST_Intersects`. A few hand-drawn zones were self-intersecting, and their `ST_Area` and contains tests silently gave nonsense.",
+      "outcome": "Every order is counted at most once, the constraint blocks new invalid zones, and the map loads one compact JSON document. In the playground the 33-zone join runs in about 10 ms through the orders index."
+     },
+     "pitfalls": [
+      {
+       "title": "Double counting on shared borders",
+       "fix": "Use `ST_Contains` (excludes the boundary) and decide what to do with exact-boundary points, or pick one zone per point with `DISTINCT ON`."
+      },
+      {
+       "title": "Invalid polygons in, nonsense out",
+       "fix": "Repair once, then enforce."
+      },
+      {
+       "title": "Simplify breaking shapes",
+       "fix": "Use `ST_SimplifyPreserveTopology` for validity, or `ST_CoverageSimplify` to keep shared edges between neighbours. Simplify in a metric SRID with a tolerance in metres."
+      },
+      {
+       "title": "Buffering to find what is near",
+       "fix": "Use `ST_DWithin(geom, $1, 500)`. It is exact and index-aware."
+      }
+     ],
+     "keyPointers": [
+      "Point-in-polygon join: `JOIN … ON ST_Contains(zone, point)`. The index probe uses the zone box, then the exact test filters.",
+      "`ST_Contains` excludes the boundary; `ST_Covers` and `ST_Intersects` include it.",
+      "`ST_Union` dissolves into one shape; `ST_Collect` only bundles. `ST_ClusterDBSCAN` returns NULL for noise; `ST_ClusterKMeans` makes exactly k clusters unless given `max_radius`.",
+      "GeoJSON output is longitude/latitude: `ST_AsGeoJSON(ST_Transform(geom, 4326), 6)`.",
+      "Check `ST_IsValid` on load and enforce it with a constraint. Start again from [Spatial indexes](/e4/spatial-indexes) when a query is slow."
      ]
     }
    ]

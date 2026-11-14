@@ -1,0 +1,8 @@
+44.10. Python 2 vs. Python 3
+Prev 	Up	Chapter 44. PL/Python — Python Procedural Language	Home	 Next
+44.10. Python 2 vs. Python 3 #
+
+PL/Python supports only Python 3. Past versions of PostgreSQL supported Python 2, using the plpythonu and plpython2u language names.
+
+Prev 	Up	 Next
+44.9. Utility Functions 	Home	 44.11. Environment Variables

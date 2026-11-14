@@ -1,0 +1,18 @@
+Chapter 28. Reliability and the Write-Ahead Log
+Prev 	Up	Part III. Server Administration	Home	 Next
+Chapter 28. Reliability and the Write-Ahead Log
+
+Table of Contents
+
+28.1. Reliability
+28.2. Data Checksums
+28.2.1. Off-line Enabling of Checksums
+28.3. Write-Ahead Logging (WAL)
+28.4. Asynchronous Commit
+28.5. WAL Configuration
+28.6. WAL Internals
+
+This chapter explains how to control the reliability of PostgreSQL, including details about the Write-Ahead Log.
+
+Prev 	Up	 Next
+27.6. Monitoring Disk Usage 	Home	 28.1. Reliability

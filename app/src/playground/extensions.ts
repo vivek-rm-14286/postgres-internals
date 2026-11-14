@@ -21,6 +21,8 @@ const loaders = {
   tsm_system_rows: () => import('@electric-sql/pglite/contrib/tsm_system_rows').then((m) => m.tsm_system_rows),
   uuid_ossp: () => import('@electric-sql/pglite/contrib/uuid_ossp').then((m) => m.uuid_ossp),
   vector: () => import('@electric-sql/pglite-pgvector').then((m) => m.vector),
+  /** PostGIS 3.6 (GEOS, PROJ). A 19 MB download: request it only in spatial lessons. */
+  postgis: () => import('@electric-sql/pglite-postgis').then((m) => m.postgis),
 } satisfies Record<string, () => Promise<any>>
 
 export type ExtensionName = keyof typeof loaders

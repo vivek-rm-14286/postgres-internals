@@ -1,0 +1,8 @@
+G.2. Server Applications
+Prev 	Up	Appendix G. Additional Supplied Programs	Home	 Next
+G.2. Server Applications #
+
+Some applications run on the PostgreSQL server itself. Currently, no such applications are included in the contrib directory. See also PostgreSQL Server Applications for information about server applications that are part of the core PostgreSQL distribution.
+
+Prev 	Up	 Next
+vacuumlo 	Home	 Appendix H. External Projects

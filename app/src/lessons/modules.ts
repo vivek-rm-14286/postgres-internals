@@ -19,7 +19,7 @@ export interface ModuleInfo {
 export const TRACKS: TrackInfo[] = [
   { id: 'fundamentals', title: 'Fundamentals', blurb: 'From your first SELECT to production-grade SQL: data types, design, querying and the patterns real applications use.' },
   { id: 'internals', title: 'Internals', blurb: 'How PostgreSQL works underneath: processes, pages, the planner, MVCC, locking, WAL, vacuum and replication.' },
-  { id: 'ecosystem', title: 'Ecosystem', blurb: 'PostgreSQL beyond the core: vector search with pgvector, time-series with TimescaleDB, and distributed PostgreSQL.' },
+  { id: 'ecosystem', title: 'Ecosystem', blurb: 'PostgreSQL beyond the core: vector search with pgvector, spatial data with PostGIS, time-series with TimescaleDB, and distributed PostgreSQL.' },
 ]
 
 export const MODULES: ModuleInfo[] = [
@@ -40,6 +40,7 @@ export const MODULES: ModuleInfo[] = [
   { id: 'e1', track: 'ecosystem', code: 'E1', n: 12, title: 'Vector Search with pgvector', short: 'pgvector', blurb: 'Embeddings, distance metrics, exact and approximate search, HNSW and IVFFlat internals, filtering, hybrid search and scaling.' },
   { id: 'e2', track: 'ecosystem', code: 'E2', n: 13, title: 'Time-Series with TimescaleDB', short: 'TimescaleDB', blurb: 'Hypertables and chunks, time_bucket and gap filling, continuous aggregates, columnar compression and retention.' },
   { id: 'e3', track: 'ecosystem', code: 'E3', n: 14, title: 'Distributed PostgreSQL', short: 'Distributed', blurb: 'Why and how to distribute: sharding with Citus, distributed query execution and transactions, distributed SQL, multi-master and HA clusters.' },
+  { id: 'e4', track: 'ecosystem', code: 'E4', n: 15, title: 'Spatial Data with PostGIS', short: 'PostGIS', blurb: 'Geometry and geography, coordinate systems, spatial indexes, nearest-neighbour search and the spatial queries maps are built on.' },
 ]
 
 export const moduleById = (id: ModuleId) => MODULES.find((m) => m.id === id)!

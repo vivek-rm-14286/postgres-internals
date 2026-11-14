@@ -1,0 +1,8 @@
+O.2. Default Roles Renamed to Predefined Roles
+Prev 	Up	Appendix O. Obsolete or Renamed Features	Home	 Next
+O.2. Default Roles Renamed to Predefined Roles #
+
+PostgreSQL 13 and below used the term “Default Roles”. However, as these roles are not able to actually be changed and are installed as part of the system at initialization time, the more appropriate term to use is “Predefined Roles”. See Section 21.5 for current documentation regarding Predefined Roles, and the release notes for PostgreSQL 14 for details on this change.
+
+Prev 	Up	 Next
+O.1. recovery.conf file merged into postgresql.conf 	Home	 O.3. pg_xlogdump renamed to pg_waldump

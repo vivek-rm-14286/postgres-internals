@@ -1,0 +1,31 @@
+ALLOCATE DESCRIPTOR
+Prev 	Up	34.14. Embedded SQL Commands	Home	 Next
+ALLOCATE DESCRIPTOR
+
+ALLOCATE DESCRIPTOR — allocate an SQL descriptor area
+
+Synopsis
+ALLOCATE DESCRIPTOR name
+
+Description
+
+ALLOCATE DESCRIPTOR allocates a new named SQL descriptor area, which can be used to exchange data between the PostgreSQL server and the host program.
+
+Descriptor areas should be freed after use using the DEALLOCATE DESCRIPTOR command.
+
+Parameters
+name #
+
+A name of SQL descriptor, case sensitive. This can be an SQL identifier or a host variable.
+
+Examples
+EXEC SQL ALLOCATE DESCRIPTOR mydesc;
+
+Compatibility
+
+ALLOCATE DESCRIPTOR is specified in the SQL standard.
+
+See Also
+DEALLOCATE DESCRIPTOR, GET DESCRIPTOR, SET DESCRIPTOR
+Prev 	Up	 Next
+34.14. Embedded SQL Commands 	Home	 CONNECT

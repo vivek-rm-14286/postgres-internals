@@ -1,0 +1,8 @@
+E.8. Prior Releases
+Prev 	Up	Appendix E. Release Notes	Home	 Next
+E.8. Prior Releases #
+
+Release notes for prior release branches can be found at https://www.postgresql.org/docs/release/
+
+Prev 	Up	 Next
+E.7. Release 18 	Home	 Appendix F. Additional Supplied Modules and Extensions

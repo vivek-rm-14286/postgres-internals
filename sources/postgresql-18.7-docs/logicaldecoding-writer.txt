@@ -1,0 +1,8 @@
+47.7. Logical Decoding Output Writers
+Prev 	Up	Chapter 47. Logical Decoding	Home	 Next
+47.7. Logical Decoding Output Writers #
+
+It is possible to add more output methods for logical decoding. For details, see src/backend/replication/logical/logicalfuncs.c. Essentially, three functions need to be provided: one to read WAL, one to prepare writing output, and one to write the output (see Section 47.6.5).
+
+Prev 	Up	 Next
+47.6. Logical Decoding Output Plugins 	Home	 47.8. Synchronous Replication Support for Logical Decoding

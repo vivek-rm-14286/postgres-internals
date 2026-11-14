@@ -1,0 +1,15 @@
+Chapter 3. Advanced Features
+Prev 	Up	Part I. Tutorial	Home	 Next
+Chapter 3. Advanced Features
+
+Table of Contents
+
+3.1. Introduction
+3.2. Views
+3.3. Foreign Keys
+3.4. Transactions
+3.5. Window Functions
+3.6. Inheritance
+3.7. Conclusion
+Prev 	Up	 Next
+2.9. Deletions 	Home	 3.1. Introduction

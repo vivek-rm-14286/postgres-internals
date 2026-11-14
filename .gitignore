@@ -3,8 +3,7 @@ app/dist/
 app/scripts/.shot.mjs
 .DS_Store
 *.log
-# working notes kept local
-curriculum/research/
-curriculum/modules/
-curriculum/_*.md
 app/scripts/.mobile.mjs
+
+# third-party page copies: kept locally, never published (copyright of their authors)
+sources/third-party-copies/

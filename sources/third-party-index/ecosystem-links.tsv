@@ -1,0 +1,23 @@
+0	22763	The pgvector extension - Neon Docs	https://neon.com/docs/extensions/pgvector
+1	16500	Vector Similarity Search with PostgreSQL’s pgvector - A Deep Dive | Severalnines	https://severalnines.com/blog/vector-similarity-search-with-postgresqls-pgvector-a-deep-dive/
+3	8467	pgvector - GeeksforGeeks	https://www.geeksforgeeks.org/data-science/pgvector/
+4	258	Just a moment...	https://medium.com/@aysebilgegunduz/all-you-need-to-know-about-pgvector-part-1-5722c8099e1f
+5	33307	GitHub - pgvector/pgvector: Open-source vector similarity search for Postgres · GitHub	https://github.com/pgvector/pgvector
+6	4288	TimescaleDB Course – PostgreSQL for Time-Series Data	https://www.freecodecamp.org/news/timescaledb-course-postgresql-for-time-series-data/
+7	11913	The timescaledb extension - Neon Docs	https://neon.com/docs/extensions/timescaledb
+8	264	Just a moment...	https://www.baeldung.com/sql/timescaledb
+9	268	Just a moment...	https://blog.stackademic.com/timescaledb-the-complete-guide-part-1-foundations-e981e45e8d68?gi=dcba81eaed73
+10	2184	Understand hypertables | Tiger Data Docs	https://docs.timescale.com/use-timescale/latest/hypertables/
+11	16502	Understand continuous aggregates | Tiger Data Docs	https://docs.timescale.com/use-timescale/latest/continuous-aggregates/about-continuous-aggregates/
+12	13318	Compression methods in hypercore | Tiger Data Docs	https://docs.timescale.com/use-timescale/latest/compression/about-compression/
+13	4647	PostgreSQL and Distributed PostgreSQL—An Explanation	https://www.yugabyte.com/key-concepts/postgresql/
+14	21100	An Overview of Distributed PostgreSQL... | Crunchy Data Blog	https://www.crunchydata.com/blog/an-overview-of-distributed-postgresql-architectures
+15	8908	Distributed Postgres: Multi-Master & Active-Active | pgEdge	https://www.pgedge.com/solutions/what-is-distributed-postgres
+16	14182	Distributed PostgreSQL: Achieving High Database Availability	https://www.enterprisedb.com/distributed-postgresql-always-on-database-availability
+17	22038	PostgreSQL cluster hands-on guide: Setup, optimization, and monitoring	https://www.instaclustr.com/education/postgresql/postgresql-cluster-hands-on-guide-setup-optimization-and-monitoring/
+18	11527	Setting up distributed database architecture with postgresql - DEV Community	https://dev.to/aurelmegn/setting-up-distributed-database-architecture-with-postgresql-261
+19	135	Create and Modify Distributed Objects (DDL) - Citus for PostgreSQL | Microsoft Learn	https://learn.microsoft.com/en-us/postgresql/citus/reference-ddl?view=citus-14
+20	258	Just a moment...	https://medium.com/@contactunskewdata/distributed-data-intensive-systems-distributed-postgres-architectures-775434f2a0e8
+21	9658	Distributed Database System - GeeksforGeeks	https://www.geeksforgeeks.org/dbms/distributed-database-system/
+22	22519	An overview of distributed Postgres architectures | Hacker News	https://news.ycombinator.com/item?id=38914764
+23	12944	PostgreSQL vs. Distributed SQL: Understanding Behavior Differences | Yugabyte	https://www.yugabyte.com/blog/postgresql-vs-distributed-sql-behavior-differences/

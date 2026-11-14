@@ -1,0 +1,37 @@
+52.31. pg_largeobject_metadata
+Prev 	Up	Chapter 52. System Catalogs	Home	 Next
+52.31. pg_largeobject_metadata #
+
+The catalog pg_largeobject_metadata holds metadata associated with large objects. The actual large object data is stored in pg_largeobject.
+
+Table 52.31. pg_largeobject_metadata Columns
+
+Column Type
+
+Description
+
+
+
+
+oid oid
+
+Row identifier
+
+
+
+
+lomowner oid (references pg_authid.oid)
+
+Owner of the large object
+
+
+
+
+lomacl aclitem[]
+
+Access privileges; see Section 5.8 for details
+
+
+
+Prev 	Up	 Next
+52.30. pg_largeobject 	Home	 52.32. pg_namespace

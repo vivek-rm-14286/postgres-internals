@@ -26,6 +26,9 @@ Three tracks plus a Cookbook. Facts follow PostgreSQL 18 (and, for the ecosystem
 | 4 | conditional-logic | Conditional logic | `CASE` (simple and searched), `COALESCE`, `NULLIF`, `GREATEST/LEAST`, conditional aggregates with `FILTER`, boolean expressions in the select list, avoiding division by zero |
 | 5 | casting-and-types | Type conversion | `CAST` and `::`, implicit vs explicit casts, `to_char`/`to_number`/`to_date`, parsing user input safely (`pg_input_is_valid`), text ↔ numeric/date pitfalls, arrays and JSON at a glance (links to I2) |
 
+| 6 | working-with-json | Working with JSON | building JSON from rows (`jsonb_build_object`, `jsonb_agg`, `jsonb_object_agg`, `to_jsonb`, `row_to_json`), SQL/JSON constructors (`JSON_OBJECT`, `JSON_ARRAY`, `JSON_OBJECTAGG`, `JSON_ARRAYAGG`), querying (`->`/`->>`/`#>>`, containment, existence, jsonpath, `JSON_EXISTS`/`JSON_VALUE`/`JSON_QUERY`, `JSON_TABLE`), shredding (`jsonb_to_recordset`, `jsonb_array_elements`), updating (`jsonb_set`, `jsonb_insert`, `||`, `-`, `#-`), validation (`IS JSON`, CHECK constraints, `jsonb_typeof`), and an index decision guide (GIN `jsonb_ops` vs `jsonb_path_ops` vs B-tree expression) plus when to promote a key to a column; links to I2 JSON vs JSONB and I3 GIN |
+| 7 | ranges-and-special-types | Ranges and other special types | range types (`int4range`, `numrange`, `daterange`, `tstzrange`, bounds `[)`, empty and infinite ranges, operators `@>` `<@` `&&` `-|-` `<<` `>>`, `range_agg`, multiranges, `lower`/`upper`), exclusion constraints and `WITHOUT OVERLAPS` at a glance, GiST/SP-GiST indexes for ranges; network types (`inet`, `cidr`, `macaddr`, containment `<<=`, `>>=`, `inet_ops`); geometric types (`point`, `box`, `circle`, `polygon`, distance `<->`); composite types (row values, `(t).field`), plus `xml` briefly |
+
 ## F3 — Designing a Database  (`f3`, track: fundamentals, beginner → intermediate)
 | # | slug | title | scope |
 |---|------|-------|-------|
@@ -76,6 +79,15 @@ Three tracks plus a Cookbook. Facts follow PostgreSQL 18 (and, for the ecosystem
 | 4 | distributed-transactions | Distributed transactions and consistency | 2PC and its failure modes, clocks and timestamps (hybrid logical clocks), isolation differences (Read Committed vs snapshot vs serializable in distributed SQL), sequences, unique constraints and foreign keys across nodes |
 | 5 | distributed-sql-multimaster | Distributed SQL and multi-master | YugabyteDB-style (Raft, tablets, DocDB) vs PostgreSQL-compatible behaviour differences; active-active logical replication (pgEdge/Spock, EDB PGD), conflict detection and resolution, when multi-master is worth it |
 | 6 | ha-clusters | High-availability clusters in practice | Patroni + etcd/Consul, leader election and fencing, HAProxy/PgBouncer routing, synchronous standbys, failover/switchover, split-brain, monitoring a cluster |
+
+
+## E4 — Spatial Data with PostGIS  (`e4`, track: ecosystem; PostGIS 3.6 runs live in the playground)
+| # | slug | title | scope |
+|---|------|-------|-------|
+| 1 | spatial-basics | Geometry, geography and coordinate systems | what PostGIS adds, `geometry` vs `geography`, SRIDs and `spatial_ref_sys`, EPSG:4326 vs 3857 vs local projections, longitude-first coordinate order, WKT/WKB/GeoJSON, `ST_MakePoint`/`ST_SetSRID`/`ST_Transform`, typmods `geometry(Point, 4326)`, measuring distance/area/length correctly |
+| 2 | spatial-indexes | Spatial indexes | GiST R-tree over bounding boxes, the `&&` operator, index-aware functions (`ST_Intersects`, `ST_DWithin`, `ST_Contains`), two-step filtering (bbox then exact), casting geometry to geography defeating the index, functional geography indexes, SP-GiST and BRIN for points, `EXPLAIN` of spatial plans |
+| 3 | nearest-neighbour | Nearest-neighbour search | KNN with `ORDER BY geom <-> point LIMIT k`, `<->` vs `<#>`, geography KNN, nearest-per-row with `LATERAL`, combining `ST_DWithin` radius with ordering, distance units per type |
+| 4 | spatial-queries | Everyday spatial queries | point-in-polygon joins, intersections and overlays, buffers, area and length, `ST_Union`/`ST_Collect`, clustering (`ST_ClusterDBSCAN`, `ST_ClusterKMeans`), simplification for maps, GeoJSON output for web maps, validity (`ST_IsValid`, `ST_MakeValid`) |
 
 ## I1 — Foundations & Process Architecture  (`m1`, track: internals)
 | # | slug | title | scope |

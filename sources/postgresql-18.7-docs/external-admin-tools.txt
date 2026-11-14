@@ -1,0 +1,8 @@
+H.2. Administration Tools
+Prev 	Up	Appendix H. External Projects	Home	 Next
+H.2. Administration Tools #
+
+There are several administration tools available for PostgreSQL. The most popular is pgAdmin, and there are several commercially available ones as well.
+
+Prev 	Up	 Next
+H.1. Client Interfaces 	Home	 H.3. Procedural Languages

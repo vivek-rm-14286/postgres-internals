@@ -1,0 +1,44 @@
+52.32. pg_namespace
+Prev 	Up	Chapter 52. System Catalogs	Home	 Next
+52.32. pg_namespace #
+
+The catalog pg_namespace stores namespaces. A namespace is the structure underlying SQL schemas: each namespace can have a separate collection of relations, types, etc. without name conflicts.
+
+Table 52.32. pg_namespace Columns
+
+Column Type
+
+Description
+
+
+
+
+oid oid
+
+Row identifier
+
+
+
+
+nspname name
+
+Name of the namespace
+
+
+
+
+nspowner oid (references pg_authid.oid)
+
+Owner of the namespace
+
+
+
+
+nspacl aclitem[]
+
+Access privileges; see Section 5.8 for details
+
+
+
+Prev 	Up	 Next
+52.31. pg_largeobject_metadata 	Home	 52.33. pg_opclass

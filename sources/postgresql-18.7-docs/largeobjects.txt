@@ -1,0 +1,29 @@
+Chapter 33. Large Objects
+Prev 	Up	Part IV. Client Interfaces	Home	 Next
+Chapter 33. Large Objects
+
+Table of Contents
+
+33.1. Introduction
+33.2. Implementation Features
+33.3. Client Interfaces
+33.3.1. Creating a Large Object
+33.3.2. Importing a Large Object
+33.3.3. Exporting a Large Object
+33.3.4. Opening an Existing Large Object
+33.3.5. Writing Data to a Large Object
+33.3.6. Reading Data from a Large Object
+33.3.7. Seeking in a Large Object
+33.3.8. Obtaining the Seek Position of a Large Object
+33.3.9. Truncating a Large Object
+33.3.10. Closing a Large Object Descriptor
+33.3.11. Removing a Large Object
+33.4. Server-Side Functions
+33.5. Example Program
+
+PostgreSQL has a large object facility, which provides stream-style access to user data that is stored in a special large-object structure. Streaming access is useful when working with data values that are too large to manipulate conveniently as a whole.
+
+This chapter describes the implementation and the programming and query language interfaces to PostgreSQL large object data. We use the libpq C library for the examples in this chapter, but most programming interfaces native to PostgreSQL support equivalent functionality. Other interfaces might use the large object interface internally to provide generic support for large values. This is not described here.
+
+Prev 	Up	 Next
+32.23. Example Programs 	Home	 33.1. Introduction

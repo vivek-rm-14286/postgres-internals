@@ -9,16 +9,18 @@ WebAssembly). There is no backend; every query stays in the reader's tab. It wor
 
 ## What's inside
 
-98 lessons in three tracks, each in the same six beats: **TL;DR → interactive visualizer → live playground → production
+104 lessons in three tracks, each in the same six beats: **TL;DR → interactive visualizer → live playground → production
 example → pitfalls → key pointers**.
 
 | Track | Modules |
 |---|---|
-| **Fundamentals** | F1 Getting started with SQL · F2 Working with data (text, numbers, dates, conditionals, casts) · F3 Designing a database · F4 Querying & DML (joins, subqueries, CTEs, windows, LATERAL, grouping) · F5 Practical SQL patterns (pagination, upserts, pivots, gaps & islands, hierarchies, search, queues, performance) |
+| **Fundamentals** | F1 Getting started with SQL · F2 Working with data (text, numbers, dates, conditionals, casts, JSON, ranges and special types) · F3 Designing a database · F4 Querying & DML (joins, subqueries, CTEs, windows, LATERAL, grouping) · F5 Practical SQL patterns (pagination, upserts, pivots, gaps & islands, hierarchies, search, queues, performance) |
 | **Internals** | I1 Processes & memory · I2 Storage & page layout · I3 Planner & indexes · I4 MVCC & locking · I5 Programmability & extensions · I6 WAL, vacuum, replication & HA |
-| **Ecosystem** | E1 Vector search with pgvector (runs live) · E2 Time-series with TimescaleDB · E3 Distributed PostgreSQL (Citus, distributed SQL, multi-master, HA clusters) |
+| **Ecosystem** | E1 Vector search with pgvector (runs live) · E2 Time-series with TimescaleDB · E3 Distributed PostgreSQL (Citus, distributed SQL, multi-master, HA clusters) · E4 Spatial data with PostGIS (runs live) |
 
 Plus:
+
+- **Project docs** in [`docs/`](docs): session log, process, sources register, PGlite notes, lessons learned.
 
 - **Cookbook**: 91 graded SQL exercises (beginner → expert) on five realistic datasets. Press *Check* and your result is
   compared with a reference solution on a fresh copy of the data.
@@ -68,4 +70,4 @@ it works at `https://<user>.github.io/<repo>/` with no configuration.
 
 ## Stack
 
-Vite · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion · PGlite 0.5 (PostgreSQL 18.6, pgvector 0.8.7) · CodeMirror 6.
+Vite · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion · PGlite 0.5 (PostgreSQL 18.6, pgvector 0.8.7, PostGIS 3.6.2) · CodeMirror 6.

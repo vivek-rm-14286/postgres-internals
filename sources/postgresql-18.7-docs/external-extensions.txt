@@ -1,0 +1,8 @@
+H.4. Extensions
+Prev 	Up	Appendix H. External Projects	Home	 Next
+H.4. Extensions #
+
+PostgreSQL is designed to be easily extensible. For this reason, extensions loaded into the database can function just like features that are built in. The contrib/ directory shipped with the source code contains several extensions, which are described in Appendix F. Other extensions are developed independently, like PostGIS. Even PostgreSQL replication solutions can be developed externally. For example, Slony-I is a popular primary/standby replication solution that is developed independently from the core project.
+
+Prev 	Up	 Next
+H.3. Procedural Languages 	Home	 Appendix I. The Source Code Repository

@@ -1,0 +1,12 @@
+30.3. Configuration
+Prev 	Up	Chapter 30. Just-in-Time Compilation (JIT)	Home	 Next
+30.3. Configuration #
+
+The configuration variable jit determines whether JIT compilation is enabled or disabled. If it is enabled, the configuration variables jit_above_cost, jit_inline_above_cost, and jit_optimize_above_cost determine whether JIT compilation is performed for a query, and how much effort is spent doing so.
+
+jit_provider determines which JIT implementation is used. It is rarely required to be changed. See Section 30.4.2.
+
+For development and debugging purposes a few additional configuration parameters exist, as described in Section 19.17.
+
+Prev 	Up	 Next
+30.2. When to JIT? 	Home	 30.4. Extensibility

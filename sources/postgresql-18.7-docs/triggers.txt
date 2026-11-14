@@ -1,0 +1,17 @@
+Chapter 37. Triggers
+Prev 	Up	Part V. Server Programming	Home	 Next
+Chapter 37. Triggers
+
+Table of Contents
+
+37.1. Overview of Trigger Behavior
+37.2. Visibility of Data Changes
+37.3. Writing Trigger Functions in C
+37.4. A Complete Trigger Example
+
+This chapter provides general information about writing trigger functions. Trigger functions can be written in most of the available procedural languages, including PL/pgSQL (Chapter 41), PL/Tcl (Chapter 42), PL/Perl (Chapter 43), and PL/Python (Chapter 44). After reading this chapter, you should consult the chapter for your favorite procedural language to find out the language-specific details of writing a trigger in it.
+
+It is also possible to write a trigger function in C, although most people find it easier to use one of the procedural languages. It is not currently possible to write a trigger function in the plain SQL function language.
+
+Prev 	Up	 Next
+36.18. Extension Building Infrastructure 	Home	 37.1. Overview of Trigger Behavior

@@ -1,0 +1,33 @@
+0	4811	Postgres Tutorials | Crunchy Data	https://www.crunchydata.com/developers/tutorials
+1	14329	Basics of JSON | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/basics-of-jsonb
+2	2595	Basics of PostGIS | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/basics-of-postgis
+3	4500	Indexing (B-Tree Indexes) | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/btree-indexes
+4	9145	Casting Data Types | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/casting-data-types
+5	2379	CTEs and Window Functions | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/ctes-and-window-functions
+6	8217	Custom data types: DOMAINS | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/custom-data-types-domains
+7	13610	Custom data types : user defined types | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/custom-data-types-user-defined
+8	5799	High level performance analysis | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/high-level-performance-analytics
+9	8229	Joins in Postgres | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/joins-in-postgres
+10	6621	LATERAL JOIN | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/lateral-join
+11	6585	Learn SQL | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/learn-sql
+12	4227	Materialized Views | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/materialized-views
+13	6362	Partitioning | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/partitioning
+14	3123	Percentage Calculations | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/percentage-calculations
+15	10331	Postgres Contraints | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/postgres-constraints-tutorial
+16	12310	Postgres Functions for Rolling Up Data by Date | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/postgres-date-functions
+17	7352	Creating Tables | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/postgres-tutorial-create-tables
+18	7298	Postgres Users and Roles | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/postgres-users-and-roles
+19	11408	Window Functions for Data Analysis | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/postgres-window-functions-for-data-analysis
+20	10357	PostgreSQL - Just for Kids | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/postgresql-for-kids
+21	2229	psql basics | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/psql-basics
+22	4415	psql Echo Commands | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/psql-echo-commands
+23	5611	Query performance analytics | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/query-performance-analytics
+24	8784	Row Level Security | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/row-level-security
+25	8839	SQL Tricks for More Effective CRUD | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/sql-tricks-for-crud
+26	4808	Strings to Arrays | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/strings-to-arrays
+27	3509	Summaries with Aggregate Filters and Windows | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/summaries-with-aggregate-filters-and-windows
+28	9911	Tags and Postgres Arrays, a Purrrfect Combination | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/tags-and-postgres-arrays
+29	10074	Transactions | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/transactions
+30	7512	Using FILTER vs CTEs and CASE WHEN | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/using-filter-for-aggregation
+31	6311	Working with Money in Postgres | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/working-with-money-in-postgres
+32	8474	Working with Time in Postgres | Tutorials | Crunchy Data	https://www.crunchydata.com/developers/playground/working-with-time-in-postgres

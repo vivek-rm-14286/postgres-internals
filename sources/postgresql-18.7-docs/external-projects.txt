@@ -1,0 +1,15 @@
+Appendix H. External Projects
+Prev 	Up	Part VIII. Appendixes	Home	 Next
+Appendix H. External Projects
+
+Table of Contents
+
+H.1. Client Interfaces
+H.2. Administration Tools
+H.3. Procedural Languages
+H.4. Extensions
+
+PostgreSQL is a complex software project, and managing the project is difficult. We have found that many enhancements to PostgreSQL can be more efficiently developed separately from the core project.
+
+Prev 	Up	 Next
+G.2. Server Applications 	Home	 H.1. Client Interfaces

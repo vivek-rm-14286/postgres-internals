@@ -115,15 +115,16 @@ const MAX_SESSIONS = 8
 const sessions = new Map() // name -> { worker, pending: Map, lastUsed }
 let seq = 0
 
-function session(name) {
+function session(name, withPostgis = false) {
   let s = sessions.get(name)
+  if (s && withPostgis && !s.postgis) throw new Error(`session "${name}" was started without PostGIS; call reset_sandbox first or use a new session name`)
   if (!s) {
     if (sessions.size >= MAX_SESSIONS) {
       const [oldest] = [...sessions.entries()].sort((a, b) => a[1].lastUsed - b[1].lastUsed)[0]
       dropSession(oldest)
     }
     const worker = new Worker(path.join(DIR, 'worker.mjs'))
-    s = { worker, pending: new Map(), lastUsed: Date.now() }
+    s = { worker, pending: new Map(), lastUsed: Date.now(), postgis: withPostgis }
     worker.on('message', (m) => { s.pending.get(m.id)?.resolve(m); s.pending.delete(m.id) })
     worker.on('error', (e) => { for (const p of s.pending.values()) p.reject(e); s.pending.clear(); sessions.delete(name) })
     worker.unref()
@@ -142,8 +143,8 @@ function dropSession(name) {
   return true
 }
 
-function runSql(name, sql, timeoutMs) {
-  const s = session(name)
+function runSql(name, sql, timeoutMs, withPostgis = false) {
+  const s = session(name, withPostgis)
   const id = ++seq
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -152,7 +153,7 @@ function runSql(name, sql, timeoutMs) {
       dropSession(name)
     }, timeoutMs)
     s.pending.set(id, { resolve: (m) => { clearTimeout(timer); resolve(m) }, reject: (e) => { clearTimeout(timer); reject(e) } })
-    s.worker.postMessage({ id, sql })
+    s.worker.postMessage({ id, sql, withPostgis: s.postgis })
   })
 }
 
@@ -178,7 +179,7 @@ function formatResult(r, maxRows, maxCell = 200) {
 /* ------------------------------------------------------------------ MCP server */
 
 const server = new McpServer(
-  { name: 'pg-internals', version: '1.1.0' },
+  { name: 'pg-internals', version: '1.2.0' },
   {
     instructions:
       `PostgreSQL 18 from fundamentals to internals: ${LESSONS.length} lessons in three tracks (Fundamentals: SQL from first query to production patterns; ` +
@@ -262,17 +263,18 @@ server.registerTool('run_sql', {
     'State persists per `session` name until reset. Output: result tables, EXPLAIN plans, NOTICE/INFO messages (VACUUM VERBOSE, RAISE), and errors with SQLSTATE. ' +
     'CREATE EXTENSION works for: pageinspect, pg_visibility, pg_freespacemap, pg_buffercache, pg_walinspect, pg_stat_statements, pg_trgm, btree_gin, btree_gist, ' +
     'bloom, amcheck, hstore, ltree, citext, pgcrypto, tablefunc, pg_surgery, tsm_system_rows, "uuid-ossp", cube, earthdistance, fuzzystrmatch, intarray, isn, lo, ' +
-    'seg, unaccent, dict_int, dict_xsyn, auto_explain, tcn, moddatetime, vector. Limits: one backend (no concurrent sessions inside one sandbox), no replication.',
+    'seg, unaccent, dict_int, dict_xsyn, auto_explain, tcn, moddatetime, vector; and postgis when with_postgis is true. Limits: one backend (no concurrent sessions inside one sandbox), no replication.',
   inputSchema: {
     sql: z.string().min(1),
     session: z.string().regex(/^[\w-]{1,40}$/).default('default').describe('Sandbox name; separate names are fully independent databases'),
     max_rows: z.number().int().min(1).max(1000).default(50),
     timeout_ms: z.number().int().min(1000).max(300000).default(30000),
+    with_postgis: z.boolean().default(false).describe('Start this session with PostGIS 3.6 available (CREATE EXTENSION postgis). Adds ~4 s to the first call; set it on the first call for a session.'),
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-}, async ({ sql, session: name, max_rows, timeout_ms }) => {
+}, async ({ sql, session: name, max_rows, timeout_ms, with_postgis }) => {
   try {
-    const m = await runSql(name, sql, timeout_ms)
+    const m = await runSql(name, sql, timeout_ms, with_postgis)
     const parts = []
     if (m.notices.length) parts.push(m.notices.join('\n'))
     for (const r of m.results) parts.push(formatResult(r, max_rows))
