@@ -10,7 +10,7 @@ export function Btn({ children, onClick, primary, testid, disabled, title }: {
   return (
     <button type="button" onClick={onClick} data-testid={testid} disabled={disabled} title={title}
       className={primary
-        ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40'
+        ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-40'
         : 'rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold hover:border-accent disabled:opacity-40'}>
       {children}
     </button>
@@ -22,7 +22,7 @@ export function Stat({ label, value, t, sub }: { label: string; value: ReactNode
     <div className="rounded-lg border border-line bg-surface-2 px-3 py-2">
       <p className="text-[11px] tracking-wide text-muted uppercase">{label}</p>
       <motion.p key={String(value)} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className="font-mono text-lg font-bold tabular-nums"
-        style={t ? { color: tone(t) } : undefined}>{value}</motion.p>
+        style={t ? { color: tone.text(t) } : undefined}>{value}</motion.p>
       {sub && <p className="text-[11px] text-muted">{sub}</p>}
     </div>
   )

@@ -49,7 +49,7 @@ const SCEN: Record<'commit' | 'no' | 'crash', Step<TS>[]> = {
     { title: 'Worker 2 cannot prepare', body: 'A deferred constraint fails or the disk is full. A failed `PREPARE TRANSACTION` **becomes a ROLLBACK**, so worker 2 has already aborted its part.',
       state: { coord: 'active', parts: ['prepared', 'aborted'], rows: [begin, prep, [{ from: 1, to: 0, label: 'prepared', t: 'ok' }, { from: 2, to: 0, label: 'ERROR → rolled back', t: 'dead' }]], xacts: [BOTH[0]], log: '—' } },
     { title: 'Decide abort', body: 'One "no" vote is enough. The coordinator logs **abort** and tells the workers that did prepare to undo their part.',
-      state: { coord: 'aborted', parts: ['prepared', 'aborted'], rows: [begin, prep, [{ from: 1, to: 0, label: 'prepared', t: 'ok' }, { from: 2, to: 0, label: 'ERROR → rolled back', t: 'dead' }], [{ from: 0, to: 1, label: "ROLLBACK PREPARED 'xfer-42:w1'", t: 'dead' }]], xacts: [], log: 'xfer-42 = abort' } },
+      state: { coord: 'aborted', parts: ['aborted', 'aborted'], rows: [begin, prep, [{ from: 1, to: 0, label: 'prepared', t: 'ok' }, { from: 2, to: 0, label: 'ERROR → rolled back', t: 'dead' }], [{ from: 0, to: 1, label: "ROLLBACK PREPARED 'xfer-42:w1'", t: 'dead' }]], xacts: [], log: 'xfer-42 = abort' } },
     { title: 'All or nothing', body: 'Neither balance changed. The client gets an error and can retry the whole transfer. Atomicity held across two machines.',
       state: { coord: 'aborted', parts: ['aborted', 'aborted'], rows: [begin, prep, [{ from: 1, to: 0, label: 'prepared', t: 'ok' }, { from: 2, to: 0, label: 'ERROR → rolled back', t: 'dead' }], [{ from: 0, to: 1, label: "ROLLBACK PREPARED 'xfer-42:w1'", t: 'dead' }]], xacts: [], log: 'xfer-42 = abort' } },
   ],
@@ -120,7 +120,7 @@ function TwoPC() {
             <Panel title="pg_prepared_xacts (both workers)">
               {s.xacts.length === 0 ? <p className="font-mono text-xs text-muted">(0 rows)</p>
                 : <div className="grid gap-1">{s.xacts.map((x) => <motion.p key={x} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded border px-2 py-1 font-mono text-xs" style={{ borderColor: tone('header'), background: toneBg('header', 12) }}>{x}</motion.p>)}</div>}
-              {s.blocked && <p className="mt-2 text-xs" style={{ color: tone('dead') }}><Md>{'Probe locked rows only with `FOR UPDATE NOWAIT` or `SKIP LOCKED`; a plain UPDATE waits until someone resolves the GID.'}</Md></p>}
+              {s.blocked && <p className="mt-2 text-xs" style={{ color: tone.text('dead') }}><Md>{'Probe locked rows only with `FOR UPDATE NOWAIT` or `SKIP LOCKED`; a plain UPDATE waits until someone resolves the GID.'}</Md></p>}
             </Panel>
             <Panel title="Coordinator decision log">
               <p className="font-mono text-sm">{s.log}</p>
@@ -211,7 +211,7 @@ function HlcLab() {
               <tbody>{evs.map((e) => (
                 <motion.tr key={e.n} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-t border-line" style={e.anomaly ? { background: toneBg('dead', 12) } : undefined}>
                   <td className="pr-2">{e.n}</td><td className="pr-2">{e.node}</td><td className="pr-2">{e.kind}</td><td className="pr-2">{e.pt}</td><td className="pr-2 font-bold">{fmt(e.h)}</td>
-                  <td className="text-[11px]" style={{ color: tone(e.anomaly ? 'dead' : 'ok') }}>{e.cause ? (e.anomaly ? `wall clock puts it before #${e.cause}; HLC after` : `after #${e.cause}`) : ''}</td>
+                  <td className="text-[11px]" style={{ color: tone.text(e.anomaly ? 'dead' : 'ok') }}>{e.cause ? (e.anomaly ? `wall clock puts it before #${e.cause}; HLC after` : `after #${e.cause}`) : ''}</td>
                 </motion.tr>
               ))}</tbody>
             </table>
@@ -422,7 +422,7 @@ ROLLBACK PREPARED 'xfer-90217:w3';   -- no decision logged`,
       cause: '`postgres_fdw` commits each remote transaction when the local one commits, without two-phase commit. A failure between those commits leaves partial results.',
       fix: 'Do not rely on cross-server atomicity through FDWs. Use a coordinator that runs `PREPARE TRANSACTION` on each server, or design with an outbox and idempotent retries.' },
     { title: 'Prepared transactions on a standby',
-      symptom: 'A hot standby refuses to start after the primary raised `max_prepared_transactions`.',
+      symptom: 'After the primary raised `max_prepared_transactions`, a hot standby stops replaying: its log says `hot standby is not possible because of insufficient parameter settings` and `recovery has paused`, and lag grows until the standby is restarted with a higher value.',
       cause: 'A standby must have `max_prepared_transactions`, `max_connections` and a few other limits at least as high as the primary, because it replays the primary\'s prepared transactions.',
       fix: 'Raise the setting on standbys first, then on the primary. If you use 2PC, set it at least as high as `max_connections`.' },
     { title: 'Read Committed code on a Snapshot-only system',
@@ -435,7 +435,7 @@ ROLLBACK PREPARED 'xfer-90217:w3';   -- no decision logged`,
     'If the coordinator dies after PREPARE, participants are **in doubt**: they hold locks and xmin until recovery reads the log and finishes. 2PC is a blocking protocol.',
     '`max_prepared_transactions` is 0 by default, which disables 2PC. `pg_prepared_xacts` lists what is prepared, and any session can finish it.',
     'A **hybrid logical clock** (physical, logical) orders causes before effects across nodes with skewed clocks. Commit timestamps decide "latest" in multi-master systems.',
-    'Across nodes, sequences, unique keys, foreign keys and [isolation](/m5/isolation-levels) all weaken unless the system adds global machinery for them. Old prepared transactions also block [wraparound protection](/m7/xid-wraparound).',
+    'Across nodes, sequences, unique keys, foreign keys and [isolation](/m5/isolation-levels) all weaken unless the system adds global machinery for them. Old prepared transactions also block [wraparound protection](/m7/xid-wraparound). 3PC, Paxos commit and global deadlock detection: [distributed transactions and consensus](/e5/commit-and-consensus).',
   ],
   sources: ['sql-prepare-transaction.html', 'sql-commit-prepared.html', 'sql-rollback-prepared.html', 'view-pg-prepared-xacts.html', 'view-pg-locks.html', 'postgres-fdw.html', 'runtime-config-resource.html', 'functions-info.html', 'transaction-iso.html', 'hot-standby.html'],
 }

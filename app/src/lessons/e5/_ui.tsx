@@ -10,7 +10,7 @@ export function Btn({ children, onClick, primary, testid, disabled, title, activ
   return (
     <button type="button" onClick={onClick} data-testid={testid} disabled={disabled} title={title}
       className={primary
-        ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40'
+        ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-40'
         : `rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-40 ${active ? 'border-dead text-dead' : 'border-line bg-surface hover:border-accent'}`}>
       {children}
     </button>
@@ -22,7 +22,7 @@ export function Stat({ label, value, t, sub }: { label: string; value: ReactNode
     <div className="min-w-0 rounded-lg border border-line bg-surface-2 px-3 py-2">
       <p className="truncate text-[11px] tracking-wide text-muted uppercase">{label}</p>
       <motion.p key={String(value)} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className="truncate font-mono text-base font-bold tabular-nums sm:text-lg"
-        style={t ? { color: tone(t) } : undefined}>{value}</motion.p>
+        style={t ? { color: tone.text(t) } : undefined}>{value}</motion.p>
       {sub && <p className="text-[11px] text-muted">{sub}</p>}
     </div>
   )
@@ -54,7 +54,7 @@ export function Tabs<T extends string>({ value, onChange, options }: { value: T;
     <div role="tablist" className="flex flex-wrap gap-1.5">
       {options.map(([v, l]) => (
         <button key={v} type="button" role="tab" aria-selected={value === v} onClick={() => onChange(v)}
-          className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${value === v ? 'border-accent bg-accent text-white' : 'border-line bg-surface text-muted hover:text-ink'}`}>{l}</button>
+          className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${value === v ? 'border-accent bg-accent text-on-accent' : 'border-line bg-surface text-muted hover:text-ink'}`}>{l}</button>
       ))}
     </div>
   )

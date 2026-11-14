@@ -73,13 +73,13 @@ function UpsertView({ s }: { s: UState }) {
               </motion.div>
             ))}
           </div>
-          {s.probe && <p className="mt-2 font-mono text-[11.5px]" style={{ color: tone('accent') }}>index probe: lower(email) = '{s.probe}' → found id 1</p>}
+          {s.probe && <p className="mt-2 font-mono text-[11.5px]" style={{ color: tone.text('accent') }}>index probe: lower(email) = '{s.probe}' → found id 1</p>}
           <p className="mt-2 font-mono text-[11px] text-muted">identity sequence last_value = {s.seq}</p>
         </Panel>
         <ResultTable caption="contacts" fields={['id', 'email', 'plan', '']} rows={s.table.map((r) => ({ key: `t${r.id}`, cells: [r.id, r.email, r.plan, r.note ?? ''], t: r.t }))} />
       </div>
       {s.error
-        ? <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg border px-3 py-2 font-mono text-[12px]" style={{ borderColor: tone('dead'), background: toneBg('dead', 12), color: tone('dead') }}>{s.error}</motion.div>
+        ? <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg border px-3 py-2 font-mono text-[12px]" style={{ borderColor: tone('dead'), background: toneBg('dead', 12), color: tone.text('dead') }}>{s.error}</motion.div>
         : <ResultTable caption="RETURNING id, old.plan, new.plan" fields={['id', 'old.plan', 'new.plan']} rows={s.returning} empty="(nothing returned yet)" />}
     </div>
   )
@@ -149,7 +149,7 @@ function DedupView({ s }: { s: DState }) {
         </table>
       </div>
       {s.phase === 'index' && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg border px-3 py-2 font-mono text-[12px]" style={{ borderColor: tone('ok'), background: toneBg('ok', 10) }}>
-        INSERT INTO contacts (email) VALUES ('Ana@shop.io');<br /><span style={{ color: tone('dead') }}>ERROR 23505: duplicate key value violates unique constraint "contacts_email_key"</span>
+        INSERT INTO contacts (email) VALUES ('Ana@shop.io');<br /><span style={{ color: tone.text('dead') }}>ERROR 23505: duplicate key value violates unique constraint "contacts_email_key"</span>
       </motion.div>}
     </div>
   )
@@ -216,6 +216,17 @@ INSERT INTO staging VALUES
 CREATE FUNCTION try_sql(q text) RETURNS text LANGUAGE plpgsql AS $$
 BEGIN EXECUTE q; RETURN 'ok';
 EXCEPTION WHEN OTHERS THEN RETURN SQLSTATE || ': ' || SQLERRM;
+END $$;
+-- helper: presets 3 and 4 in one call (does nothing when they have already run)
+CREATE PROCEDURE clean_contacts() LANGUAGE plpgsql AS $$
+BEGIN
+  DELETE FROM contacts c USING (
+    SELECT id, row_number() OVER (PARTITION BY lower(btrim(email))
+                                  ORDER BY updated_at DESC, id DESC) AS rn
+    FROM contacts) d
+  WHERE c.id = d.id AND d.rn > 1;
+  UPDATE contacts SET email = lower(btrim(email)) WHERE email <> lower(btrim(email));
+  CREATE UNIQUE INDEX IF NOT EXISTS contacts_email_key ON contacts (lower(email));
 END $$;`,
     presets: [
       { label: '1. Find duplicates', sql: `SELECT count(*) AS rows,
@@ -251,12 +262,20 @@ DELETE FROM raw_import r USING (
 WHERE r.ctid = d.ctid AND d.rn > 1;
 SELECT * FROM raw_import;`,
         note: '`DELETE 240` leaves 2 000 rows for 2 000 people. On a table with no key, `ctid` (the physical row address) does the same job inside one statement. Never store a ctid: UPDATE and VACUUM FULL change it.' },
-      { label: '4. Lock the door', sql: `UPDATE contacts SET email = lower(btrim(email)) WHERE email <> lower(btrim(email));
-CREATE UNIQUE INDEX contacts_email_key ON contacts (lower(email));
+      { label: '4. Lock the door', sql: `-- the duplicates must be gone first (preset 3 again; it deletes nothing if you already ran it)
+DELETE FROM contacts c USING (
+  SELECT id, row_number() OVER (PARTITION BY lower(btrim(email))
+                                ORDER BY updated_at DESC, id DESC) AS rn
+  FROM contacts) d
+WHERE c.id = d.id AND d.rn > 1;
+
+UPDATE contacts SET email = lower(btrim(email)) WHERE email <> lower(btrim(email));
+CREATE UNIQUE INDEX IF NOT EXISTS contacts_email_key ON contacts (lower(email));
 
 SELECT try_sql($$INSERT INTO contacts (email, name, updated_at) VALUES ('USER7@example.com', 'x', now())$$) AS result;`,
         note: 'The unique **expression index** makes case-insensitive duplicates impossible: the insert fails with `23505 duplicate key value`. It is also the arbiter the next preset uses.' },
-      { label: '5. Upsert with RETURNING old/new', sql: `SELECT last_value FROM contacts_id_seq;
+      { label: '5. Upsert with RETURNING old/new', sql: `CALL clean_contacts();   -- presets 3 and 4, in case you skipped them
+SELECT last_value FROM contacts_id_seq;
 
 INSERT INTO contacts AS c (email, name, plan, updated_at)
 SELECT DISTINCT ON (lower(email)) email, split_part(email, '@', 1), plan, received_at
@@ -270,7 +289,9 @@ RETURNING c.id, c.email, old.plan AS old_plan, new.plan AS new_plan,
 
 SELECT last_value FROM contacts_id_seq;`,
         note: 'user1 is updated (`old_plan` pro, `new_plan` team), New.Person is inserted (`inserted` = true) and user2 returns nothing because its plan did not change. The sequence advanced by 3 for 3 proposed rows, although only one was inserted.' },
-      { label: '6. Same key twice in one statement', sql: `SELECT try_sql($$
+      { label: '6. Same key twice in one statement', sql: `CALL clean_contacts();   -- presets 3 and 4, in case you skipped them
+
+SELECT try_sql($$
   INSERT INTO contacts (email, name, plan, updated_at)
   SELECT email, 'x', plan, received_at FROM staging WHERE email ILIKE 'new.person%'
   ON CONFLICT ((lower(email))) DO UPDATE SET plan = excluded.plan
@@ -307,12 +328,13 @@ DELETE FROM contacts c USING (
                                 ORDER BY updated_at DESC, id DESC) AS rn
   FROM contacts) d
 WHERE c.id = d.id AND d.rn > 1;
+UPDATE contacts SET email = lower(btrim(email)) WHERE email <> lower(btrim(email));
 CREATE UNIQUE INDEX CONCURRENTLY contacts_email_key ON contacts (lower(email));
 
 -- nightly import
 INSERT INTO contacts AS c (email, name, plan, updated_at)
-SELECT DISTINCT ON (lower(email)) email, name, plan, received_at
-FROM staging ORDER BY lower(email), received_at DESC
+SELECT DISTINCT ON (lower(btrim(email))) btrim(email), name, plan, received_at
+FROM staging ORDER BY lower(btrim(email)), received_at DESC
 ON CONFLICT ((lower(email))) DO UPDATE
   SET plan = excluded.plan, updated_at = excluded.updated_at
   WHERE c.updated_at < excluded.updated_at;`,
@@ -343,7 +365,7 @@ WHERE products.price IS DISTINCT FROM excluded.price` },
     '`excluded` is the proposed row. A `DO UPDATE … WHERE` that is false skips the update but still locks the row.',
     'A batch with the same key twice fails with **cannot affect row a second time**. De-duplicate with `DISTINCT ON` first.',
     'Clean duplicates with `row_number() OVER (PARTITION BY key ORDER BY keep_first)` and delete `rn > 1` by primary key (or `ctid` within one statement).',
-    'Going deeper: [INSERT, UPDATE, DELETE, MERGE: what really happens](/m3/dml-lifecycle) shows the row versions each of these writes.',
+    '**Going deeper:** [INSERT, UPDATE, DELETE, MERGE: what really happens](/m3/dml-lifecycle) shows the row versions each of these writes.',
   ],
   sources: ['sql-insert.html', 'sql-merge.html', 'dml-returning.html', 'ddl-system-columns.html', 'indexes-unique.html', 'indexes-expressional.html', 'functions-window.html', 'sql-select.html', 'functions-merge-support.html'],
 }

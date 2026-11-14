@@ -203,7 +203,7 @@ function GapsViz() {
             {mode === 'sessions' ? <SessionsView /> : <RangesView />}
           </>
         )}
-      <Legend items={mode === 'ranges' ? [['tuple', 'booking'], ['ok', 'merged busy block']] : mode === 'sessions' ? [['dead', 'click that starts a session'], ['tuple', 'session 1'], ['pointer', 'session 2']] : [['accent', 'active day'], ['tuple', 'island 1'], ['pointer', 'island 2'], ['header', 'island 3'], ['new', 'island 4']]} />
+      <Legend items={mode === 'ranges' ? [['tuple', 'booking'], ['ok', 'merged busy block']] : mode === 'sessions' ? [['dead', 'click that starts a session'], ['tuple', 'session 1, 5, …'], ['pointer', 'session 2'], ['header', 'session 3'], ['new', 'session 4']] : [['accent', 'active day'], ['tuple', 'island 1'], ['pointer', 'island 2'], ['header', 'island 3'], ['new', 'island 4']]} />
       {mode === 'islands' && <Panel title="Also in this lesson"><p className="text-xs text-muted">Switch to <b>Sessions</b> to split clicks by an inactivity timeout, or <b>Merge ranges</b> to fuse overlapping bookings.</p></Panel>}
     </div>
   )
@@ -368,7 +368,7 @@ HAVING max(day) = current_date - 1;`,
     'Sessions: flag rows where `lag()` is NULL or too far back, then a running `sum(flag)` numbers the groups.',
     'Gaps: `lead(value)` minus value > 1, or a `generate_series` EXCEPT the values present.',
     'Intervals: `range_agg` fuses overlapping and adjacent ranges, and `EXCLUDE … WITH &&` forbids overlaps.',
-    'Going deeper: [Window functions and frames](/m3/window-functions) explains partitions, ordering and the running-sum frame.',
+    '**Going deeper:** [Window functions and frames](/m3/window-functions) explains partitions, ordering and the running-sum frame.',
   ],
   sources: ['functions-window.html', 'tutorial-window.html', 'functions-datetime.html', 'functions-srf.html', 'queries-union.html', 'rangetypes.html', 'functions-range.html', 'functions-aggregate.html', 'btree-gist.html', 'sql-createtable.html'],
 }

@@ -67,7 +67,7 @@ function PartitionViz() {
     <div className="grid gap-3 [&>*]:min-w-0">
       <div className="flex flex-wrap items-center gap-2">
         {QUERIES.map((x, i) => (
-          <button key={x.key} onClick={() => setQi(i)} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${i === qi ? 'border-accent bg-accent text-white' : 'border-line bg-surface hover:border-accent'}`}>{x.label}</button>
+          <button key={x.key} onClick={() => setQi(i)} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${i === qi ? 'border-accent bg-accent text-on-accent' : 'border-line bg-surface hover:border-accent'}`}>{x.label}</button>
         ))}
         <Btn primary testid="viz-next" onClick={() => setQi((qi + 1) % QUERIES.length)}>Next query</Btn>
       </div>
@@ -82,7 +82,7 @@ function PartitionViz() {
               <p className="truncate font-mono text-[11.5px] font-bold">{p.name}</p>
               <p className="font-mono text-[10px] leading-tight text-muted">{p.bound === 'DEFAULT' ? <>DEFAULT<br />everything else</> : <>from {p.bound.slice(7, 17)}<br />to {p.bound.slice(25, 35)} (excl.)</>}</p>
               <p className="mt-1 font-mono text-xs">{gone ? 'dropped' : `${(i === 0 && dropped === 'delete' ? 0 : p.rows + (ins && ins.to === i ? 1 : 0)).toLocaleString('en-US')} rows`}</p>
-              <p className="mt-1 text-[11px] font-semibold" style={{ color: tone(fateTone[f]) }}>{fateLabel[f]}</p>
+              <p className="mt-1 text-[11px] font-semibold" style={{ color: tone.text(fateTone[f]) }}>{fateLabel[f]}</p>
               <AnimatePresence>
                 {ins && ins.to === i && (
                   <motion.span key={ins.n} initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 18 }}
@@ -110,7 +110,7 @@ function PartitionViz() {
         <Panel title="Tuple routing">
           <div className="flex flex-wrap items-center gap-2">
             <Btn onClick={insert}>INSERT a row</Btn>
-            {ins && <span className="font-mono text-xs">created_at = '{ins.d}' → <b style={{ color: tone(ins.to === 4 ? 'new' : 'tuple') }}>{PARTS[ins.to].name}</b></span>}
+            {ins && <span className="font-mono text-xs">created_at = '{ins.d}' → <b style={{ color: tone.text(ins.to === 4 ? 'new' : 'tuple') }}>{PARTS[ins.to].name}</b></span>}
           </div>
           <p className="mt-2 text-xs text-muted"><Md>{'Bounds are **inclusive below, exclusive above**: `2026-10-01` belongs to October. Rows outside every range land in the DEFAULT partition; without one, the INSERT fails.'}</Md></p>
         </Panel>
@@ -118,6 +118,7 @@ function PartitionViz() {
           <div className="flex flex-wrap gap-2">
             <Btn onClick={() => setDropped('delete')}>DELETE … WHERE created_at &lt; '2026-09-01'</Btn>
             <Btn onClick={() => setDropped('drop')}>DROP TABLE events_2026_08</Btn>
+            <Btn onClick={() => setDropped('none')} disabled={dropped === 'none'}>Reset</Btn>
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <Stat label="WAL written" value={dropped === 'none' ? '—' : dropped === 'delete' ? '1224 kB' : '4824 B'} t={dropped === 'delete' ? 'dead' : 'ok'} />
@@ -204,6 +205,17 @@ FROM pg_index WHERE indisprimary
   AND indrelid IN (SELECT inhrelid FROM pg_inherits WHERE inhparent = 'events'::regclass)
 ORDER BY 1;`,
         note: 'Each partition enforces uniqueness only inside itself, so a primary key on `id` alone is rejected. With `created_at` added it works, and the parent\'s key creates one index per partition.' },
+      { label: 'Partition-wise aggregate and HASH', sql: `EXPLAIN (COSTS OFF) SELECT kind, count(*) FROM events GROUP BY kind;
+
+SET enable_partitionwise_aggregate = on;
+EXPLAIN (COSTS OFF) SELECT kind, count(*) FROM events GROUP BY kind;
+RESET enable_partitionwise_aggregate;
+
+CREATE TABLE by_user (user_id int, v text) PARTITION BY HASH (user_id);
+CREATE TABLE by_user_0 PARTITION OF by_user FOR VALUES WITH (MODULUS 2, REMAINDER 0);
+CREATE TABLE by_user_1 PARTITION OF by_user FOR VALUES WITH (MODULUS 2, REMAINDER 1);
+EXPLAIN (COSTS OFF) SELECT * FROM by_user WHERE user_id = 7;`,
+        note: 'Partition-wise aggregation is off by default because it costs planning time. On, each partition is aggregated separately (`Partial HashAggregate`) and the results are combined; `enable_partitionwise_join` does the same for joins between identically partitioned tables. HASH partitions spread rows by the remainder of the key\'s hash and prune on equality only: `user_id = 7` reads one partition.' },
       { label: 'Retention: DELETE vs DROP', sql: `SELECT set_config('lab.a', pg_current_wal_insert_lsn()::text, false);
 DELETE FROM events WHERE created_at < '2026-09-01';
 SELECT set_config('lab.b', pg_current_wal_insert_lsn()::text, false);
@@ -254,7 +266,7 @@ DROP TABLE events_2024_01;
 
 -- a typical query prunes to the newest partitions
 EXPLAIN SELECT count(*) FROM events WHERE created_at >= now() - interval '7 days';`,
-    outcome: 'Retention became a metadata operation of a few kB of WAL (dropping a 22,000-row month writes about 6 kB, deleting it about 1.2 MB), with no dead rows. Recent-data queries touch one month instead of 36, so their indexes are 36 times smaller and stay in cache.',
+    outcome: 'Retention became a metadata operation of a few kB of WAL (dropping a 22,000-row month writes about 5 kB, deleting it about 1.2 MB), with no dead rows. Recent-data queries touch one month instead of 36, so their indexes are 36 times smaller and stay in cache.',
   },
   pitfalls: [
     { title: 'Queries that do not mention the partition key',

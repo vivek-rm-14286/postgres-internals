@@ -151,6 +151,28 @@ and distributed PostgreSQL from 20 given links. Work in phases, with worker and 
   never blocks" (it does not block on crashes, but a partition breaks it); `postgres_fdw` pointed at a MySQL server;
   a split-brain heal that kept a stale term; a rebalance share recomputed as 36.8%.
 
+## Round 6: whole-site review
+
+- **Method.** Eight independent reviewers read every lesson, the Cookbook and the Reference a second time, testing
+  claims on a real PostgreSQL 18; the app shell was reviewed by hand with an automated accessibility scan; a new
+  script ran every playground example on a fresh database.
+- **Content: 303 findings, applied.** Wrong pitfall fixes (a SECURITY DEFINER `search_path` without `pg_temp`, a
+  timestamp comparison that errors, unquoted numeric trigger names), wrong facts (`TRUNCATE` and readers, `ON CONFLICT
+  DO NOTHING` and sequences, `CREATE DATABASE` strategy, `enable_*` flags in 18), simulators that modelled the wrong
+  thing (Raft committing without a majority, VACUUM FULL phase order, recovery past the end of WAL), Cookbook
+  exercises that accepted wrong answers or the untouched starter, and garbled or truncated Reference cells. In-scope
+  topics that were missing were added, with six new exercises (97) and cross-links between modules.
+- **Order-dependent examples.** 22 examples in 11 lessons failed unless an earlier example had been run, and six more
+  had notes that were only true in order. All fixed; `scripts/check-standalone.mjs` now runs in CI.
+- **App shell.** Site search (lessons, exercises, every Reference row; Ctrl/⌘ K or `/`); fonts bundled, so pages make
+  no third-party requests; contrast fixes (dark-mode buttons were 2.4:1, green and amber text in light mode);
+  skip link, focus on navigation, labelled editors, keyboard-scrollable tables, inert closed drawer; the Cookbook
+  shows your result beside the expected one; the Reference filter takes several words and lives in the URL.
+- **Deferred.** A query that never ends freezes the tab: the in-browser database cannot be interrupted
+  (`statement_timeout` does not fire). The fix is to run it in a Web Worker.
+- **Interruptions.** A usage limit stopped seven agents mid-run; all resumed with their work intact. Two reviewers'
+  edits were refused because their original task was review-only; fresh agents applied those findings.
+
 ## Decisions worth remembering
 
 - **Primary sources win.** Blogs and tutorials supply teaching angles. Their errors become "common misconception" pitfalls.

@@ -38,7 +38,7 @@ interface S { phase: Phase; row: number }
 function stepsFor(c: Case): Step<S>[] {
   const first: Step<S> = { title: `INSERT a ${c.raw.toLocaleString('en-US')}-byte value`, body: `The row would be about **${(c.raw + 32).toLocaleString('en-US')} bytes**, but a tuple must fit on one 8 KB page. Anything over **${THRESHOLD} bytes** (\`TOAST_TUPLE_THRESHOLD\`) wakes the toaster.`, state: { phase: 'wide', row: c.raw + 32 } }
   if (c.id === 'zip') return [first,
-    { title: 'EXTENDED: try compression first', body: '`body` uses the default **EXTENDED** strategy, so pglz compresses the value: 9,000 → **122 bytes**. The 4-byte header records the raw size (9000) and the method.', state: { phase: 'compress', row: 150 } },
+    { title: 'EXTENDED: try compression first', body: '`body` uses the default **EXTENDED** strategy, so pglz compresses the value: 9,000 → **122 bytes**. After the 4-byte varlena header, a second 4-byte word records the raw size (9000) and the compression method.', state: { phase: 'compress', row: 150 } },
     { title: 'Small enough: stays inline', body: 'The row is now **150 bytes**, under `toast_tuple_target` (2032), so nothing goes to the TOAST table. `pg_column_compression(body)` = `pglz`.', state: { phase: 'inline', row: 150 } }]
   if (c.id === 'rand') return [first,
     { title: 'pglz gives up', body: 'Hex digests have few repeated substrings, so pglz cannot save enough and the value is kept **uncompressed**. The row is still too wide.', state: { phase: 'compress', row: c.raw + 32 } },
@@ -89,7 +89,7 @@ function ToastView({ c, s }: { c: Case; s: S }) {
   const pages = c.chunks ? Array.from({ length: Math.ceil(c.chunks.length / 4) }, (_, p) => c.chunks!.slice(p * 4, p * 4 + 4)) : []
   const notes: Record<string, string> = {
     hdr: '0x01: a 1-byte varlena header whose length bits are all zero, which marks an external TOAST pointer.',
-    tag: `0x12 = 18 = VARTAG_ONDISK, the size of the whole pointer in bytes.`,
+    tag: `0x12 = 18 = VARTAG_ONDISK: the pointer refers to an on-disk TOAST value (16 bytes of fields follow, 18 bytes in total).`,
     va_rawsize: `${c.ptrNote?.[0].toLocaleString('en-US')}: original size including its 4-byte header.`,
     va_extinfo: `${c.ptrNote?.[1].toLocaleString('en-US')}: bytes actually stored out of line. The top 2 bits hold the compression method (00 = pglz).`,
     va_valueid: `${c.chunkId}: the chunk_id shared by all chunks of this value.`,
@@ -142,8 +142,8 @@ function ToastView({ c, s }: { c: Case; s: S }) {
       )}
       {s.phase === 'inline' && (
         <Panel title="Inline compressed varlena">
-          <p className="font-mono text-[12px]">ea 01 00 00 | 28 23 00 00 | 70 6f 73 74 67 72 65 73 …</p>
-          <p className="mt-1 text-sm text-muted">4-byte header = 122 bytes with the "compressed inline" flag, then the raw size 9000 (0x2328), then pglz output, which starts with the literal text "postgres".</p>
+          <p className="font-mono text-[12px]">ea 01 00 00 | 28 23 00 00 | 00 70 6f 73 74 67 72 65 73 …</p>
+          <p className="mt-1 text-sm text-muted">4-byte header = 122 bytes with the "compressed inline" flag, then the raw size 9000 (0x2328), then pglz output: a control byte, then the literal text "postgres".</p>
         </Panel>
       )}
     </div>
@@ -227,7 +227,7 @@ SELECT pg_column_toast_chunk_id(body) AS after_body_update FROM docs WHERE id = 
        pg_size_pretty(pg_table_size('docs'))               AS table_size,
        pg_size_pretty(pg_total_relation_size('docs'))      AS total
 FROM pg_class WHERE oid = 'docs'::regclass;`,
-        note: 'The main heap is a single 8 kB page even though it "holds" 1.2 MB of text. `pg_relation_size` counts only the main fork; `pg_table_size` adds TOAST and the FSM/VM forks; `pg_total_relation_size` adds every index, including the TOAST table\'s own index.' },
+        note: 'The main heap is a single 8 kB page even though it "holds" 1.2 MB of text. `pg_relation_size` counts only the main fork; `pg_table_size` adds the FSM/VM forks and the whole TOAST table, **including the TOAST table\'s own index**; `pg_total_relation_size` then adds the table\'s indexes (here `docs_pkey`).' },
       { label: 'bytea vs large objects', sql: `CREATE TABLE files (id int PRIMARY KEY, name text, data bytea, blob oid);
 INSERT INTO files VALUES (1, 'tiny.bin', '\\x012345', NULL);
 INSERT INTO files SELECT 2, 'random.bin', decode(string_agg(md5(g::text), ''), 'hex'), NULL FROM generate_series(1, 400) g;
@@ -279,7 +279,7 @@ SELECT relpages, reltuples, reltuples / NULLIF(relpages, 0) AS rows_per_page FRO
     { title: 'Changing the strategy and expecting old rows to move',
       symptom: 'After `ALTER COLUMN … SET STORAGE EXTERNAL` or `SET COMPRESSION`, existing rows look exactly the same.',
       cause: 'Storage and compression settings apply to **newly written** values only. Existing tuples keep their format until they are rewritten.',
-      fix: 'Rewrite the affected rows (`UPDATE t SET col = col || \'\'` in batches) or the table (`VACUUM FULL`, `pg_repack`) when you need the new format everywhere.' },
+      fix: 'Rewrite the affected values with an UPDATE that builds a new value (`UPDATE t SET col = col || \'\'` in batches), or dump and restore the table. `VACUUM FULL`, `CLUSTER` and `pg_repack` copy existing values in their current format, so they do **not** apply the new setting.' },
     { title: 'Updating a large value in place, frequently',
       symptom: 'The TOAST table grows much faster than the main table, and autovacuum spends most of its time there.',
       cause: 'Changing a TOASTed column writes a complete new copy of the value as new chunks. The old chunks become dead rows in the TOAST table.',
@@ -302,7 +302,7 @@ SELECT relpages, reltuples, reltuples / NULLIF(relpages, 0) AS rows_per_page FRO
     'TOAST starts when a row exceeds **~2 kB** (2032 bytes) and works until it is under `toast_tuple_target` (default 2032).',
     'Strategies: **PLAIN** (never), **EXTENDED** (compress, then out of line; default), **EXTERNAL** (out of line, no compression), **MAIN** (compress; out of line last).',
     'Out-of-line values become **1996-byte chunks**, 4 per TOAST page, keyed by `(chunk_id, chunk_seq)`; the row keeps an **18-byte pointer**.',
-    'UPDATEs that do not change a TOASTed column **reuse** its chunks.',
+    'UPDATEs that do not change a TOASTed column **reuse** its chunks. See [JSON vs JSONB](/m2/json-jsonb) for the commonest TOASTed type.',
     'Inspect with `pg_column_size`, `pg_column_compression` and `pg_column_toast_chunk_id`. Max value size is **1 GB**.',
   ],
   sources: ['storage-toast.html', 'sql-altertable.html', 'sql-createtable.html', 'runtime-config-client.html', 'functions-admin.html'],

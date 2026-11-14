@@ -150,7 +150,7 @@ function EmbeddingViz() {
           l2_normalize {norm ? 'on' : 'off'}
         </button>
         <button type="button" data-testid="viz-next" onClick={() => setSel((s) => (s + 1) % WORDS.length)}
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">Next word →</button>
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent">Next word →</button>
       </div>
 
       <div className="grid gap-3 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
@@ -218,7 +218,7 @@ function EmbeddingViz() {
         <div className="grid gap-1.5">
           {sizes(dims).map((s) => (
             <Bar key={s.type} label={s.type} value={s.bytes} max={4 * 3072 + 8} t={s.t}
-              right={<span>{s.bytes.toLocaleString()} B {dims <= s.limit ? <span style={{ color: tone('ok') }}>✓</span> : <span style={{ color: tone('dead') }}>✗</span>}</span>} />
+              right={<span>{s.bytes.toLocaleString()} B {dims <= s.limit ? <span style={{ color: tone.text('ok') }}>✓</span> : <span style={{ color: tone.text('dead') }}>✗</span>}</span>} />
           ))}
         </div>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -299,7 +299,7 @@ LIMIT 4;`,
        pg_column_size(array_fill(0.5::real, ARRAY[1536])::halfvec) AS halfvec_1536,
        pg_column_size(repeat('1', 1536)::bit(1536))                AS bit_1536,
        pg_column_size('{1:0.9,3:0.5}/8'::sparsevec)                AS sparse_2nnz;`,
-        note: '20 = 4·3 + 8, 6152 = 4·1536 + 8, 3080 = 2·1536 + 8, 200 = 1536/8 + 8, and 32 = 8·2 + 16. The formulas are exact.' },
+        note: '20 = 4·3 + 8, 14 = 2·3 + 8, 6152 = 4·1536 + 8, 3080 = 2·1536 + 8, 200 = 1536/8 + 8, and 32 = 8·2 + 16. The formulas are exact.' },
       { label: 'Errors you will meet', sql: `SELECT stmt, try_sql(stmt) AS result FROM (VALUES
   ($$SELECT '[1,2]'::vector(3)$$),
   ($$SELECT '[1,2]'::vector <-> '[1,2,3]'$$),
@@ -325,7 +325,8 @@ FROM words WHERE id <= 2;
 SELECT kind, avg(embedding) AS centroid
 FROM words GROUP BY kind ORDER BY kind;`,
         note: '`l2_normalize` scales a vector to length 1 without changing its direction. `avg()` works on vectors element by element, which gives the centre of each group.' },
-      { label: 'Big vectors live in TOAST', sql: `CREATE TABLE docs (id int PRIMARY KEY, embedding vector(1536));
+      { label: 'Big vectors live in TOAST', sql: `DROP TABLE IF EXISTS docs;
+CREATE TABLE docs (id int PRIMARY KEY, embedding vector(1536));
 INSERT INTO docs
   SELECT g, array_fill(0.5::real, ARRAY[1536])::vector FROM generate_series(1, 100) g;
 
@@ -335,7 +336,7 @@ WHERE attrelid = 'docs'::regclass AND attname = 'embedding';
 SELECT pg_size_pretty(pg_relation_size('docs')) AS main_heap,
        pg_size_pretty(pg_relation_size(reltoastrelid)) AS toast
 FROM pg_class WHERE relname = 'docs';`,
-        note: 'Storage `e` (EXTERNAL) means out-of-line and uncompressed. A 6 KB vector is above the 2 KB TOAST threshold, so the main heap holds only small pointers (8 kB for 100 rows) and the vectors sit in the TOAST table.' },
+        note: 'Storage `e` (EXTERNAL) means out-of-line and uncompressed. A 6 KB vector is above the 2 KB TOAST threshold, so the main heap holds only small pointers (one 8192-byte page for 100 rows) and the vectors sit in the 800 kB TOAST table.' },
     ],
   },
   production: {
@@ -374,7 +375,7 @@ SELECT pg_size_pretty(2000000 * (4 * 1536 + 8)::bigint);  -- 11 GB (12.3 GB deci
     '`vector(n)`: 4-byte floats, **4·n + 8** bytes, up to 16 000 dims stored and 2000 dims indexed.',
     '`halfvec(n)`: **2·n + 8** bytes, about 3 significant digits, max value 65504, indexable to 4000 dims.',
     '`sparsevec`: `{index:value,…}/dims`, 1-based, **8·nnz + 16** bytes. `bit(n)`: **n/8 + 8** bytes, from `binary_quantize()`.',
-    'Large vectors are stored out of line in TOAST without compression; random floats do not compress anyway.',
+    'Large vectors are stored out of line in [TOAST](/m2/toast) without compression; random floats do not compress anyway.',
   ],
   sources: ['storage-toast.html', 'datatype-numeric.html', 'datatype-bit.html', 'sql-createextension.html', 'functions-admin.html'],
 }

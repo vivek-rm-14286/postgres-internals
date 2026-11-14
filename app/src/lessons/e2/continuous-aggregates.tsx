@@ -185,7 +185,17 @@ SELECT add_continuous_aggregate_policy('metrics_hourly',
 
 /* ------------------------------------------------------------------------------------------------ */
 
-const SETUP_ENGINE = `CREATE TABLE cagg_hourly (bucket timestamptz, device_id int, sum_v double precision, n bigint,
+/* The engine is created by the setup AND rebuilt by the example that teaches it, so every later example runs on
+ * a fresh database. */
+const RT_VIEW = `CREATE OR REPLACE VIEW metrics_hourly_rt AS
+SELECT bucket, device_id, sum_v / n AS avg_v, n FROM cagg_hourly
+WHERE bucket < (SELECT wm FROM cagg_watermark)
+UNION ALL
+SELECT date_bin('1 hour', time, timestamptz '2000-01-03'), device_id, avg(value), count(*)
+FROM metrics WHERE time >= (SELECT wm FROM cagg_watermark)
+GROUP BY 1, 2;`
+const FIRST_REFRESH = `CALL refresh_cagg('2026-01-05 00:00+00', '2026-01-05 05:00+00');`
+const ENGINE_DDL = `CREATE TABLE cagg_hourly (bucket timestamptz, device_id int, sum_v double precision, n bigint,
                           PRIMARY KEY (bucket, device_id));
 CREATE TABLE cagg_invalidations (lo timestamptz, hi timestamptz);
 CREATE TABLE cagg_watermark (wm timestamptz);
@@ -194,18 +204,18 @@ CREATE TABLE cagg_refresh_log (refresh_no int GENERATED ALWAYS AS IDENTITY,
                                buckets_recomputed int, watermark timestamptz);
 
 -- invalidation log: min/max time per statement, only for writes behind the watermark
-CREATE FUNCTION log_invalidation() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION log_invalidation() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   INSERT INTO cagg_invalidations
   SELECT min(time), max(time) FROM new_rows
   HAVING count(*) > 0 AND min(time) < (SELECT wm FROM cagg_watermark);
   RETURN NULL;
 END $$;
-CREATE TRIGGER metrics_inval AFTER INSERT ON metrics REFERENCING NEW TABLE AS new_rows
+CREATE OR REPLACE TRIGGER metrics_inval AFTER INSERT ON metrics REFERENCING NEW TABLE AS new_rows
   FOR EACH STATEMENT EXECUTE FUNCTION log_invalidation();
 
 -- refresh: recompute new buckets and invalidated buckets inside the window
-CREATE PROCEDURE refresh_cagg(p_start timestamptz, p_end timestamptz) LANGUAGE plpgsql AS $$
+CREATE OR REPLACE PROCEDURE refresh_cagg(p_start timestamptz, p_end timestamptz) LANGUAGE plpgsql AS $$
 DECLARE w_lo timestamptz; w_hi timestamptz; old_wm timestamptz; work timestamptz[];
 BEGIN
   w_lo := date_bin('1 hour', p_start + interval '1 hour' - interval '1 microsecond', timestamptz '2000-01-03');
@@ -225,7 +235,14 @@ BEGIN
   INSERT INTO cagg_refresh_log (buckets_recomputed, watermark) VALUES (cardinality(work), greatest(old_wm, w_hi));
 END $$;
 
-CALL refresh_cagg('2026-01-05 00:00+00', '2026-01-05 05:00+00');
+-- real-time view: stored buckets below the watermark, live rows above it (next example)
+${RT_VIEW}`
+const SETUP_ENGINE = `-- start clean (the lesson setup already built one copy of this engine)
+DROP TABLE IF EXISTS cagg_hourly, cagg_invalidations, cagg_watermark, cagg_refresh_log CASCADE;
+
+${ENGINE_DDL}
+
+${FIRST_REFRESH}
 SELECT bucket, device_id, sum_v / n AS avg_v, n FROM cagg_hourly ORDER BY 1, 2;
 SELECT * FROM cagg_refresh_log;`
 
@@ -255,9 +272,14 @@ INSERT INTO metrics VALUES
 CREATE FUNCTION try_sql(q text) RETURNS text LANGUAGE plpgsql AS $$
 BEGIN EXECUTE q; RETURN 'ok';
 EXCEPTION WHEN OTHERS THEN RETURN 'ERROR: ' || SQLERRM;
-END $$;`,
+END $$;
+
+-- the hand-built incremental engine that "Build an incremental engine" walks through
+${ENGINE_DDL}
+${FIRST_REFRESH}`,
     presets: [
-      { label: 'A plain materialized view', sql: `CREATE MATERIALIZED VIEW metrics_hourly AS
+      { label: 'A plain materialized view', sql: `DROP MATERIALIZED VIEW IF EXISTS metrics_hourly;
+CREATE MATERIALIZED VIEW metrics_hourly AS
 SELECT date_bin('1 hour', time, timestamptz '2000-01-03') AS bucket, device_id,
        avg(value) AS avg_v, count(*) AS n
 FROM metrics GROUP BY 1, 2
@@ -267,25 +289,30 @@ SELECT try_sql('SELECT * FROM metrics_hourly') AS before_refresh;
 REFRESH MATERIALIZED VIEW metrics_hourly;
 SELECT * FROM metrics_hourly ORDER BY bucket, device_id;`,
         note: 'An unpopulated matview raises **has not been populated**. `REFRESH` recomputes the entire query every time, however little changed.' },
-      { label: 'Concurrent refresh and staleness', sql: `SELECT try_sql('REFRESH MATERIALIZED VIEW CONCURRENTLY metrics_hourly') AS concurrently_without_index;
-CREATE UNIQUE INDEX ON metrics_hourly (bucket, device_id);
+      { label: 'Concurrent refresh and staleness', sql: `-- the matview from the previous example (created here if you skipped it)
+CREATE MATERIALIZED VIEW IF NOT EXISTS metrics_hourly AS
+SELECT date_bin('1 hour', time, timestamptz '2000-01-03') AS bucket, device_id,
+       avg(value) AS avg_v, count(*) AS n
+FROM metrics GROUP BY 1, 2;
+
+SELECT try_sql('REFRESH MATERIALIZED VIEW CONCURRENTLY metrics_hourly') AS concurrently_without_index;
+CREATE UNIQUE INDEX IF NOT EXISTS metrics_hourly_key ON metrics_hourly (bucket, device_id);
+DELETE FROM metrics WHERE time = '2026-01-05 05:30+00';   -- so a second run starts from the same rows
 REFRESH MATERIALIZED VIEW CONCURRENTLY metrics_hourly;
 
 INSERT INTO metrics VALUES ('2026-01-05 05:30+00', 1, 60);
 SELECT bucket, device_id, avg_v, n FROM metrics_hourly WHERE bucket = '2026-01-05 05:00+00';`,
         note: '`CONCURRENTLY` needs a unique index and still recomputes everything. The new 05:30 reading is invisible: the matview still says **50, n = 1** until the next full refresh.' },
       { label: 'Build an incremental engine', sql: SETUP_ENGINE,
-        note: 'A summary table (the **materialization hypertable**), an invalidation log fed by a statement trigger, and a refresh that handles whole buckets only. The window ends at 05:00, so 5 buckets are computed and the **watermark** moves to 05:00.' },
-      { label: 'Real-time view', sql: `CREATE VIEW metrics_hourly_rt AS
-SELECT bucket, device_id, sum_v / n AS avg_v, n FROM cagg_hourly
-WHERE bucket < (SELECT wm FROM cagg_watermark)
-UNION ALL
-SELECT date_bin('1 hour', time, timestamptz '2000-01-03'), device_id, avg(value), count(*)
-FROM metrics WHERE time >= (SELECT wm FROM cagg_watermark)
-GROUP BY 1, 2;
+        note: 'A summary table (the **materialization hypertable**), an invalidation log fed by a statement trigger, a refresh that handles whole buckets only, and the real-time view used next. The first lines drop the copy the lesson already loaded, so you can read and rerun the whole engine. The window ends at 05:00, so 5 buckets are computed and the **watermark** moves to 05:00.' },
+      { label: 'Real-time view', sql: `${RT_VIEW}
+
+-- a new reading above the watermark (skipped if an earlier example already added it)
+INSERT INTO metrics SELECT '2026-01-05 05:30+00', 1, 60
+WHERE NOT EXISTS (SELECT 1 FROM metrics WHERE time = '2026-01-05 05:30+00');
 
 SELECT * FROM metrics_hourly_rt ORDER BY 1, 2;`,
-        note: 'This is `materialized_only = false`: stored buckets below the watermark, plus raw rows above it aggregated on the fly. The 05:00 bucket appears with **55, n = 2** (50 and 60) without a refresh.' },
+        note: 'This is `materialized_only = false`: stored buckets below the watermark, plus raw rows above it aggregated on the fly. The 05:00 bucket, which no refresh has stored, appears with **55, n = 2** (50 and the new 60).' },
       { label: 'Backfill below the watermark', sql: `INSERT INTO metrics VALUES ('2026-01-05 00:50+00', 1, 100);
 SELECT * FROM cagg_invalidations;
 SELECT avg_v, n FROM metrics_hourly_rt WHERE bucket = '2026-01-05 00:00+00' AND device_id = 1;
@@ -309,7 +336,7 @@ SELECT * FROM cagg_refresh_log;`,
        sum(sum_v) / sum(n) AS correct_avg,
        avg(sum_v / n)      AS avg_of_avgs
 FROM cagg_hourly GROUP BY 1, 2 ORDER BY 1, 2;`,
-        note: 'A daily rollup of the hourly table (a **hierarchical** aggregate) must combine sums and counts: device 1 is **35.5**, while averaging the hourly averages gives a wrong 30.33.' },
+        note: 'A daily rollup of the hourly table (a **hierarchical** aggregate) must combine sums and counts. On the starting data device 1 is **14** (42 / 3 readings), while averaging the hourly averages gives a wrong 15.5; after the backfill example the same columns read 35.5 and 30.33.' },
     ],
   },
   production: {
@@ -342,7 +369,7 @@ CALL refresh_continuous_aggregate('usage_hourly', '2026-10-01', '2026-10-08');`,
   pitfalls: [
     { title: 'The last hour is missing',
       symptom: 'The aggregate shows nothing for the most recent hour or two, so the dashboard looks delayed.',
-      cause: '`end_offset` keeps the open bucket out of the refresh window, and real-time aggregation has been **off by default since 2.13**. With a 1-hour schedule and a 1-hour end_offset, data can be up to 2 hours late.',
+      cause: '`end_offset` keeps the open bucket out of the refresh window, and real-time aggregation has been **off by default since 2.13**. A refresh only stores whole buckets that end before `now − end_offset`, so with 1-hour buckets, a 1-hour end_offset and a 1-hour schedule a reading can wait up to 3 hours (bucket width + end_offset + one schedule interval).',
       fix: 'Enable real-time aggregation if readers need fresh data, or shorten `end_offset` and `schedule_interval`.',
       sql: `ALTER MATERIALIZED VIEW usage_hourly SET (timescaledb.materialized_only = false);` },
     { title: 'Backfill never appears',
@@ -362,9 +389,9 @@ CALL refresh_continuous_aggregate('usage_hourly', '2026-10-01', '2026-10-08');`,
   pointers: [
     'A cagg stores finished buckets in a **materialization hypertable**. The **watermark** marks where materialized data ends.',
     'Writes behind the invalidation threshold log **min and max time per transaction**. A refresh recomputes only new and invalidated whole buckets in its window.',
-    'Policy = `start_offset` / `end_offset` / `schedule_interval`. Leave the open bucket out, and expect data to lag by up to schedule + end_offset.',
+    'Policy = `start_offset` / `end_offset` / `schedule_interval`. Leave the open bucket out, and expect data to lag by up to bucket width + end_offset + schedule_interval.',
     '**Real-time** (`materialized_only = false`) unions live raw data above the watermark. It has been off by default since 2.13.',
-    'Continuous aggregates are **Community edition** only. Natively: a summary table, a trigger-fed invalidation log, a refresh procedure and a UNION view.',
+    'Continuous aggregates are **Community edition** only. Natively: a summary table, a [trigger](/m6/triggers)-fed invalidation log, a refresh procedure and a UNION view; a plain [materialized view](/m6/views-matviews) recomputes everything.',
   ],
   sources: ['rules-materializedviews.html', 'sql-creatematerializedview.html', 'sql-refreshmaterializedview.html', 'plpgsql-trigger.html', 'sql-createtrigger.html',
     'tigerdata.com/docs/learn/continuous-aggregates/about-continuous-aggregates', 'tigerdata.com/docs/reference/timescaledb/continuous-aggregates/add_continuous_aggregate_policy'],

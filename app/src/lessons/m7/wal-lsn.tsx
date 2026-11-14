@@ -46,7 +46,7 @@ const steps: Step<S>[] = [
     state: { upto: 7, insert: '0/1769DE8', flush: '0/1769DE8', client: 'COMMIT' } },
   { title: "BEGIN; INSERT (52, 'bob'); ROLLBACK", body: 'Aborted work still writes WAL, plus an `ABORT` record. An abort does not wait for a flush, so the **flush pointer stays behind** the insert pointer.',
     state: { upto: 10, insert: '0/1769E98', flush: '0/1769DE8', client: 'ROLLBACK' } },
-  { title: "SET synchronous_commit = off; INSERT (53, 'carol')", body: 'The client gets COMMIT **before** the flush: 352 bytes are acknowledged but not durable. A crash now loses carol, cleanly, as if she had aborted. On a full server the WAL writer flushes within 3 × `wal_writer_delay` (600 ms).',
+  { title: "SET synchronous_commit = off; INSERT (53, 'carol')", body: 'The client gets COMMIT **before** the flush: carol\'s 176 bytes (and bob\'s aborted 176) sit unflushed in WAL buffers. A crash now loses carol, cleanly, as if she had aborted. On a full server the WAL writer flushes within 3 × `wal_writer_delay` (600 ms).',
     state: { upto: 13, insert: '0/1769F48', flush: '0/1769DE8', client: 'COMMIT (not yet durable)' } },
   { title: "INSERT (54, 'dave') with synchronous_commit = on", body: 'This commit flushes everything before it, carol included. **One fsync, several commits**: that is group commit in miniature.',
     state: { upto: 16, insert: '0/1769FF8', flush: '0/1769FF8', client: 'COMMIT' } },
@@ -161,7 +161,7 @@ function CommitLadder() {
       <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
         {['survives primary crash', 'survives standby PG crash', 'survives standby OS crash', 'standby reads see it'].map((k, i) => (
           <div key={k} className="rounded-md border px-2 py-1.5" style={{ borderColor: tone(sv[i] ? 'ok' : 'dead'), background: toneBg(sv[i] ? 'ok' : 'dead', 10) }}>
-            <span className="font-semibold" style={{ color: tone(sv[i] ? 'ok' : 'dead') }}>{sv[i] ? 'yes' : 'no'}</span> <span className="text-muted">{k}</span>
+            <span className="font-semibold" style={{ color: tone.text(sv[i] ? 'ok' : 'dead') }}>{sv[i] ? 'yes' : 'no'}</span> <span className="text-muted">{k}</span>
           </div>
         ))}
       </div>
@@ -285,7 +285,7 @@ SELECT count(*) AS sequence_records
 FROM pg_get_wal_records_info(current_setting('lab.start')::pg_lsn, pg_current_wal_lsn())
 WHERE resource_manager = 'Sequence';
 SELECT last_value, log_cnt FROM order_no;`,
-        note: '100 `nextval` calls wrote only **4** `Sequence LOG` records (at 1, 33, 65 and 97). Each record reserves the next 32 values, and `log_cnt` counts how many are left. After a crash the sequence restarts after the last reserved value, so up to 32 numbers are skipped.' },
+        note: '100 `nextval` calls wrote only **4** `Sequence LOG` records (at calls 1, 34, 67 and 100). Each record covers the value handed out plus the next 32, and `log_cnt` counts how many of those are left, which is why it reads 32 here. After a crash the sequence restarts after the last reserved value, so up to 32 numbers are skipped.' },
       { label: 'What skips the WAL: UNLOGGED and TEMP', sql: `CREATE TABLE t_logged (id int, v text);
 CREATE UNLOGGED TABLE t_unlogged (id int, v text);
 CREATE TEMP TABLE t_temp (id int, v text);
@@ -330,7 +330,7 @@ COMMIT;  -- waits for the WAL flush`,
 -- never in production: fsync = off` },
     { title: 'Comparing LSNs as text',
       symptom: 'A lag monitor reports that a replica is "ahead" of the primary, or alerts flap when the low half of the LSN gains a digit.',
-      cause: 'LSNs are two hex numbers. As text, `0/9` sorts after `0/10` and `0/FFFFFFFF` after `1/0`.',
+      cause: 'LSNs are two hex numbers. As text, `0/9` sorts after `0/10` and `9/0` after `10/0`.',
       fix: 'Cast to `pg_lsn` and subtract to get bytes, or use `pg_wal_lsn_diff()`.',
       sql: `SELECT pg_current_wal_lsn() - '0/1769C60'::pg_lsn AS bytes_since;` },
     { title: 'Expecting remote_apply without a synchronous standby',
@@ -348,7 +348,7 @@ COMMIT;  -- waits for the WAL flush`,
       fix: 'Treat sequence values as unique, not consecutive. If gapless numbering is a legal requirement, keep a counter row updated inside the same transaction and accept that it serializes writers.' },
   ],
   pointers: [
-    '**WAL rule**: the WAL record must be flushed before the data page it describes may be written.',
+    '**WAL rule**: the WAL record must be flushed before the data page it describes may be written; see [checkpoints](/m7/checkpoints-fpw).',
     'An **LSN** is a byte position; `lsn_a - lsn_b` is bytes; segment files are **16 MB**, named timeline + segment number.',
     'COMMIT costs **one sequential flush**, and concurrent commits share it (**group commit**).',
     '`synchronous_commit` is **per transaction**: `off` risks losing recent commits after a crash, never corruption.',

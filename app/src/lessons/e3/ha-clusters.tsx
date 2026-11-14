@@ -57,11 +57,22 @@ function build(sc: Sc, ttl: number, loop: number, retry: number, sync: boolean):
       { title: `t = ${promoted + RISE * INTER} s: writes go to pg2`, body: 'HAProxy routes to pg2. When the network heals, pg1 rejoins as a replica, rewound if needed.',
         state: ok(['read-only', 'primary', 'replica'], { t: promoted + RISE * INTER, holder: 1, route: 1, tl: 2, isolated: 0, lost: '0 split-brain writes' }) },
     ]
-    return [cut, fail,
-      { title: `t = ${promoted} s: pg2 promoted, pg1 still primary`, body: `**The rule is broken**: ${loop} + 2 × ${retry} = ${demote} > ttl ${ttl}. (Patroni 3.2 and later refuse such values: they lower \`loop_wait\`, or \`retry_timeout\`, and log a warning. This step shows what that protects against.) The key expired and pg2 was promoted, but pg1 has not given up yet and keeps accepting writes from clients that still reach it.`,
+    // Unsafe: the key expires first (t = ttl), then pg2 finishes promoting (ttl + PROMOTE) and pg1 demotes (demote), in whichever order the numbers give.
+    const expire: Step<HS> = { title: `t = ${ttl} s: the key expires, pg1 is still primary`, body: `**The rule is broken**: ${loop} + 2 × ${retry} = ${demote} > ttl ${ttl}. (Patroni 3.2 and later refuse such values: they lower \`loop_wait\`, or \`retry_timeout\`, and log a warning. This step shows what that protects against.) The key expired, so pg2 takes it and starts promoting, but pg1 has not given up yet and keeps accepting writes from clients that still reach it.`,
+      state: ok(['primary', 'promoting', 'replica'], { t: ttl, holder: 1, ttlLeft: ttl, isolated: 0, route: 0, split: true }) }
+    const head = loop < ttl ? [cut, fail, expire] : [cut, expire] // with loop_wait >= ttl the key is gone before pg1 even tries to renew it
+    const overlap = demote - promoted
+    if (overlap > 0) return [...head,
+      { title: `t = ${promoted} s: pg2 is promoted, pg1 is still primary`, body: `Promotion took the assumed ${PROMOTE} s. Now **two primaries** accept writes: pg2 on timeline 2, and pg1 for every client that still reaches it.`,
         state: ok(['primary', 'primary', 'replica'], { t: promoted, holder: 1, ttlLeft: ttl, isolated: 0, route: 0, tl: 2, split: true }) },
-      { title: `t = ${demote} s: pg1 finally demotes`, body: `For about ${Math.max(1, demote - promoted)} s two primaries accepted writes. Rows written to pg1 in that window exist only on pg1, and someone must reconcile them by hand before pg1 is rewound.`,
-        state: ok(['read-only', 'primary', 'replica'], { t: Math.max(demote, promoted + 1), holder: 1, ttlLeft: ttl, isolated: 0, route: 1, tl: 2, split: true, lost: 'divergent writes on pg1' }) },
+      { title: `t = ${demote} s: pg1 finally demotes`, body: `For ${demote - ttl} s two nodes believed they were the leader, and for ${overlap} s of that both accepted writes. Rows written to pg1 in that window exist only on pg1, and someone must reconcile them by hand before pg1 is rewound.`,
+        state: ok(['read-only', 'primary', 'replica'], { t: demote, holder: 1, ttlLeft: ttl, isolated: 0, route: 1, tl: 2, split: true, lost: 'divergent writes on pg1' }) },
+    ]
+    return [...head,
+      { title: `t = ${demote} s: pg1 finally demotes`, body: `For ${demote - ttl} s two nodes believed they were the leader. pg2 was still promoting (an assumed ${PROMOTE} s), so this time the two did not accept writes at the same moment. Only the length of a promotion stood between this cluster and two primaries.`,
+        state: ok(['read-only', 'promoting', 'replica'], { t: demote, holder: 1, ttlLeft: ttl, isolated: 0, route: null, split: true, lost: 'pg1 was primary without the key' }) },
+      { title: `t = ${promoted + RISE * INTER} s: writes go to pg2`, body: 'pg2 finished promoting to timeline 2 and HAProxy routes to it. When the network heals, pg1 rejoins as a replica, rewound if needed. Fix the timings before the next network fault.',
+        state: ok(['read-only', 'primary', 'replica'], { t: promoted + RISE * INTER, holder: 1, route: 1, tl: 2, isolated: 0, lost: 'pg1 was primary without the key' }) },
     ]
   }
   return [
@@ -142,7 +153,7 @@ function HaViz() {
         <Slider label="loop_wait" value={loop} min={1} max={30} onChange={setLoop} show={`${loop} s`} />
         <Slider label="retry_timeout" value={retry} min={3} max={30} onChange={setRetry} show={`${retry} s`} />
       </div>
-      <p className="font-mono text-xs" style={{ color: tone(rule ? 'ok' : 'dead') }}>
+      <p className="font-mono text-xs" style={{ color: tone.text(rule ? 'ok' : 'dead') }}>
         loop_wait + 2 × retry_timeout = {loop + 2 * retry} {rule ? '≤' : '>'} ttl {ttl} · {rule ? 'safe: the old leader demotes before the key can expire' : 'unsafe (Patroni 3.2+ would adjust it): try "Primary cut off"'}
       </p>
       <Stepper key={sc} steps={steps} interval={3000} render={(s, i) => (
@@ -191,7 +202,11 @@ INSERT INTO dcs_configs VALUES ('defaults', 30, 10, 10), ('fast', 20, 5, 7), ('w
 SELECT pg_create_physical_replication_slot('pg3', true);
 SELECT slot_name, slot_type, active, restart_lsn, wal_status FROM pg_replication_slots ORDER BY 1;`,
         note: 'With `use_slots` (the default) Patroni keeps a physical slot for each other member, so the primary retains the WAL a lagging replica still needs. Here no replica is connected, so both slots are inactive.' },
-      { label: 'How far behind is a replica?', sql: `SELECT slot_name,
+      { label: 'How far behind is a replica?', sql: `-- make sure both slots exist (does nothing if you already created them)
+SELECT pg_create_physical_replication_slot(s, true) FROM unnest(ARRAY['pg2', 'pg3']) s
+WHERE NOT EXISTS (SELECT 1 FROM pg_replication_slots WHERE slot_name = s);
+
+SELECT slot_name,
        pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS retained_wal
 FROM pg_replication_slots;
 
@@ -259,7 +274,7 @@ FROM pg_stat_replication;`,
       fix: 'Keep `loop_wait + 2 * retry_timeout <= ttl`. Change the values with `patronictl edit-config`; `bootstrap.dcs` only applies when the cluster is first created.' },
     { title: 'Synchronous mode with a single standby',
       symptom: 'Writes hang whenever the one synchronous standby restarts.',
-      cause: 'A commit waits for a synchronous standby. With exactly one candidate and strict settings, there is nobody else to confirm.',
+      cause: 'With `synchronous_mode_strict: true` (or a hand-set `synchronous_standby_names`) a commit always waits for a synchronous standby; with exactly one candidate there is nobody else to confirm. Plain `synchronous_mode: true` instead falls back to asynchronous commits while no standby is available, and Patroni will not fail over to a standby that was not synchronous.',
       fix: 'Run at least two replicas so another can become synchronous, or use quorum commit (`synchronous_mode: quorum`, `ANY n (...)`) so one standby can be down.' },
     { title: 'An old primary that cannot rejoin',
       symptom: 'After failover the old primary refuses to start as a replica because its timeline forked.',
@@ -271,7 +286,7 @@ FROM pg_stat_replication;`,
     'Defaults `ttl` 30 / `loop_wait` 10 / `retry_timeout` 10, and the rule **`loop_wait + 2 * retry_timeout <= ttl`**. A crash costs roughly the TTL plus promotion plus proxy checks.',
     'HAProxy routes by HTTP checks against Patroni\'s REST API: `/primary` for writes, `/replica?lag=` for reads. A pooler such as [PgBouncer](/m7/connection-pooling) sits behind it or beside it.',
     '`synchronous_mode` makes failover lose nothing acknowledged; asynchronous failover can lose the unreplicated tail.',
-    'Switchover is the planned, lossless version: rehearse it regularly. A returning old primary needs `pg_rewind` or a rebuild.',
+    'Switchover is the planned, lossless version: rehearse it regularly. A returning old primary needs `pg_rewind` or a rebuild. Failure detection and split brain in general: [operating distributed databases](/e5/operating-distributed).',
   ],
   sources: ['high-availability.html', 'warm-standby.html', 'warm-standby-failover.html', 'runtime-config-replication.html', 'functions-admin.html', 'app-pgrewind.html', 'view-pg-replication-slots.html'],
 }

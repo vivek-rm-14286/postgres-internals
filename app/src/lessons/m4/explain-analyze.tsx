@@ -106,12 +106,12 @@ function NodeCard({ n, sel, onSel, depth }: { n: PlanNode; sel: PlanNode | null;
           {depth > 0 && <span className="text-muted">-&gt; </span>}
           <span className="font-bold">{title(n)}</span>
           <span className="text-muted">  (cost={f2(num(n, 'Startup Cost'))}..{f2(num(n, 'Total Cost'))} rows={n['Plan Rows'] as number})</span>
-          <span style={{ color: tone('tuple') }}> (actual time={num(n, 'Actual Startup Time')?.toFixed(3)}..{num(n, 'Actual Total Time')?.toFixed(3)} rows={f2(num(n, 'Actual Rows'))} loops={n['Actual Loops'] as number})</span>
+          <span style={{ color: tone.text('tuple') }}> (actual time={num(n, 'Actual Startup Time')?.toFixed(3)}..{num(n, 'Actual Total Time')?.toFixed(3)} rows={f2(num(n, 'Actual Rows'))} loops={n['Actual Loops'] as number})</span>
         </div>
         <div className="mt-0.5 grid gap-px font-mono text-[11px]">
-          {props(n).map(([k, v, pt]) => <div key={k} style={pt ? { color: tone(pt) } : { color: 'var(--muted)' }}>{k}: {v}</div>)}
+          {props(n).map(([k, v, pt]) => <div key={k} style={pt ? { color: tone.text(pt) } : { color: 'var(--muted)' }}>{k}: {v}</div>)}
         </div>
-        {warn && <div className="mt-1 flex flex-wrap gap-1">{flags(n).map((w) => <span key={w} className="rounded px-1.5 py-px text-[10.5px] font-semibold" style={{ background: toneBg('dead', 18), color: tone('dead') }}>{w}</span>)}</div>}
+        {warn && <div className="mt-1 flex flex-wrap gap-1">{flags(n).map((w) => <span key={w} className="rounded px-1.5 py-px text-[10.5px] font-semibold" style={{ background: toneBg('dead', 18), color: tone.text('dead') }}>{w}</span>)}</div>}
       </motion.button>
       {n.Plans?.map((c, i) => <NodeCard key={i} n={c} sel={sel} onSel={onSel} depth={depth + 1} />)}
     </div>
@@ -302,7 +302,7 @@ EXPLAIN (ANALYZE) SELECT count(*) FROM orders;` },
   ],
   pointers: [
     'Each node: `(cost=startup..total rows= width=)` estimated, then `(actual time=first..last rows= loops=)` measured. **Compare the two rows values first.**',
-    'Actual rows and time are **per loop**; multiply by `loops`. A node\'s time includes its children.',
+    'Actual rows and time are **per loop**; multiply by `loops`. A node\'s time includes its children. A gap between estimated and actual rows leads to [Planner statistics](/m4/statistics).',
     '**Buffers** (default with ANALYZE in 18): shared hit = cached, read = from OS, temp = spills. They include child nodes.',
     'Red flags: `external merge Disk`, `Batches` > 1, `Heap Fetches` > 0, big `Rows Removed by Filter`, `lossy` heap blocks.',
     'Not shown in the playground but common in production: `Gather` with `Workers Planned/Launched` for parallel query, and a `JIT:` block when the plan cost exceeds `jit_above_cost`.',

@@ -30,7 +30,7 @@ const MEASURED: Record<Filter, Record<Iter, Record<number, [number, number]>>> =
 const TOUR: [Filter, number, Iter][] = [['cat', 40, 'off'], ['cat', 200, 'off'], ['cat', 40, 'strict_order'], ['anti', 40, 'off'], ['anti', 200, 'off'], ['anti', 40, 'strict_order'], ['anti', 40, 'relaxed_order']]
 
 function stream(filter: Filter, n: number) {
-  const r = rng(filter === 'cat' ? 3 : 8)
+  const r = rng(filter === 'cat' ? 22 : 8)
   return Array.from({ length: n }, (_, i) => (filter === 'cat' ? r() < 0.1 : i < 260 ? false : r() < 0.25))
 }
 
@@ -121,7 +121,7 @@ function RrfViz() {
       <ol className="grid gap-1">
         {list.map((id, i) => (
           <motion.li key={id} layout className="flex items-center gap-2 rounded border px-2 py-1 text-xs" style={{ borderColor: tone(t), background: toneBg(t, 10) }}>
-            <span className="font-mono font-bold" style={{ color: tone(t) }}>{i + 1}</span><span className="truncate">{TITLES[id]}</span>
+            <span className="font-mono font-bold" style={{ color: tone.text(t) }}>{i + 1}</span><span className="truncate">{TITLES[id]}</span>
           </motion.li>
         ))}
       </ol>
@@ -192,6 +192,8 @@ CREATE VIEW ${name} AS
     FROM (SELECT id FROM items WHERE ${where} ORDER BY embedding <-> q.v LIMIT 10) a) x;`
 
 const Q1 = '(SELECT v FROM queries WHERE qid = 1)'
+// every filtered example builds the index if it is missing, so each one runs on its own
+const HNSW_IDX = 'CREATE INDEX IF NOT EXISTS items_hnsw ON items USING hnsw (embedding vector_l2_ops);'
 
 export const lesson: Lesson = {
   slug: 'filtering-and-hybrid',
@@ -231,18 +233,22 @@ INSERT INTO articles VALUES
  (10,'Wi-Fi keeps dropping', 'Move the router away from walls and microwaves.', '[0.05,0.05,0.02,0.99]');
 CREATE INDEX ON articles USING gin (tsv);`,
     presets: [
-      { label: 'Filter after the index', sql: `CREATE INDEX items_hnsw ON items USING hnsw (embedding vector_l2_ops);
+      { label: 'Filter after the index', sql: `${HNSW_IDX}
 
 EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
 SELECT id FROM items WHERE category = 3
 ORDER BY embedding <-> ${Q1} LIMIT 10;`,
         note: 'Look at the Index Scan node: `Filter: (category = 3)` and `Rows Removed by Filter: 39`. The scan produced its 40 candidates (ef_search) and only 1 matched, so `rows=1` for a LIMIT 10 query.' },
-      { label: 'Lost rows, lost recall', sql: `SET hnsw.ef_search = 40;  SELECT 40  AS ef_search, * FROM recall_cat;
+      { label: 'Lost rows, lost recall', sql: `${HNSW_IDX}
+
+SET hnsw.ef_search = 40;  SELECT 40  AS ef_search, * FROM recall_cat;
 SET hnsw.ef_search = 100; SELECT 100 AS ef_search, * FROM recall_cat;
 SET hnsw.ef_search = 200; SELECT 200 AS ef_search, * FROM recall_cat;
 RESET hnsw.ef_search;`,
         note: 'With a 10% filter, 40 candidates leave about **4 rows** on average (recall about 0.37). A larger ef_search helps, but only because it reads more candidates for every query.' },
-      { label: 'Iterative scans', sql: `SET hnsw.iterative_scan = strict_order;
+      { label: 'Iterative scans', sql: `${HNSW_IDX}
+
+SET hnsw.iterative_scan = strict_order;
 SELECT 'strict_order' AS mode, * FROM recall_cat;
 EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
 SELECT id FROM items WHERE category = 3 ORDER BY embedding <-> ${Q1} LIMIT 10;
@@ -251,12 +257,16 @@ SET hnsw.iterative_scan = relaxed_order;
 SELECT 'relaxed_order' AS mode, * FROM recall_cat;
 RESET hnsw.iterative_scan;`,
         note: 'The index now keeps scanning until 10 rows pass: `rows=10` with well over 100 rows removed by the filter. Recall returns to 1.0, at the default ef_search of 40.' },
-      { label: 'A filter against the clusters', sql: `SELECT 'off' AS iterative_scan, * FROM recall_region;
+      { label: 'A filter against the clusters', sql: `${HNSW_IDX}
+
+SELECT 'off' AS iterative_scan, * FROM recall_region;
 SET hnsw.iterative_scan = strict_order;  SELECT 'strict_order', * FROM recall_region;
 SET hnsw.iterative_scan = relaxed_order; SELECT 'relaxed_order', * FROM recall_region;
 RESET hnsw.iterative_scan;`,
         note: 'Each query asks for rows from a region its own topic is not in. Off: **0 rows**. Iterative scans return 10 rows, but recall is only about 0.8 (strict) and just under 0.9 (relaxed), varying a little between builds, because the walk starts in the wrong place.' },
-      { label: 'Re-sort relaxed results', sql: `SET hnsw.iterative_scan = relaxed_order;
+      { label: 'Re-sort relaxed results', sql: `${HNSW_IDX}
+
+SET hnsw.iterative_scan = relaxed_order;
 WITH relaxed AS MATERIALIZED (
   SELECT id, embedding <-> ${Q1} AS distance
   FROM items WHERE category = 3
@@ -266,15 +276,18 @@ SELECT id, round(distance::numeric, 4) AS distance
 FROM relaxed ORDER BY distance + 0;
 RESET hnsw.iterative_scan;`,
         note: 'Relaxed order can be slightly out of order. Materialise the scan, then sort the 10 rows again. The `+ 0` stops PostgreSQL 17+ from assuming the CTE is already sorted.' },
-      { label: 'Selective filters: go exact', sql: `UPDATE items SET category = 99 WHERE id % 1000 = 0 AND category <> 3;   -- 8 rows, under 0.1%
-CREATE INDEX items_category ON items (category);
+      { label: 'Selective filters: go exact', sql: `${HNSW_IDX}
+
+UPDATE items SET category = 99 WHERE id % 1000 = 0 AND category <> 3;   -- 8 rows, under 0.1%
+CREATE INDEX IF NOT EXISTS items_category ON items (category);
 ANALYZE items;
 EXPLAIN (COSTS OFF)
 SELECT id FROM items WHERE category = 99 ORDER BY embedding <-> ${Q1} LIMIT 10;
 
 -- a partial HNSW index for one hot filter value
 CREATE INDEX items_hnsw_cat3 ON items USING hnsw (embedding vector_l2_ops) WHERE category = 3;
-SELECT 'partial index, iterative off' AS plan, * FROM recall_cat;`,
+SELECT 'partial index, iterative off' AS plan, * FROM recall_cat;
+DROP INDEX items_hnsw_cat3;   -- so the other examples keep their numbers`,
         note: 'For a handful of matching rows the planner picks the B-tree (**Bitmap Index Scan**) and sorts them exactly: perfect recall, tiny cost. The partial HNSW index holds only category 3, so every candidate passes the filter and recall is about 1.0 without iterative scans.' },
       { label: 'Hybrid search (RRF)', sql: `WITH semantic AS (
   SELECT id, rank() OVER (ORDER BY embedding <=> '[0.95,0.30,0.05,0.03]') AS rank
@@ -324,6 +337,7 @@ CREATE TABLE chunks_t42 PARTITION OF chunks FOR VALUES IN (42);
 CREATE TABLE chunks_rest PARTITION OF chunks DEFAULT;
 CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);  -- one graph per partition
 CREATE INDEX ON chunks (tenant_id);
+-- run this in a session that has already used pgvector (any vector query)
 ALTER DATABASE kb SET hnsw.iterative_scan = relaxed_order;`,
     outcome: 'Every tenant gets full result lists. In the playground the same mechanisms take a 10% filter from about 4 rows (recall 0.37) to 10 rows (recall 1.0), and a 0.1% filter is answered exactly from the B-tree.',
   },
@@ -335,7 +349,7 @@ ALTER DATABASE kb SET hnsw.iterative_scan = relaxed_order;`,
       sql: `SET hnsw.iterative_scan = relaxed_order;` },
     { title: 'Iterative scan over a very selective filter',
       symptom: 'A filtered query takes many milliseconds and reads tens of thousands of buffers, or returns 0 rows.',
-      cause: 'The scan walks the graph until `hnsw.max_scan_tuples` (20 000) is hit, filtering almost everything out.',
+      cause: 'The scan walks the graph until `hnsw.max_scan_tuples` (20 000) is hit, filtering almost everything out. It can also stop earlier when it uses more than `hnsw.scan_mem_multiplier` × `work_mem` (default 1). The IVFFlat equivalent of the tuple limit is `ivfflat.max_probes`.',
       fix: 'Add a B-tree on the filter column so the planner can choose an exact scan of the few matching rows, or use a partial index or partition for that value.' },
     { title: 'Adding vector distance and text rank directly',
       symptom: 'Hybrid results are dominated by one side, and changing the text query wording flips the whole ranking.',
@@ -351,9 +365,9 @@ FROM (SELECT id, embedding <=> $1 AS d FROM documents ORDER BY d LIMIT 20) top;`
   pointers: [
     'Approximate indexes filter **after** the scan; with HNSW the result count is at most ef_search before filtering.',
     '`hnsw.iterative_scan = strict_order | relaxed_order` (HNSW) and `ivfflat.iterative_scan = relaxed_order` keep scanning until LIMIT is met.',
-    'Selective filter: B-tree exact path. Few hot values: partial index. Many tenants: `PARTITION BY LIST`.',
+    'Selective filter: B-tree exact path. Few hot values: [partial index](/m4/index-design). Many tenants: [`PARTITION BY LIST`](/m7/partitioning).',
     'Re-sort relaxed results with a `MATERIALIZED` CTE and `ORDER BY distance + 0`.',
-    'RRF: score = Σ 1/(60 + rank) across lists, joined with `FULL OUTER JOIN`. For exact codes, a learned **sparsevec** gives each term its own weighted dimension, scored with `<#>` (HNSW indexes at most 1000 non-zeros per row).',
+    'RRF: score = Σ 1/(60 + rank) across lists (the keyword list comes from [full-text search](/m6/full-text-search)), joined with `FULL OUTER JOIN`. For exact codes, a learned **sparsevec** gives each term its own weighted dimension, scored with `<#>` (HNSW indexes at most 1000 non-zeros per row).',
   ],
   sources: ['indexes-partial.html', 'ddl-partitioning.html', 'textsearch-controls.html', 'queries-with.html', 'using-explain.html'],
 }

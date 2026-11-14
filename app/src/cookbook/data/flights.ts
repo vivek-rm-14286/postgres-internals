@@ -132,7 +132,7 @@ export const exercises: Exercise[] = [
     explanation: 'A missing seat is NULL, which only `IS NULL` matches. Several cancelled bookings also lack a seat, so forgetting the status filter returns too many rows.',
   },
   {
-    id: 'fl-durations', dataset: 'flights', level: 'beginner', topic: 'dates',
+    id: 'fl-durations', dataset: 'flights', level: 'beginner', topic: 'dates & time zones',
     title: 'How long are flights out of JFK?',
     task: 'For flights with origin `JFK`, return `flight_no`, `dep_at` and `duration` = arrival minus departure (an `interval`).',
     solution: `SELECT flight_no, dep_at, arr_at - dep_at AS duration FROM flights WHERE origin = 'JFK';`,
@@ -160,7 +160,7 @@ JOIN airports d ON d.code = f.dest;`,
     explanation: 'Each foreign key needs its own join, so the same table appears twice under different aliases. Joining once on `code IN (origin, dest)` produces two rows per flight instead.',
   },
   {
-    id: 'fl-local-departure', dataset: 'flights', level: 'intermediate', topic: 'time zones',
+    id: 'fl-local-departure', dataset: 'flights', level: 'intermediate', topic: 'dates & time zones',
     title: 'Departure time on the airport clock',
     task: 'Return `id`, `flight_no` and `local_dep`: the departure as a `timestamp` (without time zone) on the wall clock of the **origin** airport.',
     hint: '`timestamptz AT TIME ZONE \'zone\'` gives a plain `timestamp` in that zone.',
@@ -169,7 +169,7 @@ FROM flights f JOIN airports a ON a.code = f.origin;`,
     explanation: 'Applied to a `timestamptz`, `AT TIME ZONE` converts the instant to local wall-clock time in that zone and drops the zone, taking daylight saving into account (AA100 leaves New York at 18:00 both before and after 9 March, which is 23:00 and then 22:00 UTC). Casting to `timestamp` instead would use the session zone, UTC.',
   },
   {
-    id: 'fl-local-date', dataset: 'flights', level: 'intermediate', topic: 'time zones',
+    id: 'fl-local-date', dataset: 'flights', level: 'intermediate', topic: 'dates & time zones',
     title: 'Departures on 10 March, local time',
     task: 'Return `id` and `flight_no` of every flight that departs on **10 March 2025 in the local time of its origin airport**.',
     solution: `SELECT f.id, f.flight_no
@@ -178,7 +178,7 @@ WHERE (f.dep_at AT TIME ZONE a.tz)::date = date '2025-03-10';`,
     explanation: 'The departure date depends on whose calendar you use: AI111 leaves Delhi at 00:10 on 11 March local time, which is still 10 March in UTC, and UA837 leaves San Francisco on the evening of 10 March, already 11 March in UTC. Filtering on `dep_at::date` uses the session zone and gets both wrong.',
   },
   {
-    id: 'fl-load-factor', dataset: 'flights', level: 'intermediate', topic: 'outer joins',
+    id: 'fl-load-factor', dataset: 'flights', level: 'intermediate', topic: 'joins',
     title: 'How full is each flight?',
     task: 'For every flight that is not cancelled, return `id`, `flight_no`, `booked` (number of **confirmed** bookings, 0 if none), `seats`, and `load_pct` = booked / seats × 100 rounded to 1 decimal.',
     hint: '`count(*)` counts the NULL row an outer join makes for an empty flight.',
@@ -201,7 +201,7 @@ WHERE NOT EXISTS (SELECT 1 FROM bookings b WHERE b.passenger_id = p.id AND b.sta
 
   // ── advanced ─────────────────────────────────────────────────────────────
   {
-    id: 'fl-connections', dataset: 'flights', level: 'advanced', topic: 'self-joins',
+    id: 'fl-connections', dataset: 'flights', level: 'advanced', topic: 'joins',
     title: 'Two-leg trips out of London',
     task: 'Find connections: a first flight from `LHR` and a second flight leaving the first one’s destination between **1 and 8 hours (inclusive)** after the first arrives. Neither flight may be cancelled and the second must not fly back to `LHR`. Return `first_leg`, `second_leg` (flight ids), `via` (airport code) and `layover` (interval).',
     solution: `SELECT a.id AS first_leg, b.id AS second_leg, a.dest AS via, b.dep_at - a.arr_at AS layover
@@ -213,7 +213,7 @@ WHERE a.origin = 'LHR' AND b.dest <> 'LHR'
     explanation: 'A self-join pairs each flight with every candidate onward flight, and the time window belongs in the join condition. `BETWEEN` is inclusive at both ends, and one connection has a layover of exactly 8 hours. Without the status tests the cancelled Paris–New York and Singapore–Sydney flights would look like valid connections, and the flights from New York back to London are returns, not onward legs.',
   },
   {
-    id: 'fl-quick-turns', dataset: 'flights', level: 'advanced', topic: 'lag / lead',
+    id: 'fl-quick-turns', dataset: 'flights', level: 'advanced', topic: 'window functions',
     title: 'Aircraft turned around in under an hour',
     task: 'For each aircraft (`tail`), look at its non-cancelled flights in departure order. Return `tail`, `flight_id`, `next_flight_id` and `turnaround` (next departure minus this arrival) wherever the turnaround is **less than 1 hour**.',
     solution: `SELECT tail, flight_id, next_flight_id, turnaround FROM (
@@ -239,10 +239,20 @@ WHERE turnaround < interval '1 hour';`,
     explanation: 'Window functions run after `GROUP BY`, so `rank() OVER (… ORDER BY count(*) DESC)` ranks the grouped days directly, and `rank` gives every tied day the number 1. Grouping by the UTC date moves late-evening New York and just-after-midnight Delhi flights to another day and changes the winners; `DISTINCT ON` or `LIMIT 1` would drop ties.',
   },
   {
+    id: 'fl-tail-overlap', dataset: 'flights', level: 'advanced', topic: 'range overlap',
+    title: 'One aircraft, two flights at once',
+    task: 'Find every pair of flights that use the same aircraft (`tail`) and whose times in the air overlap, whatever their status. A flight occupies its aircraft from `dep_at` up to but not including `arr_at`. Return `tail`, `first_id`, `second_id` with `first_id < second_id`, each pair once.',
+    hint: 'Two half-open intervals overlap when each one starts before the other ends. Range types have an operator for it: `&&`.',
+    solution: `SELECT a.tail, a.id AS first_id, b.id AS second_id
+FROM flights a JOIN flights b ON b.tail = a.tail AND a.id < b.id
+WHERE tstzrange(a.dep_at, a.arr_at) && tstzrange(b.dep_at, b.arr_at);`,
+    explanation: '`tstzrange(lo, hi)` is half-open by default (`[lo, hi)`), and `&&` is true when two ranges share at least one point; the plain form is `a.dep_at < b.arr_at AND b.dep_at < a.arr_at`. `a.id < b.id` removes both the pairing of a flight with itself and the mirrored copy of each pair. The overlap found here involves a cancelled flight that was never taken off the schedule.',
+  },
+  {
     id: 'fl-reachable', dataset: 'flights', level: 'advanced', topic: 'recursive CTEs',
     title: 'Everywhere you can get from Delhi',
-    task: 'Treat every non-cancelled flight as a route (ignore times). Return `code` and `legs` = the minimum number of flights needed to reach each airport from `DEL`. Do not list `DEL` itself; unreachable airports are not listed.',
-    hint: 'The route graph has cycles. Carry the list of airports visited so far and refuse to revisit one.',
+    task: 'Treat every non-cancelled flight as a route (ignore times). Return `code` and `legs` = the minimum number of flights needed to reach each airport from `DEL`. Do not list `DEL` itself; unreachable airports are not listed. The route graph has cycles (London ⇄ New York), so a recursive query **must** refuse to revisit an airport, or it never finishes.',
+    hint: 'Carry the list of airports visited so far in an array column and skip any destination already in it.',
     solution: `WITH RECURSIVE routes AS (
   SELECT DISTINCT origin, dest FROM flights WHERE status <> 'cancelled'
 ), walk AS (
@@ -258,7 +268,7 @@ SELECT code, min(legs) AS legs FROM walk WHERE code <> 'DEL' GROUP BY code;`,
 
   // ── expert ───────────────────────────────────────────────────────────────
   {
-    id: 'fl-dst-schedule', dataset: 'flights', level: 'expert', topic: 'time zones',
+    id: 'fl-dst-schedule', dataset: 'flights', level: 'expert', topic: 'dates & time zones',
     title: 'A daily 18:00 departure across a clock change',
     task: 'AA100 leaves New York every day at **18:00 local time**. For each day from 2025-03-07 to 2025-03-11, return `day` (a `date`) and `dep_utc`: that departure as a `timestamptz`. Order by `day`.',
     hint: 'Build the local wall-clock time first, then say which zone it belongs to.',
@@ -269,10 +279,10 @@ ORDER BY day;`,
     ordered: true,
   },
   {
-    id: 'fl-merge-seats', dataset: 'flights', level: 'expert', topic: 'MERGE',
+    id: 'fl-merge-seats', dataset: 'flights', level: 'expert', topic: 'data changes',
     title: 'Apply seat requests',
-    task: 'Apply every row of `seat_requests` to `bookings` in one statement: if the passenger has a **confirmed** booking on that flight, set its `seat`; otherwise insert a new confirmed `economy` booking with the requested `seat` and `fare` and `booked_at = \'2025-03-01 00:00+00\'`. The check lists `flight_id`, `passenger_id`, `seat`, `fare`, `status` of the affected flights.',
-    hint: '`MERGE INTO bookings b USING seat_requests r ON … WHEN MATCHED THEN UPDATE … WHEN NOT MATCHED THEN INSERT …`.',
+    task: 'Apply every row of `seat_requests` to `bookings` in one statement: if the passenger has a **confirmed** booking on that flight, set its `seat`; otherwise insert a new confirmed `economy` booking with the requested `seat` and `fare` and `booked_at = \'2025-03-01 00:00+00\'`. The check lists `flight_id`, `passenger_id`, `class`, `seat`, `fare`, `status`, `booked_at` of every booking on the affected flights.',
+    hint: '`MERGE` chooses a branch per source row. Which bookings should count as a match?',
     solution: `MERGE INTO bookings b
 USING seat_requests r
    ON b.passenger_id = r.passenger_id AND b.flight_id = r.flight_id AND b.status = 'confirmed'
@@ -282,13 +292,13 @@ WHEN NOT MATCHED THEN
   INSERT (flight_id, passenger_id, class, fare, seat, status, booked_at)
   VALUES (r.flight_id, r.passenger_id, 'economy', r.fare, r.seat, 'confirmed', '2025-03-01 00:00+00');`,
     explanation: '`MERGE` decides per source row whether it matches a target row and runs the right branch, in one statement. Liam’s only booking on flight 16 is cancelled, so it must not match: leaving `b.status = \'confirmed\'` out of the `ON` condition would give that cancelled booking a seat instead of creating a new one.',
-    check: `SELECT flight_id, passenger_id, seat, fare, status FROM bookings WHERE flight_id IN (9, 10, 16, 22);`,
+    check: `SELECT flight_id, passenger_id, class, seat, fare, status, booked_at FROM bookings WHERE flight_id IN (9, 10, 16, 22);`,
   },
   {
-    id: 'fl-refund-cancelled', dataset: 'flights', level: 'expert', topic: 'data-modifying CTEs',
+    id: 'fl-refund-cancelled', dataset: 'flights', level: 'expert', topic: 'data changes',
     title: 'Clear out cancelled flights and refund',
     task: 'Delete **every** booking on a cancelled flight. In the same statement, insert into `refunds` one row per deleted booking that was **confirmed**: `booking_id`, `passenger_id`, `amount` = its fare. The check returns `remaining` (bookings left) next to each refund row.',
-    hint: '`WITH gone AS (DELETE FROM bookings b USING flights f WHERE … RETURNING b.*) INSERT INTO refunds SELECT …`.',
+    hint: '`DELETE … RETURNING` inside a `WITH` hands the deleted rows to an `INSERT`.',
     solution: `WITH gone AS (
   DELETE FROM bookings b USING flights f
   WHERE f.id = b.flight_id AND f.status = 'cancelled'

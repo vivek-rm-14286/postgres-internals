@@ -90,7 +90,9 @@ function CostViz() {
     : best === 'idx'
       ? col === 'seq_k'
         ? `\`seq_k\` has **correlation 1.0**: matching rows sit on adjacent pages, so the index scan's heap reads are costed as nearly sequential. It wins even at ${(GRID.sel[si] * 100).toFixed(2)}% of the table.`
-        : `Only ${rows} rows match, so a few **random page fetches** (${rpc} each) are cheaper than scanning ${PAGES} pages.`
+        : rows < PAGES
+          ? `Only ${rows} rows match, so a few **random page fetches** (${rpc} each) are cheaper than scanning ${PAGES} pages.`
+          : `At \`random_page_cost\` = ${rpc} and a cache that holds the whole table, ${rows.toLocaleString()} index-ordered heap fetches are still priced below one pass over ${PAGES} pages.`
       : `\`rnd_k\` is scattered (**correlation ≈ 0**). A bitmap scan collects all ${rows.toLocaleString()} TIDs first, then reads each heap page **once, in physical order**, instead of once per row.`
   const ecsNote = ecs === '256kB' && col === 'rnd_k' && GRID.sel[si] >= 0.01
     ? ' With a cache far smaller than the table, the plain index scan is costed as re-reading pages per row, and its curve explodes.' : ''
@@ -214,7 +216,7 @@ ALTER TABLESPACE fast_nvme SET (random_page_cost = 1.1);`,
   pitfalls: [
     { title: 'Testing plans with enable_seqscan = off',
       symptom: 'An index plan looks great in a session with `enable_seqscan = off`, but production keeps choosing the seq scan.',
-      cause: 'The `enable_*` flags do not forbid a node. They add a huge penalty, so the comparison is no longer the one the planner makes. A plan you forced is not evidence that it is cheaper.',
+      cause: 'The `enable_*` flags do not forbid a node. PostgreSQL marks such nodes as disabled and prefers any plan with fewer disabled nodes, whatever its cost (before version 18 it added a huge cost penalty instead). Either way the comparison is no longer the one the planner normally makes. A plan you forced is not evidence that it is cheaper.',
       fix: 'Use the flag only to see the alternative\'s cost. Then fix the inputs: statistics (`ANALYZE`, a higher statistics target) or cost constants. Compare `EXPLAIN (ANALYZE, BUFFERS)` runs, not costs alone.' },
     { title: 'Comparing cost numbers across queries',
       symptom: 'A team ranks queries by EXPLAIN cost and is surprised when the "cheapest" one is the slowest in production.',
@@ -232,7 +234,7 @@ SELECT pg_reload_conf();` },
     'Seq scan = **pages × seq_page_cost + rows × cpu_tuple_cost**, plus `cpu_operator_cost` per qual per row. It does not depend on selectivity.',
     'Index scans cost heap fetches between "sequential" and "random" depending on **correlation**. Bitmap scans read each heap page once, in physical order.',
     'Every plan shows **startup..total** cost. LIMIT and EXISTS favour low startup cost.',
-    '`enable_*` flags only discourage a node (`Disabled: true`). `effective_cache_size` is a costing hint, not an allocation.',
+    '`enable_*` flags only discourage a node (`Disabled: true`). `effective_cache_size` is a costing hint, not an allocation. See [Planner statistics](/m4/statistics) and [Reading EXPLAIN (ANALYZE, BUFFERS)](/m4/explain-analyze).',
   ],
   sources: ['runtime-config-query.html', 'using-explain.html', 'index-cost-estimation.html', 'sql-explain.html', 'view-pg-stats.html'],
 }

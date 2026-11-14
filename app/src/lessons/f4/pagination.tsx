@@ -72,11 +72,11 @@ function BufferBars({ page }: { page: Page }) {
           <div className="grid gap-0.5">
             <div className="flex items-center gap-1.5">
               <motion.div initial={false} animate={{ width: `${Math.max(0.6, (OFFSET_BUF[p] / max) * 82)}%` }} className="h-2.5 rounded-sm" style={{ background: toneBg('dead', 55) }} />
-              <span className="font-mono text-[10.5px] tabular-nums" style={{ color: tone('dead') }}>{fmt(OFFSET_BUF[p])}</span>
+              <span className="font-mono text-[10.5px] tabular-nums" style={{ color: tone.text('dead') }}>{fmt(OFFSET_BUF[p])}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="h-2.5 rounded-sm" style={{ width: `${(KEYSET_BUF / max) * 82}%`, minWidth: 3, background: toneBg('ok', 70) }} />
-              <span className="font-mono text-[10.5px] tabular-nums" style={{ color: tone('ok') }}>{KEYSET_BUF}</span>
+              <span className="font-mono text-[10.5px] tabular-nums" style={{ color: tone.text('ok') }}>{KEYSET_BUF}</span>
             </div>
           </div>
         </div>
@@ -130,7 +130,7 @@ function PaginationViz() {
         <Btn primary testid="viz-next" onClick={() => setPi((i) => (i + 1) % PAGES.length)}>{pi === PAGES.length - 1 ? 'Back to page 1' : 'Go deeper'}</Btn>
         <div className="flex flex-wrap gap-1">
           {PAGES.map((p, i) => (
-            <button key={p} type="button" onClick={() => setPi(i)} className={`rounded-md px-2 py-1 font-mono text-[11px] ${i === pi ? 'bg-accent text-white' : 'border border-line text-muted hover:text-ink'}`}>{fmt(p)}</button>
+            <button key={p} type="button" onClick={() => setPi(i)} className={`rounded-md px-2 py-1 font-mono text-[11px] ${i === pi ? 'bg-accent text-on-accent' : 'border border-line text-muted hover:text-ink'}`}>{fmt(p)}</button>
           ))}
         </div>
       </div>
@@ -288,8 +288,8 @@ ORDER BY created_at DESC, id DESC LIMIT 51;`,
       symptom: 'Rows appear twice or never when paging, even with keyset pagination.',
       cause: 'Rows that tie on the sort key have no defined order. With `WHERE created_at < $last`, every row sharing the last timestamp is skipped.',
       fix: 'Append a unique column (the primary key) to both the ORDER BY and the cursor, and index the same columns in the same order.',
-      sql: `ORDER BY created_at DESC, id DESC
-WHERE (created_at, id) < ($last_ts, $last_id)` },
+      sql: `WHERE (created_at, id) < ($last_ts, $last_id)
+ORDER BY created_at DESC, id DESC` },
     { title: 'Hand-expanding the row comparison',
       symptom: 'Pages silently lose rows after the first one.',
       cause: '`a < $1 AND b < $2` is not the same as `(a, b) < ($1, $2)`. The row form compares left to right and stops at the first unequal pair, so it is `a < $1 OR (a = $1 AND b < $2)`.',
@@ -308,7 +308,7 @@ WHERE (created_at, id) < ($last_ts, $last_id)` },
     'Keyset = **unique sort key** + **row comparison** `(a, b) < ($1, $2)` + an **index in the same order**.',
     'Offsets drift when rows are inserted or deleted between requests. A keyset cursor names a row and cannot drift.',
     'Use `LIMIT n + 1` for "has next page", and `reltuples` for an approximate total.',
-    'Going deeper: [Index design](/m4/index-design) covers multicolumn order and why the index must match the ORDER BY.',
+    '**Going deeper:** [Index design](/m4/index-design) covers multicolumn order and why the index must match the ORDER BY.',
   ],
   sources: ['queries-limit.html', 'sql-select.html', 'functions-comparisons.html', 'indexes-multicolumn.html', 'indexes-ordering.html', 'sql-declare.html', 'sql-fetch.html', 'using-explain.html', 'planner-stats.html', 'functions-aggregate.html'],
 }

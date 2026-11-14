@@ -19,13 +19,13 @@ const lanes: TLane[] = [
   { id: 'C', name: 'Worker C', note: 'READ COMMITTED' },
 ]
 const claim = (skip: boolean) => `BEGIN;\nSELECT id FROM jobs\n WHERE status = 'queued'\n ORDER BY id LIMIT 1\n FOR UPDATE${skip ? ' SKIP LOCKED' : ''};`
-type JS = [string, string, TVersion['status'], string?] // status text, xmax, tone status, note
+type JS = [string, string, TVersion['status'], string?, string?] // status text, xmax, tone status, note, xmin of a rewritten version
 function jobs(...rows: JS[]): TVersion[] {
-  return rows.map(([st, xmax, s, note], i) => ({ id: `j${i + 1}`, label: `job ${i + 1} · ${st}`, xmin: i < 5 ? '940' : '?', xmax, status: s, note }))
+  return rows.map(([st, xmax, s, note, xmin], i) => ({ id: `j${i + 1}`, label: `job ${i + 1} · ${st}`, xmin: xmin ?? '940', xmax, status: s, note }))
 }
 const Q: JS = ['queued', '0', 'live']
 const lockedBy = (x: string): JS => ['queued', x, 'locked', `locked by ${x} (lock-only xmax)`]
-const doneBy = (x: string): JS => ['done', '0', 'new', `new version by ${x}`]
+const doneBy = (x: string): JS => ['done', '0', 'new', `new version by ${x}`, x]
 
 const evSkip: TEvent[] = [
   { lane: 'A', at: 0, kind: 'sql', sql: claim(true), out: '→ **job 1** · xmax of job 1 = 950' },
@@ -38,7 +38,7 @@ const evSkip: TEvent[] = [
   { lane: 'B', at: 5, kind: 'sql', sql: claim(true), out: 'job 4 skipped · → **job 5** (xid 954)' },
 ]
 const stSkip: TStep<X>[] = [
-  { tick: 0, title: 'A claims job 1', body: '`FOR UPDATE` writes A\'s xid into job 1\'s `t_xmax` with the **lock-only** flag. No new row version, and nothing new in `pg_locks` except a ROW SHARE table lock.', badges: { A: { xid: '950' } }, x: { jobs: jobs(lockedBy('950'), Q, Q, Q, Q), locks: [] } },
+  { tick: 0, title: 'A claims job 1', body: '`FOR UPDATE` writes A\'s xid into job 1\'s `t_xmax` with the **lock-only** flag. No new row version, and no per-row entry in `pg_locks`: only the ROW SHARE table lock (also on the index used) and the lock on A\'s own xid.', badges: { A: { xid: '950' } }, x: { jobs: jobs(lockedBy('950'), Q, Q, Q, Q), locks: [] } },
   { tick: 1, title: 'B skips the locked row', body: 'B\'s scan meets job 1, sees the row lock cannot be taken at once, and **skips** it instead of waiting. It locks job 2.', badges: { A: { xid: '950' }, B: { xid: '951' } }, x: { jobs: jobs(lockedBy('950'), lockedBy('951'), Q, Q, Q), locks: [] } },
   { tick: 2, title: 'C skips two', body: 'Three workers, three different jobs, zero waiting. This is what SKIP LOCKED is for: queue-like tables with many consumers.', badges: { A: { xid: '950' }, B: { xid: '951' }, C: { xid: '952' } }, x: { jobs: jobs(lockedBy('950'), lockedBy('951'), lockedBy('952'), Q, Q), locks: [] } },
   { tick: 3, title: 'A finishes job 1', body: 'The UPDATE makes a new version marked done, and COMMIT releases the row lock.', badges: { B: { xid: '951' }, C: { xid: '952' } }, x: { jobs: jobs(doneBy('950'), lockedBy('951'), lockedBy('952'), Q, Q), locks: [] } },
@@ -65,9 +65,9 @@ const stWait: TStep<X>[] = [
   { tick: 3, title: 'C queues behind B', body: 'C waits for the tuple lock B holds. Meanwhile A finishes and commits.', badges: { B: { xid: '951', extra: 'waiting', extraTone: 'dead' }, C: { xid: '952', extra: 'waiting', extraTone: 'dead' } },
     x: { jobs: jobs(doneBy('950'), Q, Q, Q, Q), locks: [{ lane: 'B', locktype: 'tuple', target: 'jobs (0,1)', mode: 'AccessExclusiveLock', granted: true }, { lane: 'B', locktype: 'transactionid', target: '950', mode: 'ShareLock', granted: false }, { lane: 'C', locktype: 'tuple', target: 'jobs (0,1)', mode: 'AccessExclusiveLock', granted: false }] } },
   { tick: 4, title: 'B re-checks and moves on', body: 'In Read Committed, B re-evaluates `status = \'queued\'` on the new version: it fails, so B continues the scan and locks job 2. B lost time for nothing.', badges: { B: { xid: '951' }, C: { xid: '952', extra: 'waiting', extraTone: 'dead' } },
-    x: { jobs: jobs(doneBy('950'), lockedBy('951'), Q, Q, Q), locks: [{ lane: 'C', locktype: 'transactionid', target: '951', mode: 'ShareLock', granted: false }] } },
+    x: { jobs: jobs(doneBy('950'), lockedBy('951'), Q, Q, Q), locks: [{ lane: 'C', locktype: 'tuple', target: 'jobs (0,2)', mode: 'AccessExclusiveLock', granted: true }, { lane: 'C', locktype: 'transactionid', target: '951', mode: 'ShareLock', granted: false }] } },
   { tick: 5, title: 'B finishes job 2', body: 'C, still waiting, had moved on to job 2, which B held. One worker at a time makes progress.', badges: { C: { xid: '952', extra: 'waiting', extraTone: 'dead' } },
-    x: { jobs: jobs(doneBy('950'), doneBy('951'), Q, Q, Q), locks: [{ lane: 'C', locktype: 'transactionid', target: '951', mode: 'ShareLock', granted: false }] } },
+    x: { jobs: jobs(doneBy('950'), doneBy('951'), Q, Q, Q), locks: [{ lane: 'C', locktype: 'tuple', target: 'jobs (0,2)', mode: 'AccessExclusiveLock', granted: true }, { lane: 'C', locktype: 'transactionid', target: '951', mode: 'ShareLock', granted: false }] } },
   { tick: 6, title: 'C gets job 3, finally', body: 'Plain `FOR UPDATE` serialises the workers: adding workers adds waiting, not throughput. Switch to **SKIP LOCKED** to compare.', badges: { C: { xid: '952' } },
     x: { jobs: jobs(doneBy('950'), doneBy('951'), lockedBy('952'), Q, Q), locks: [] } },
 ]
@@ -137,7 +137,7 @@ SELECT ctid, xmin, xmax, id, status FROM jobs ORDER BY id;
 SELECT locktype, relation::regclass, mode FROM pg_locks
 WHERE pid = pg_backend_pid() AND locktype = 'relation';
 COMMIT;`,
-        note: 'Only job 1 gets `xmax` = our xid. `pg_locks` shows a **RowShareLock** on the table and nothing per row: the row lock lives in the tuple.' },
+        note: 'Only job 1 gets `xmax` = our xid. `pg_locks` shows **RowShareLock** on `jobs` and `jobs_pkey` (next to the AccessShare locks of the plain SELECTs) and nothing per row: the row lock lives in the tuple.' },
       { label: 'Lock bits in the tuple', sql: `BEGIN;
 SELECT id FROM jobs WHERE id = 1 FOR UPDATE;
 SELECT id FROM jobs WHERE id = 2 FOR KEY SHARE;

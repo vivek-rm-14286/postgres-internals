@@ -68,7 +68,7 @@ function steps(k: Scn): Step<S>[] {
 const Segs = ({ segs }: { segs: Seg[] }) => (
   <>{segs.map((g, i) => (
     <motion.span key={i + g.s} initial={g.t ? { opacity: 0 } : false} animate={{ opacity: 1 }} className="rounded px-0.5"
-      style={g.t ? { background: toneBg(g.t, 22), color: tone(g.t) } : undefined}>{g.s}</motion.span>
+      style={g.t ? { background: toneBg(g.t, 22), color: tone.text(g.t) } : undefined}>{g.s}</motion.span>
   ))}</>
 )
 
@@ -218,15 +218,15 @@ CREATE TRIGGER archive_orders AFTER INSERT ON orders
       fix: 'To block writes, revoke privileges or use a BEFORE trigger that raises an exception, so callers see an error.' },
     { title: 'Rules and features they do not cover',
       symptom: '`ERROR: WITH cannot be used in a query that is rewritten by rules into multiple queries`, or COPY into the table skips the rule\'s side effects.',
-      cause: 'Rules work on query trees. Statements with `WITH` clauses and multiple-assignment sub-SELECTs are not supported, MERGE does not use non-SELECT rules, and COPY bypasses rules entirely.',
+      cause: 'Rules work on query trees. Statements with `WITH` clauses and multiple-assignment sub-SELECTs are not supported, MERGE fails outright on a target that has any INSERT, UPDATE or DELETE rule (`cannot execute MERGE on relation …`), and COPY bypasses rules entirely.',
       fix: 'Move the logic to triggers, which run for INSERT, UPDATE, DELETE, MERGE actions and COPY.' },
   ],
   pointers: [
     'The rewriter runs **between parser and planner** and returns **zero or more** query trees. Views are `_RETURN` rules.',
-    'A rule action is a template: **NEW** becomes the original target-list expression (or OLD for unassigned UPDATE columns, NULL for INSERT), **OLD** becomes the result relation.',
+    'A rule action is a template: **NEW** becomes the original target-list expression (or OLD for unassigned UPDATE columns; for INSERT the column default, or NULL if there is none), **OLD** becomes the result relation.',
     '**ALSO** keeps the original query; **INSTEAD** replaces it; a qualified INSTEAD also adds the original with the negated qual.',
     'For **ON UPDATE/DELETE** the actions run **before** the original; for **ON INSERT** after it.',
-    'Prefer **triggers** for data changes: rules re-evaluate volatile expressions, cannot raise errors, and skip COPY.',
+    'Prefer **triggers** for data changes: rules re-evaluate volatile expressions, cannot raise errors, and skip COPY. See [Triggers](/m6/triggers).',
   ],
   sources: ['rules.html', 'querytree.html', 'rules-views.html', 'rules-update.html', 'rules-status.html', 'rules-triggers.html'],
 }

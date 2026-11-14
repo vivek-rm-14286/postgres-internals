@@ -36,15 +36,15 @@ const base: Omit<S, 'active' | 'flows' | 'gucs' | 'view' | 'viewName'> = { dirty
 const st = (o: Partial<S>): S => ({ ...base, active: [], flows: [], gucs: [], view: [], viewName: '', ...o })
 
 const steps: Step<S>[] = [
-  { title: 'The crew at rest', body: 'Besides one **backend** per client, the postmaster keeps a fixed crew of **auxiliary processes**. Each sleeps in its main loop until a timer or a request wakes it.',
-    state: st({ active: ['walwriter', 'bgwriter', 'checkpointer', 'autovacuum', 'archiver', 'logger', 'io'], viewName: 'pg_stat_activity',
+  { title: 'The crew at rest', body: 'Besides one **backend** per client, the postmaster keeps a fixed crew of **auxiliary processes**. Each sleeps in its main loop until a timer or a request wakes it. The archiver and logger exist only when `archive_mode` or `logging_collector` is on.',
+    state: st({ active: ['walwriter', 'bgwriter', 'checkpointer', 'autovacuum', 'io'], viewName: 'pg_stat_activity',
       view: [['checkpointer', 'wait_event = CheckpointerMain'], ['background writer', 'BgwriterHibernate'], ['walwriter', 'WalWriterMain'], ['autovacuum launcher', 'AutovacuumMain'], ['io worker', 'IoWorkerMain']],
       gucs: [['max_worker_processes', '8', 'slots for background workers'], ['logging_collector', 'off', 'logger process only when on'], ['archive_mode', 'off', 'archiver only when on']] }) },
   { title: 'Reads go through I/O workers (PG18)', body: 'The backend scans `orders`. With `io_method = worker` it queues **asynchronous reads**, and the **io workers** perform them, so several pages are in flight at once. The pages land in **shared buffers**.',
     state: st({ active: ['backend', 'io'], flows: [['backend', 'buffers', 'request'], ['datafile', 'io', 'readv'], ['io', 'buffers', 'pages']], cached: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       gucs: [['io_method', 'worker', 'worker / io_uring / sync, restart needed'], ['io_workers', '3', 'number of io worker processes'], ['effective_io_concurrency', '16', 'reads kept in flight']],
-      viewName: 'pg_stat_io (backend_type = io worker)', view: [['object', 'relation'], ['context', 'normal'], ['reads', '+12']] }) },
-  { title: 'UPDATE: dirty pages and WAL records', body: 'The backend changes 3 pages **in memory only**, marking them **dirty**. Before each change it inserts a **WAL record** into the WAL buffers. The table file on disk is untouched.',
+      viewName: 'pg_stat_io (backend_type = io worker)', view: [['object', 'relation'], ['context', 'normal'], ['reads', '+6']] }) },
+  { title: 'UPDATE: dirty pages and WAL records', body: 'The backend changes 3 pages **in memory only**, marking them **dirty**, and for each change inserts a **WAL record** into the WAL buffers. That record must reach disk before the page may. The table file on disk is untouched.',
     state: st({ active: ['backend'], flows: [['backend', 'buffers', 'modify'], ['backend', 'walbuf', 'WAL insert']], cached: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], dirty: [2, 5, 9], wal: 3,
       gucs: [['wal_buffers', '-1 → 4MB', '1/32 of shared_buffers, max one segment'], ['full_page_writes', 'on', 'first change after a checkpoint logs the whole page']],
       viewName: 'pg_stat_wal', view: [['wal_records', '+3'], ['wal_fpi', '+3 (first touch since checkpoint)']] }) },
@@ -59,7 +59,7 @@ const steps: Step<S>[] = [
   { title: 'bgwriter: keep clean buffers ready', body: 'Every `bgwriter_delay` the **background writer** looks just ahead of the clock-sweep hand and writes dirty buffers that are about to be reused. Then a backend that needs a free buffer finds a clean one and does not have to write it.',
     state: st({ active: ['bgwriter'], flows: [['buffers', 'bgwriter', ''], ['bgwriter', 'datafile', 'write']], cached: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], dirty: [2, 5, 9], wal: 6, walFlushed: 6, datafileWritten: [10],
       gucs: [['bgwriter_delay', '200ms', 'sleep between rounds'], ['bgwriter_lru_maxpages', '100', 'max writes per round (0 = off)'], ['bgwriter_lru_multiplier', '2.0', 'how far ahead of demand to clean']],
-      viewName: 'pg_stat_bgwriter', view: [['buffers_clean', '+1'], ['maxwritten_clean', '0'], ['buffers_alloc', '+12']] }) },
+      viewName: 'pg_stat_bgwriter', view: [['buffers_clean', '+1'], ['maxwritten_clean', '0'], ['buffers_alloc', '+6']] }) },
   { title: 'Statistics: counters in shared memory', body: 'Each process keeps counters locally and flushes them to the **cumulative statistics** area in shared memory when it goes idle, at most once a second. They are saved to `pg_stat/` on a clean shutdown and reset after a crash.',
     state: st({ active: ['backend'], flows: [['backend', 'stats', 'flush']], cached: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], dirty: [2, 5, 9], wal: 6, walFlushed: 6, datafileWritten: [10],
       gucs: [['track_counts', 'on', 'needed by autovacuum'], ['track_io_timing', 'off', 'adds I/O time columns'], ['stats_fetch_consistency', 'cache', 'values stable within a transaction']],
@@ -72,7 +72,7 @@ const steps: Step<S>[] = [
     state: st({ active: ['checkpointer'], flows: [['buffers', 'checkpointer', ''], ['checkpointer', 'datafile', 'write + fsync']], cached: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], dirty: [], wal: 7, walFlushed: 7, datafileWritten: [1, 2, 5, 6, 9, 10],
       gucs: [['checkpoint_timeout', '5min', 'time-based trigger'], ['max_wal_size', '1GB', 'WAL-volume trigger'], ['checkpoint_completion_target', '0.9', 'spread writes over 90%']],
       viewName: 'pg_stat_checkpointer', view: [['num_timed', '+1'], ['buffers_written', '+5'], ['write_time / sync_time', 'ms spent']] }) },
-  { title: 'Checkpoint record: WAL before it is disposable', body: 'The checkpointer writes a **checkpoint record** and updates `pg_control`. Crash recovery will start from its redo point, so WAL segments older than that point can be **recycled**.',
+  { title: 'Checkpoint record: older WAL becomes disposable', body: 'The checkpointer writes a **checkpoint record** and updates `pg_control`. Crash recovery will start from its redo point, so WAL segments older than that point can be **recycled**.',
     state: st({ active: ['checkpointer'], flows: [['checkpointer', 'pgwal', 'checkpoint record']], cached: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], wal: 8, walFlushed: 8, segs: 3, datafileWritten: [1, 2, 5, 6, 9, 10],
       gucs: [['min_wal_size', '80MB', 'keep at least this much for recycling'], ['wal_segment_size', '16MB', 'set at initdb']],
       viewName: 'pg_control_checkpoint()', view: [['checkpoint_lsn', '0/3000060'], ['redo_lsn', '0/3000028'], ['redo_wal_file', '000000010000000000000003']] }) },
@@ -271,7 +271,7 @@ ORDER BY name;`,
 FROM pg_stat_io
 WHERE reads > 0 OR writes > 0 OR hits > 0 OR extends > 0
 ORDER BY backend_type, object, context;`,
-        note: '`pg_stat_io` splits I/O by **process type**, object (relation, temp relation, wal) and context (normal, bulkread, bulkwrite, vacuum). Here one standalone backend does every job. The `wal` rows are new in 18.' },
+        note: '`pg_stat_io` splits I/O by **process type**, object (relation, temp relation, wal) and context (normal, bulkread, bulkwrite, vacuum). Here a single process does every job, and its I/O is filed under both `client backend` and `standalone backend`. The `wal` rows are new in 18.' },
       { label: 'Who is doing I/O right now?', sql: `SELECT object, context, reads, pg_size_pretty(read_bytes) AS read, writes, pg_size_pretty(write_bytes) AS written, extends
 FROM pg_stat_get_backend_io(pg_backend_pid())
 WHERE reads > 0 OR writes > 0 OR extends > 0;
@@ -308,7 +308,7 @@ FROM pg_stat_wal;
 
 SELECT pg_walfile_name(pg_current_wal_lsn()) AS current_segment,
        current_setting('wal_segment_size') AS segment_size;`,
-        note: '`wal_fpi` counts full-page images: the first change to a page after a checkpoint logs the whole page. `wal_buffers_full` > 0 would mean WAL buffers are too small.' },
+        note: '`wal_fpi` counts full-page images: the first change to a page after a checkpoint logs the whole page. `wal_buffers_full` counts WAL written out early because the 4 MB of WAL buffers filled up. It is non-zero here because the setup\'s 50,000-row INSERT produced about 16 MB of WAL in one statement; on a busy server a steadily growing value suggests raising `wal_buffers`.' },
       { label: 'Vacuum by hand', sql: `VACUUM (VERBOSE) orders;
 SELECT pg_stat_force_next_flush();
 
@@ -344,7 +344,7 @@ WHERE object = 'relation' AND context = 'normal' AND writes > 0;` },
     { title: 'A failing archive_command fills the disk',
       symptom: '`pg_wal` grows without limit and the server finally stops with a disk-full PANIC.',
       cause: 'A segment cannot be recycled until it is archived. If `archive_command` keeps failing, every segment since the failure is kept.',
-      fix: 'Monitor `pg_stat_archiver.failed_count` and `last_failed_wal`, fix the command, and make sure it returns non-zero exit status only on real failure.' },
+      fix: 'Monitor `pg_stat_archiver.failed_count` and `last_failed_wal`, fix the command, and make sure it returns zero **only** when the segment is safely stored (and never overwrites an existing archive file).' },
     { title: 'Expecting asynchronous I/O to speed up writes',
       symptom: 'After moving to 18 with `io_method = worker`, a write-heavy job is no faster, while a cold sequential scan on network storage is clearly faster.',
       cause: 'A common claim is that AIO makes all I/O asynchronous. In 18 backends queue **read** requests (sequential scans, bitmap heap scans, VACUUM); data and WAL writes take the usual paths. The gain is largest for cold reads from slow storage and small when pages are already cached.',
@@ -355,10 +355,10 @@ WHERE object = 'relation' AND context = 'normal' AND writes > 0;` },
       fix: 'Restart the server. Check `SELECT name, setting, pending_restart FROM pg_settings WHERE name = \'io_method\'` afterwards.' },
   ],
   pointers: [
-    'Auxiliary processes: **checkpointer, background writer, walwriter, autovacuum launcher, archiver, logger, startup, walreceiver, walsummarizer**; plus PG18 **io workers**.',
+    'Auxiliary processes: **checkpointer, background writer, walwriter, autovacuum launcher, archiver, logger, startup, walreceiver, walsummarizer**; plus PG18 **io workers**. The **logical replication launcher** (a background worker) also runs by default.',
     'A COMMIT waits only for its **WAL flush**. Data pages are written later by the **bgwriter** and the **checkpointer**.',
-    'Checkpoints run every `checkpoint_timeout` (5min) or at `max_wal_size` (1GB), spread over `checkpoint_completion_target` (0.9).',
-    'Autovacuum: launcher every `autovacuum_naptime` (1min); VACUUM when dead tuples > **50 + 0.2 × reltuples**.',
+    'Checkpoints run every `checkpoint_timeout` (5min) or at `max_wal_size` (1GB), spread over `checkpoint_completion_target` (0.9): see [checkpoints and full page writes](/m7/checkpoints-fpw).',
+    'Autovacuum: launcher every `autovacuum_naptime` (1min); VACUUM when dead tuples > **50 + 0.2 × reltuples** ([tuning autovacuum](/m7/autovacuum-tuning)).',
     'Watch them with `pg_stat_activity.backend_type`, `pg_stat_io`, `pg_stat_bgwriter`, `pg_stat_checkpointer`, `pg_stat_archiver`.',
   ],
   sources: ['glossary.html', 'runtime-config-resource.html', 'runtime-config-wal.html', 'wal-configuration.html', 'wal-async-commit.html', 'routine-vacuuming.html', 'monitoring-stats.html', 'continuous-archiving.html', 'view-pg-aios.html', 'release-18.html'],

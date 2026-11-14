@@ -89,7 +89,7 @@ function DivisionTab() {
       </div>
       {b !== 0 && <Panel title="Integer division truncates toward zero"><NumberLine exact={a / b} int={Number(r!.int)} /></Panel>}
       <Note>{b === 0
-        ? 'Dividing by zero is an **error** for every numeric type, not NULL and not infinity. The usual guard is `a / NULLIF(b, 0)`, which returns NULL instead.'
+        ? 'Dividing by zero is an **error** for every numeric type, not NULL and not infinity. The usual guard is `a / NULLIF(b, 0)`, which returns NULL instead ([Conditional logic](/f2/conditional-logic) explains `NULLIF`).'
         : a < 0
           ? `Exact answer ${Number((a / b).toFixed(4))}, but integer division **truncates toward zero**, giving **${r!.int}** (not ${Math.floor(a / b)}). The remainder \`%\` takes the sign of the left operand: **${r!.mod}**.`
           : `Both operands are integers, so the result is an integer: **${r!.int}**. Make either side \`numeric\` (write \`${a}.0\` or cast) and you get the fraction back.`}</Note>
@@ -126,7 +126,9 @@ function DriftTab() {
           </div>
         ))}
       </div>
-      <Note>{ok
+      <Note>{n === 1
+        ? 'One 0.1 prints as 0.1: the shortest decimal that identifies the stored double. Keep adding.'
+        : ok
         ? `At n = ${n} the binary errors happen to cancel out, so the float sum prints as ${f}. Keep adding: they come back.`
         : '`0.1` has no exact binary form. The nearest **double** is `0.1000000000000000055511151231257827…`, and each addition rounds again. **numeric** stores decimal digits, so it stays exact.'}</Note>
     </div>
@@ -251,11 +253,12 @@ INSERT INTO line_items VALUES
   (5, 102, 'kettle',        34.00, 1, 1.2,   5);`,
     presets: [
       { label: 'Integer division', sql: `SELECT 7 / 2 AS int_div, -7 / 2 AS neg_div, 7 % 3 AS remainder, -7 % 3 AS neg_remainder,
+       mod(-7, 3) AS mod_function,
        7.0 / 2 AS numeric_div, 7 / 2::float8 AS float_div;
 
 SELECT product, qty, qty / 2 AS full_pairs, qty % 2 AS leftover
 FROM line_items ORDER BY id;`,
-        note: '`7 / 2` is **3** and `-7 / 2` is **-3**: integer division truncates toward zero. One decimal operand (`7.0`) switches to numeric division.' },
+        note: '`7 / 2` is **3** and `-7 / 2` is **-3**: integer division truncates toward zero. `mod(a, b)` is the function form of `a % b`. One decimal operand (`7.0`) switches to numeric division.' },
       { label: 'What type is this?', sql: `SELECT pg_typeof(42)          AS "42",
        pg_typeof(3000000000)  AS "3000000000",
        pg_typeof(4.2)         AS "4.2",
@@ -275,7 +278,7 @@ FROM generate_series(1, 10);
 
 SELECT sum(weight_kg) AS real_sum, sum(weight_kg::float8) AS widened, sum(weight_kg::numeric) AS as_numeric
 FROM line_items;`,
-        note: 'Floats are binary, so `0.1 + 0.2` is `0.30000000000000004` and ten 0.1s make `0.9999999999999999`. A `real` keeps about 6 digits: widening its sum shows `3.3000000193715096`.' },
+        note: '`generate_series(1, 10)` returns the rows 1 to 10. Floats are binary, so `0.1 + 0.2` is `0.30000000000000004` and ten 0.1s make `0.9999999999999999`. A `real` keeps about 6 digits: widening its sum shows `3.3000000193715096`.' },
       { label: 'Rounding family', sql: `SELECT x, round(x) AS round, trunc(x) AS trunc, ceil(x) AS ceil, floor(x) AS floor
 FROM (VALUES (2.5), (-2.5), (2.4), (-2.7)) AS v(x);
 
@@ -327,7 +330,7 @@ FROM line_items;`,
     { title: 'Storing money in float',
       symptom: 'Totals end in `…99999999` or reports disagree by a cent with the accounting system.',
       cause: 'Binary floating point cannot represent most decimal fractions exactly, and every operation rounds again.',
-      fix: 'Use `numeric(12,2)` (or integer cents) for money. Keep `real`/`double precision` for measurements where tiny errors do not matter.' },
+      fix: 'Use `numeric(12,2)` (or integer cents) for money. Keep `real`/`double precision` for measurements where tiny errors do not matter. Avoid the `money` type too: its precision and output depend on the `lc_monetary` setting.' },
     { title: 'Integer overflow on a growing counter',
       symptom: '`ERROR: integer out of range` from a multiplication or addition on `integer` values once the numbers grow.',
       cause: '`integer` stops at 2,147,483,647. PostgreSQL raises an error rather than wrapping around.',

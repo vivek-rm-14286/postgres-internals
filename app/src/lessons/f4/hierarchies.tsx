@@ -158,7 +158,7 @@ export const lesson: Lesson = {
   title: 'Trees and graphs',
   tldr: [
     'A tree can be stored as an **adjacency list** (each row points to its parent), a **materialized path** (`ltree`: each row stores its whole path) or a **closure table** (one row per ancestor and descendant pair).',
-    'They trade read cost against write cost: the adjacency list is trivial to change but needs a recursive query per level, while paths and closure rows answer "the whole subtree" with one index scan and must be rewritten when a subtree moves.',
+    'They trade read cost against write cost: the adjacency list is trivial to change but needs a recursive query that takes one step per level, while paths and closure rows answer "the whole subtree" with one index scan and must be rewritten when a subtree moves.',
   ],
   visualizer: {
     title: 'One org chart, three storage models',
@@ -313,9 +313,9 @@ ORDER BY nlevel(path);`,
   pointers: [
     '**Adjacency list**: one `parent_id` column, cheap writes, a recursive CTE per read (index `parent_id`).',
     '**ltree**: `path <@ x` = subtree, `path @> x` = ancestors, GiST index, rewrite the subtree on a move.',
-    '**Closure table**: every ancestor/descendant pair with depth, B-tree lookups both ways, the most rows and the costliest moves.',
+    '**Closure table**: every ancestor/descendant pair with depth, B-tree lookups both ways, the most rows and the costliest moves. **Nested sets** (a left and a right number per row, subtree = `lft BETWEEN x AND y`) read as fast, but one insert renumbers about half the table.',
     'For graphs with loops use the **CYCLE** clause, and `SEARCH DEPTH FIRST` for outline order.',
-    'Going deeper: [Recursive CTEs](/m3/recursive-ctes) shows the working table and termination rules step by step.',
+    '**Going deeper:** [Recursive CTEs](/m3/recursive-ctes) shows the working table and termination rules step by step.',
   ],
   sources: ['queries-with.html', 'ltree.html', 'indexes-types.html', 'gist.html', 'sql-select.html'],
 }

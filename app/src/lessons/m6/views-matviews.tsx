@@ -51,7 +51,7 @@ function QueryTree({ phase }: { phase: VState['phase'] }) {
         <Label>Query (SELECT) after pull-up</Label>
         <div className="grid gap-1.5 sm:grid-cols-2">
           <Box id="in-rt" t="tuple"><Label>rtable</Label><div>[2] orders o</div><div>[3] products p</div></Box>
-          <Box id="in-jt" t="pointer"><Label>jointree</Label>o JOIN p ON p.id = o.product_id<br /><span style={{ color: tone('new') }}>WHERE o.id = 42</span></Box>
+          <Box id="in-jt" t="pointer"><Label>jointree</Label>o JOIN p ON p.id = o.product_id<br /><span style={{ color: tone.text('new') }}>WHERE o.id = 42</span></Box>
         </div>
         <Box id="tl" t="muted" className="mt-1.5"><Label>targetList</Label>p.name, o.qty * p.price</Box>
       </Box>
@@ -137,7 +137,7 @@ const mSteps: Step<MState>[] = [
   { title: 'REFRESH MATERIALIZED VIEW', body: 'The query reruns into a **new heap file** and swaps it in: relfilenode 16420 → **16434**. It holds **ACCESS EXCLUSIVE**, so readers wait until it finishes.',
     state: { orders: 20001, relfilenode: 16434, mvRows: 360, books: { rev: '3084.00', n: 57, xmin: 803, ctid: '(1,78)' }, truth: { rev: '3084.00', n: 57 }, lock: 'ACCESS EXCLUSIVE', readers: 'blocked', op: 'swap' } },
   { title: 'REFRESH … CONCURRENTLY (with a unique index)', body: 'One more order. CONCURRENTLY builds the new result in a temp table, **diffs** it against the old rows by the unique key, and applies only the changes. Relfilenode stays **16434**; only **1 of 360** rows got a new version.',
-    state: { orders: 20002, relfilenode: 16434, mvRows: 360, books: { rev: '3117.00', n: 58, xmin: 806, ctid: '(3,1)' }, truth: { rev: '3117.00', n: 58 }, lock: 'EXCLUSIVE', readers: 'ok', op: 'diff', rewritten: '1 / 360' } },
+    state: { orders: 20002, relfilenode: 16434, mvRows: 360, books: { rev: '3117.00', n: 58, xmin: 807, ctid: '(3,1)' }, truth: { rev: '3117.00', n: 58 }, lock: 'EXCLUSIVE', readers: 'ok', op: 'diff', rewritten: '1 / 360' } },
 ]
 
 function MatviewViz() {
@@ -346,7 +346,7 @@ REFRESH MATERIALIZED VIEW CONCURRENTLY daily_revenue;`,
       sql: `CREATE UNIQUE INDEX ON daily_revenue (day, category);` },
     { title: '`SELECT *` in a view freezes the column list',
       symptom: 'A column added to the base table never shows up through the view, and nobody notices for months.',
-      cause: 'The `*` is expanded when the view is created. The stored query tree points at the columns that existed then, by number, not by name. So renaming a base column is followed silently (the view keeps its old column name: `title AS t`), and dropping one the view uses fails with `cannot drop column … because other objects depend on it`.',
+      cause: 'The `*` is expanded when the view is created. The stored query tree points at the columns that existed then, by number, not by name. So renaming a base column is followed silently (the view keeps its old output name: `pg_get_viewdef` now shows `new_name AS old_name`), and dropping one the view uses fails with `cannot drop column … because other objects depend on it`.',
       fix: 'List columns explicitly. After altering the base table, run `CREATE OR REPLACE VIEW` with the new column added **at the end** (replacing may add columns but not reorder, rename or drop them: `cannot drop columns from view`). To remove a column, drop and recreate the view, or `DROP … CASCADE` knowing which dependants go with it.' },
     { title: 'A view that hides rows leaks them anyway',
       symptom: 'Users with access only to `public_phones` (a view filtering out private rows) can still learn private values.',
@@ -375,7 +375,7 @@ COMMIT;` },
       sql: `SELECT * FROM daily_revenue ORDER BY revenue DESC LIMIT 10;` },
   ],
   pointers: [
-    'A view is `relkind = v` plus a `_RETURN` rule in `pg_rewrite`. The rewriter substitutes it as a subquery before planning, and the planner usually flattens it away.',
+    'A view is `relkind = v` plus a `_RETURN` rule in `pg_rewrite`. The rewriter substitutes it as a subquery before planning, and the planner usually flattens it away. See [The rule system](/m6/rule-system).',
     'Auto-updatable views: **one FROM item**, no aggregates, DISTINCT, GROUP BY, LIMIT or set operations. Add `WITH CHECK OPTION` (CASCADED by default; LOCAL checks only the top view) so writes stay visible through the view.',
     'A **materialized view** is a real heap filled by its query. It is stale until you REFRESH it.',
     '**REFRESH** rewrites the whole file under ACCESS EXCLUSIVE. **REFRESH CONCURRENTLY** needs a unique index, diffs rows, and lets readers continue.',

@@ -185,10 +185,12 @@ SELECT pg_relation_filepath('ev') AS path,
        pg_relation_size('ev', 'main') AS main, pg_relation_size('ev', 'fsm') AS fsm,
        pg_relation_size('ev', 'vm') AS vm,     pg_relation_size('ev', 'init') AS init;`,
     presets: [
-      { label: 'Where is the file?', sql: `SELECT current_setting('data_directory') AS pgdata,
+      { label: 'Where is the file?', sql: `SELECT pg_ls_dir('.') AS data_directory_entry ORDER BY 1;
+
+SELECT current_setting('data_directory') AS pgdata,
        oid AS db_oid, datname FROM pg_database WHERE datname = current_database();
 SELECT 'ev'::regclass::oid AS table_oid, pg_relation_filenode('ev') AS relfilenode, * FROM forks;`,
-        note: 'The path is `base/<database OID>/<relfilenode>`. The FSM fork already exists; the VM does not, because nothing has been vacuumed.' },
+        note: 'The data directory holds `base/` (one sub-directory per database), `global/` (cluster-wide catalogs), `pg_wal/` (WAL segments), `pg_xact/` (commit status) and `pg_tblspc/` (tablespace links). A table\'s path is `base/<database OID>/<relfilenode>`. The FSM fork already exists; the VM does not, because nothing has been vacuumed.' },
       { label: 'VACUUM builds the VM', sql: `VACUUM ev;
 SELECT * FROM forks;
 SELECT blkno, all_visible, all_frozen FROM pg_visibility_map('ev');
@@ -278,7 +280,7 @@ TRUNCATE ev;` },
     'Path = `base/<db OID>/<relfilenode>`, plus `_fsm`, `_vm`, `_init` forks and `.1`, `.2` segments every **1 GB**. Look it up with `pg_relation_filepath()`.',
     '**FSM**: one byte per page (free space / 32), organised as max-trees so a search is a short descent. Updated mainly by **VACUUM**.',
     '**VM**: two bits per heap page, **all-visible** and **all-frozen**; set only by VACUUM, cleared by any change to the page. Indexes have no VM.',
-    'All-visible pages let **index-only scans** skip the heap; all-frozen pages let anti-wraparound VACUUM skip them.',
+    'All-visible pages let **index-only scans** skip the heap; all-frozen pages let anti-wraparound VACUUM skip them. See [Reading EXPLAIN (ANALYZE, BUFFERS)](/m4/explain-analyze) for Heap Fetches and [Tuning autovacuum](/m7/autovacuum-tuning).',
     'TRUNCATE and VACUUM FULL write a **new relfilenode**; unlogged tables restore from the **init fork** after a crash.',
   ],
   sources: ['storage-file-layout.html', 'storage-fsm.html', 'storage-vm.html', 'storage-init.html', 'pgfreespacemap.html', 'pgvisibility.html', 'routine-vacuuming.html'],

@@ -113,7 +113,8 @@ function PipelineViz() {
   return (
     <Stepper steps={STEPS} interval={3000} render={(s) => {
       const st = s.stage
-      const order: Cat[] = st >= 5 ? ['home', 'kitchen', 'office'] : CATS
+      // Before ORDER BY the output order is arbitrary; kitchen first makes the sort visible.
+      const order: Cat[] = st >= 5 ? ['home', 'kitchen', 'office'] : ['kitchen', 'home', 'office']
       return (
         <div className="grid gap-3">
           <Rail stage={st} />
@@ -160,7 +161,7 @@ function PipelineViz() {
                             <p className="text-[11px]" style={{ color: gone ? tone('dead') : 'var(--muted)' }}>count(*) = {AGG[c].n}</p>
                           </div>
                           {members(c).map((p) => <RowChip key={p.id} p={p} compact />)}
-                          {gone && <p className="text-[11px] font-semibold" style={{ color: tone('dead') }}>2 &lt; 3: dropped by HAVING</p>}
+                          {gone && <p className="text-[11px] font-semibold" style={{ color: tone.text('dead') }}>2 &lt; 3: dropped by HAVING</p>}
                         </motion.div>
                       )
                     })}
@@ -226,13 +227,14 @@ END $$;`,
     presets: [
       { label: 'count(*) vs count(col)', sql: `SELECT count(*)     AS all_rows,
        count(stock) AS rows_with_stock,
+       count(DISTINCT category) AS categories,
        sum(stock)   AS units,
        min(price)   AS cheapest,
        max(price)   AS dearest,
        avg(price)   AS avg_price,
        round(avg(price), 2) AS avg_rounded
 FROM products;`,
-        note: '`count(*)` = 9 rows, `count(stock)` = 7: the two NULL stocks are skipped. `avg` prints 16 decimals (37.8888888888888889); `round(…, 2)` gives 37.89.' },
+        note: '`count(*)` = 9 rows, `count(stock)` = 7: the two NULL stocks are skipped. `count(DISTINCT category)` = 3: distinct non-NULL values. `avg` prints 16 decimals (37.8888888888888889); `round(…, 2)` gives 37.89.' },
       { label: 'GROUP BY', sql: `SELECT category,
        count(*)              AS products,
        sum(stock)            AS units,
@@ -286,7 +288,7 @@ WHERE category = 'garden';`,
   production: {
     title: 'A category summary for a dashboard',
     context: 'A shop dashboard shows one tile per category: number of products, units in stock and average price.',
-    problem: 'The first version loaded every product into the app and counted in code. It sent every row over the network on each page view, and the "units" tile was wrong because the code added NULL stock as 0 and counted those products as stocked.',
+    problem: 'The first version loaded every product into the app and counted in code. It sent every row over the network on each page view, and the "units" tile silently treated uncounted products as having 0 units, so nobody could see that some had never been counted.',
     solution: 'Let the database aggregate and send only the summary rows. Count uncounted products separately so the gap is visible.',
     sql: `SELECT category,
        count(*)                         AS products,
@@ -319,9 +321,9 @@ ORDER BY category;`,
   ],
   pointers: [
     '`count(*)` counts rows; `count(col)` counts non-NULL values; `sum`, `avg`, `min`, `max` skip NULLs and return NULL on zero rows.',
-    'With GROUP BY, every selected column must be in the GROUP BY or inside an aggregate.',
+    'With GROUP BY, every selected column must be in the GROUP BY or inside an aggregate (or the primary key of its table is in the GROUP BY).',
     'WHERE filters **rows** before grouping. HAVING filters **groups** after. Aggregates belong in HAVING.',
-    'Run order: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. WHERE and HAVING cannot use SELECT aliases; ORDER BY can.',
+    'Run order: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. WHERE and HAVING cannot use SELECT aliases; ORDER BY can. PostgreSQL also lets `GROUP BY` name an output column or its position: `GROUP BY pricey`, `GROUP BY 1`.',
     '**Going deeper:** [Aggregates, FILTER and GROUPING SETS](/m3/aggregates-grouping) adds subtotals and conditional counts; [From SQL text to rows](/m4/query-pipeline) shows the plan that runs a query.',
   ],
   sources: ['tutorial-agg.html', 'functions-aggregate.html', 'queries-table-expressions.html', 'sql-select.html', 'functions-math.html', 'functions-conditional.html'],

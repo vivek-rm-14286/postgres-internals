@@ -164,7 +164,7 @@ function DistanceViz() {
                 {heap.map((h, r) => (
                   <motion.tr key={h.id} layout transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="border-t border-line">
                     <td className="py-0.5">{r + 1}</td>
-                    <td className="py-0.5 font-semibold" style={{ color: tone('ok') }}>{h.id}</td>
+                    <td className="py-0.5 font-semibold" style={{ color: tone.text('ok') }}>{h.id}</td>
                     <td className="py-0.5 text-muted">[{h.p[0]},{h.p[1]}]</td>
                     <td className="py-0.5 text-right tabular-nums">{Number.isNaN(h.d) ? 'NaN' : h.d.toFixed(4)}</td>
                   </motion.tr>
@@ -177,14 +177,14 @@ function DistanceViz() {
                   : m === 'cos' ? 'Only the **angle** counts. Everything inside the cone from the origin wins, however near or far. `1 - (a <=> b)` is cosine similarity.'
                     : '`<#>` returns the **negative** dot product so that ascending order means most similar. Long vectors pointing the same way win, even far from the query.'
             }</Md></p>
-            {m === 'cos' && Math.hypot(...q) < 0.02 && <p className="mt-1 text-xs" style={{ color: tone('dead') }}>A zero query has no direction: every cosine distance is NaN.</p>}
+            {m === 'cos' && Math.hypot(...q) < 0.02 && <p className="mt-1 text-xs" style={{ color: tone.text('dead') }}>A zero query has no direction: every cosine distance is NaN.</p>}
           </Panel>
           <div className="grid grid-cols-2 gap-2">
             <Tile label="rows compared" value={`${scan} / ${PTS.length}`} t={done ? 'ok' : 'new'} sub="exact search reads every row" />
             <Tile label="kept (top-N heap)" value={heap.length} sub={`best ${K} so far`} />
           </div>
           <Panel title="The same exact search at 10 000 × 32-d">
-            <p className="font-mono text-[11.5px] leading-[18px]">Limit (rows=10)<br />{'  ->'} Sort  <span style={{ color: tone('new') }}>top-N heapsort  Memory: 17kB</span><br />{'      ->'} Seq Scan on items (rows=<span style={{ color: tone('dead') }}>10000</span>)<br /><span className="text-muted">Buffers: shared hit=224 · about 6 ms</span></p>
+            <p className="font-mono text-[11.5px] leading-[18px]">Limit (rows=10)<br />{'  ->'} Sort  <span style={{ color: tone.text('new') }}>top-N heapsort  Memory: 17kB</span><br />{'      ->'} Seq Scan on items (rows=<span style={{ color: tone.text('dead') }}>10000</span>)<br /><span className="text-muted">Buffers: shared hit=224 · about 6 ms</span></p>
             <p className="mt-1 text-xs text-muted">Perfect recall, but the work grows with rows × dimensions. HNSW and IVFFlat indexes trade a little recall for skipping most rows.</p>
           </Panel>
         </div>
@@ -298,7 +298,7 @@ CREATE INDEX ON doc_chunks USING hnsw (embedding vector_ip_ops);`,
     'Similarity: `1 - (a <=> b)` for cosine, `(a <#> b) * -1` for inner product.',
     'Unit-length vectors rank identically under L2, cosine and inner product; prefer `<#>` for them.',
     'Exact search = Seq Scan + top-N heapsort: perfect recall, cost linear in rows × dimensions.',
-    'Use the distance your embedding model was trained for; the model card says which.',
+    'Use the distance your embedding model was trained for; the model card says which. For distances on a map rather than between embeddings, see [nearest-neighbour search with PostGIS](/e4/nearest-neighbour).',
   ],
   sources: ['queries-order.html', 'queries-limit.html', 'using-explain.html', 'functions-math.html', 'datatype-bit.html'],
 }

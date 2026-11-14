@@ -90,7 +90,7 @@ export function Timeline({ lanes, events, tick, badges, tickLabels }: {
               )}
               {e.sql && <code className="block font-mono font-semibold whitespace-pre-wrap text-ink">{e.sql}</code>}
               {e.out && <p className={`${e.sql ? 'mt-0.5' : ''} text-[11.5px]`} style={{ color: e.kind === 'err' ? tone('dead') : e.kind === 'ok' ? tone('ok') : 'var(--muted)' }}><Md>{e.out}</Md></p>}
-              {isWait && <p className="mt-0.5 text-[10.5px] font-semibold tracking-wide uppercase" style={{ color: tone('dead') }}>{open ? 'blocked' : 'wait ended'}</p>}
+              {isWait && <p className="mt-0.5 text-[10.5px] font-semibold tracking-wide uppercase" style={{ color: tone.text('dead') }}>{open ? 'blocked' : 'wait ended'}</p>}
             </motion.div>
           )
         })}
@@ -169,7 +169,7 @@ export function TupleVersions({ title = 'Heap tuple versions', versions, lanes: 
                     {lanes?.map((l) => (
                       <td key={l} className="py-1 pr-2">
                         {v.sees?.[l] === undefined ? <span className="text-muted">·</span>
-                          : v.sees[l] ? <span style={{ color: tone('ok') }}>yes</span> : <span style={{ color: tone('dead') }}>no</span>}
+                          : v.sees[l] ? <span style={{ color: tone.text('ok') }}>yes</span> : <span style={{ color: tone.text('dead') }}>no</span>}
                       </td>
                     ))}
                     <td className="py-1 font-sans text-[11.5px] text-muted">{v.note && <Md>{v.note}</Md>}</td>

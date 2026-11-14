@@ -61,7 +61,7 @@ const stTimeout: TStep<X>[] = [
   { tick: 0, title: 'A reads and goes idle', body: 'Same start: A holds **ACCESS SHARE** until it commits.', x: { locks: [aHold], edges: [] } },
   { tick: 1, title: 'B sets lock_timeout first', body: '`lock_timeout` caps how long **each lock acquisition** may wait. 0 (the default) means forever.', x: { locks: [aHold], edges: [] } },
   { tick: 2, title: 'B waits, on a budget', body: 'B is queued exactly as before.', badges: { B: { extra: 'waiting ≤ 2 s', extraTone: 'dead' } }, x: { locks: [aHold, bWait], edges: [eBA] } },
-  { tick: 3, title: 'C arrives', body: 'C would queue behind B again …', badges: { B: { extra: 'waiting ≤ 2 s', extraTone: 'dead' } }, x: { locks: [aHold, bWait, cWait], edges: [eBA, eCB] } },
+  { tick: 3, title: 'C arrives', body: 'C would queue behind B again …', badges: { B: { extra: 'waiting ≤ 2 s', extraTone: 'dead' } }, x: { locks: [aHold, bWait], edges: [eBA] } },
   { tick: 4, title: 'B gives up after 2 s', body: 'B fails with **55P03** and its request leaves the queue. The worst stall anyone saw is bounded by the timeout.', badges: { B: { extra: '55P03', extraTone: 'dead' }, C: { extra: 'waiting', extraTone: 'dead' } }, x: { locks: [aHold, cWait], edges: [] } },
   { tick: 5, title: 'C runs immediately', body: 'With B gone, C is only compatible-with-A, so it is granted at once.', x: { locks: [aHold, cHold], edges: [] } },
   { tick: 6, title: 'Retry the migration', body: 'The deploy script retries the ALTER with backoff and succeeds once no long transaction holds the table.', x: { locks: [bHold], edges: [] } },
@@ -194,7 +194,7 @@ WHERE pid = pg_backend_pid() AND relation = 'orders'::regclass;
 ROLLBACK;
 
 SELECT count(*) AS rows_after_rollback FROM orders;`,
-        note: 'DELETE takes **RowExclusive** and stamps `xmax` on each row, so readers and other writers carry on. TRUNCATE takes **AccessExclusive**, which blocks even SELECT, and points the table at a brand-new empty file. It is still transactional: after ROLLBACK the old file and all 1,000 rows are back.' },
+        note: 'DELETE takes **RowExclusive** and stamps `xmax` on each row, so readers and other writers carry on. TRUNCATE takes **AccessExclusive**, which blocks even SELECT, and points the table at a brand-new empty file. It is still transactional: after ROLLBACK the old file and all 1,000 rows are back. (The extra ShareLock row comes from rebuilding the table\'s indexes inside TRUNCATE.)' },
       { label: 'A transaction never blocks itself', sql: `BEGIN;
 LOCK TABLE orders IN SHARE MODE;
 LOCK TABLE orders IN ACCESS EXCLUSIVE MODE;
@@ -257,7 +257,7 @@ FROM pg_stat_activity WHERE xact_start IS NOT NULL ORDER BY xact_start LIMIT 5;`
     { title: 'SET NOT NULL on a big table',
       symptom: '`ALTER TABLE … ALTER COLUMN email SET NOT NULL` blocks all reads and writes on the table for minutes.',
       cause: 'SET NOT NULL scans every row to prove there are no NULLs, while holding ACCESS EXCLUSIVE for the whole scan.',
-      fix: 'In PostgreSQL 18, add the constraint as `NOT NULL … NOT VALID` (instant), backfill in batches, then `VALIDATE CONSTRAINT`, which scans under SHARE UPDATE EXCLUSIVE while writes continue.',
+      fix: 'In PostgreSQL 18, add the constraint as `NOT NULL … NOT VALID` (instant), backfill in batches, then `VALIDATE CONSTRAINT`, which scans under SHARE UPDATE EXCLUSIVE while writes continue. Before 18: add `CHECK (email IS NOT NULL) NOT VALID`, `VALIDATE CONSTRAINT` it, then `SET NOT NULL` (which skips its scan because the valid CHECK proves it), then drop the CHECK.',
       sql: `ALTER TABLE users ADD CONSTRAINT users_email_nn NOT NULL email NOT VALID;
 -- backfill in batches, then:
 ALTER TABLE users VALIDATE CONSTRAINT users_email_nn;` },

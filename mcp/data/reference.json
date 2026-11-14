@@ -2,13 +2,13 @@
  {
   "id": "config-parameters",
   "title": "Config parameters",
-  "description": "Every server configuration parameter. Context says when a change takes effect: **postmaster** = server restart, **sighup** = config reload, **superuser** = privileged SET, **user** = any session SET, **backend** / **superuser-backend** = fixed at connection start, **internal** = read-only.",
+  "description": "Every server configuration parameter. Context says when a change takes effect: **postmaster** = server restart, **sighup** = config reload, **superuser** = privileged SET, **user** = any session SET, **backend** / **superuser-backend** = fixed at connection start, **internal** = read-only. **also per table** = can be overridden for one table with a storage parameter; **build option** = exists only in a server compiled with the named macro.",
   "columns": [
    "Parameter",
    "Default",
    "Type (unit)",
    "Context",
-   "Section",
+   "Manual section",
    "Meaning"
   ],
   "rows": [
@@ -18,7 +18,7 @@
     "string",
     "postmaster",
     "19.2 File Locations",
-    "directory for data storage"
+    "Directory for data storage"
    ],
    [
     "config_file",
@@ -26,7 +26,7 @@
     "string",
     "postmaster (postgres command line only)",
     "19.2 File Locations",
-    "main config file (postgresql.conf)"
+    "Main config file (postgresql.conf)"
    ],
    [
     "hba_file",
@@ -34,7 +34,7 @@
     "string",
     "postmaster",
     "19.2 File Locations",
-    "host-based auth file (pg_hba.conf)"
+    "Host-based auth file (pg_hba.conf)"
    ],
    [
     "ident_file",
@@ -42,7 +42,7 @@
     "string",
     "postmaster",
     "19.2 File Locations",
-    "user name map file (pg_ident.conf)"
+    "User name map file (pg_ident.conf)"
    ],
    [
     "external_pid_file",
@@ -50,7 +50,7 @@
     "string",
     "postmaster",
     "19.2 File Locations",
-    "additional PID file for admin programs"
+    "Additional PID file for admin programs"
    ],
    [
     "listen_addresses",
@@ -234,7 +234,7 @@
     "string",
     "sighup (postgresql.conf only)",
     "19.3.3 Authentication",
-    "Library/libraries validating OAuth tokens. If exactly one, used by default; otherwise every `oauth` HBA entry must set `validator`. No validator ships with PostgreSQL (Chapter 50)."
+    "Library/libraries validating OAuth tokens. If exactly one, used by default; otherwise every `oauth` HBA entry must set `validator`. No validator ships with PostgreSQL."
    ],
    [
     "ssl",
@@ -432,7 +432,7 @@
     "vacuum_buffer_usage_limit",
     "2MB",
     "integer (kB)",
-    "user (\"can be set at any time\")",
+    "user",
     "19.4.1 Memory",
     "Size of the Buffer Access Strategy ring used by VACUUM and ANALYZE. 0 = may use any number of shared buffers; otherwise 128 kB to 16 GB; silently capped at 1/8 of shared_buffers. Overridable per command with `BUFFER_USAGE_LIMIT`."
    ],
@@ -898,7 +898,7 @@
     "string",
     "sighup",
     "19.5.3 Archiving",
-    "Shared library for archiving (Chapter 49); empty => shell archive_command. Archiver process restarted by postmaster on change."
+    "Shared library for archiving; empty => shell archive_command. Archiver process restarted by postmaster on change."
    ],
    [
     "archive_timeout",
@@ -1048,9 +1048,9 @@
     "output_plugin_libraries",
     "`'pgoutput, test_decoding'`",
     "string",
-    "(reload; hint says \"reload the server configuration\")",
+    "superuser",
     "19.6.1 Sending Servers",
-    "Libraries in dynamic_library_path trusted as logical output plugins; requests for other libraries are refused (`ERROR: library \"...\" may not be used as an output plugin`). Applies to all users. Plugin name must match a list entry exactly. Table 19.2: `pgoutput` = core plugin for logical replication (removing it breaks subscription connections and slot maintenance); `test_decoding` = human-readable text decoding, default for `pg_recvlogical`. Helper: `SELECT DISTINCT plugin FROM pg_replication_slots WHERE plugin IS NOT NULL;`"
+    "Libraries in dynamic_library_path trusted as logical output plugins; requests for other libraries are refused (`ERROR: library \"...\" may not be used as an output plugin`). Applies to all users. Plugin name must match a list entry exactly. The defaults: `pgoutput` = core plugin for logical replication (removing it breaks subscription connections and slot maintenance); `test_decoding` = human-readable text decoding, default for `pg_recvlogical`. Helper: `SELECT DISTINCT plugin FROM pg_replication_slots WHERE plugin IS NOT NULL;`"
    ],
    [
     "wal_keep_size",
@@ -1239,31 +1239,31 @@
    [
     "enable_async_append",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "async-aware Append plan types"
+    "Async-aware Append plan types"
    ],
    [
     "enable_bitmapscan",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "bitmap-scan plan types"
+    "Bitmap-scan plan types"
    ],
    [
     "enable_distinct_reordering",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "reordering DISTINCT keys to match the input path's pathkeys"
+    "Reordering DISTINCT keys to match the input path's pathkeys"
    ],
    [
     "enable_gathermerge",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
     "Gather Merge plan types"
@@ -1271,7 +1271,7 @@
    [
     "enable_group_by_reordering",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
     "GROUP BY keys sorted in the order of a child node's keys (e.g. index scan); off => only sorted to match ORDER BY"
@@ -1279,55 +1279,55 @@
    [
     "enable_hashagg",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "hashed aggregation"
+    "Hashed aggregation"
    ],
    [
     "enable_hashjoin",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "hash joins"
+    "Hash joins"
    ],
    [
     "enable_incremental_sort",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "incremental sort steps"
+    "Incremental sort steps"
    ],
    [
     "enable_indexscan",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "index-scan AND index-only-scan plan types"
+    "Index-scan AND index-only-scan plan types"
    ],
    [
     "enable_indexonlyscan",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "index-only scans (enable_indexscan must also be on)"
+    "Index-only scans (enable_indexscan must also be on)"
    ],
    [
     "enable_material",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "materialization; cannot be suppressed entirely (off = only where required for correctness)"
+    "Materialization; cannot be suppressed entirely (off = only where required for correctness)"
    ],
    [
     "enable_memoize",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
     "Memoize: cache results of parameterized scans inside nested-loop joins; less-used entries evicted when space needed"
@@ -1335,95 +1335,95 @@
    [
     "enable_mergejoin",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "merge joins"
+    "Merge joins"
    ],
    [
     "enable_nestloop",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "nested-loop joins; cannot be suppressed entirely, off only discourages"
+    "Nested-loop joins; cannot be suppressed entirely, off only discourages"
    ],
    [
     "enable_parallel_append",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "parallel-aware Append"
+    "Parallel-aware Append"
    ],
    [
     "enable_parallel_hash",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "hash joins with parallel hash (no effect unless hash joins enabled)"
+    "Hash joins with parallel hash (no effect unless hash joins enabled)"
    ],
    [
     "enable_partition_pruning",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "plan-time partition elimination AND plans that let the executor prune partitions at run time"
+    "Plan-time partition elimination AND plans that let the executor prune partitions at run time"
    ],
    [
     "enable_partitionwise_join",
     "**off**",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "join partitioned tables by joining matching partitions; requires join conditions including all partition keys, same data type, one-to-one matching child partitions. Multiplies work_mem-limited nodes by partition count; planning much costlier."
+    "Join partitioned tables by joining matching partitions; requires join conditions including all partition keys, same data type, one-to-one matching child partitions. Multiplies work_mem-limited nodes by partition count; planning much costlier."
    ],
    [
     "enable_partitionwise_aggregate",
     "**off**",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "per-partition grouping/aggregation; if GROUP BY lacks the partition keys only partial aggregation per partition, finalize later. Same memory/planning caveats."
+    "Per-partition grouping/aggregation; if GROUP BY lacks the partition keys only partial aggregation per partition, finalize later. Same memory/planning caveats."
    ],
    [
     "enable_presorted_aggregate",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "provide input presorted for ORDER BY / DISTINCT aggregates instead of always sorting in the executor"
+    "Provide input presorted for ORDER BY / DISTINCT aggregates instead of always sorting in the executor"
    ],
    [
     "enable_self_join_elimination",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "replace self joins with semantically equivalent single scans (plain tables only)"
+    "Replace self joins with semantically equivalent single scans (plain tables only)"
    ],
    [
     "enable_seqscan",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "sequential scans; cannot be suppressed entirely, off only discourages"
+    "Sequential scans; cannot be suppressed entirely, off only discourages"
    ],
    [
     "enable_sort",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
-    "explicit sort steps; cannot be suppressed entirely"
+    "Explicit sort steps; cannot be suppressed entirely"
    ],
    [
     "enable_tidscan",
     "on",
-    "bool",
+    "boolean",
     "user",
     "19.7.1 Planner Method Configuration",
     "TID scan plan types"
@@ -1850,7 +1850,7 @@
     "boolean",
     "user",
     "19.8.3 What to Log",
-    "Indent the above output."
+    "Indent the output of the `debug_print_*` parameters."
    ],
    [
     "log_autovacuum_min_duration",
@@ -1872,15 +1872,15 @@
     "log_connections",
     "'' (disabled)",
     "string",
-    "sb-backend (session start only)",
+    "superuser-backend (session start only)",
     "19.8.3 What to Log",
-    "Comma-separated list of aspects (Table 19.4): `receipt`, `authentication`, `authorization`, `setup_durations` (total setup, fork time, authentication time), `all`. Legacy booleans still accepted; positive = receipt, authentication, authorization. Failed authentication is always logged."
+    "Comma-separated list of aspects: `receipt`, `authentication`, `authorization`, `setup_durations` (total setup, fork time, authentication time), `all`. Legacy booleans still accepted; positive = receipt, authentication, authorization. Failed authentication is always logged."
    ],
    [
     "log_disconnections",
     "off",
     "boolean",
-    "sb-backend",
+    "superuser-backend",
     "19.8.3 What to Log",
     "Log session termination with session duration."
    ],
@@ -2144,7 +2144,7 @@
     "autovacuum_vacuum_threshold",
     "50",
     "integer (tuples)",
-    "sighup (+table)",
+    "sighup; also per table",
     "19.10.1 Automatic Vacuuming",
     "Minimum updated or deleted tuples to trigger VACUUM."
    ],
@@ -2152,7 +2152,7 @@
     "autovacuum_vacuum_insert_threshold",
     "1000",
     "integer (tuples)",
-    "sighup (+table)",
+    "sighup; also per table",
     "19.10.1 Automatic Vacuuming",
     "Inserted tuples to trigger VACUUM; -1 disables insert-triggered vacuum."
    ],
@@ -2160,7 +2160,7 @@
     "autovacuum_analyze_threshold",
     "50",
     "integer (tuples)",
-    "sighup (+table)",
+    "sighup; also per table",
     "19.10.1 Automatic Vacuuming",
     "Minimum inserted, updated or deleted tuples to trigger ANALYZE."
    ],
@@ -2168,7 +2168,7 @@
     "autovacuum_vacuum_scale_factor",
     "0.2",
     "float (fraction of table size)",
-    "sighup (+table)",
+    "sighup; also per table",
     "19.10.1 Automatic Vacuuming",
     "Added to autovacuum_vacuum_threshold."
    ],
@@ -2176,7 +2176,7 @@
     "autovacuum_vacuum_insert_scale_factor",
     "0.2",
     "float (fraction of **unfrozen pages** in table)",
-    "sighup (+table)",
+    "sighup; also per table",
     "19.10.1 Automatic Vacuuming",
     "Added to autovacuum_vacuum_insert_threshold."
    ],
@@ -2184,7 +2184,7 @@
     "autovacuum_analyze_scale_factor",
     "0.1",
     "float (fraction of table size)",
-    "sighup (+table)",
+    "sighup; also per table",
     "19.10.1 Automatic Vacuuming",
     "Added to autovacuum_analyze_threshold."
    ],
@@ -2192,7 +2192,7 @@
     "autovacuum_vacuum_max_threshold",
     "100,000,000",
     "integer (tuples)",
-    "sighup (+table)",
+    "sighup; also per table",
     "19.10.1 Automatic Vacuuming",
     "Upper limit on the value computed from vacuum_threshold + scale_factor; -1 = no cap. (New in 18.)"
    ],
@@ -2216,7 +2216,7 @@
     "autovacuum_vacuum_cost_delay",
     "2ms",
     "float (ms)",
-    "sighup (+table)",
+    "sighup; also per table",
     "19.10.1 Automatic Vacuuming",
     "Cost delay for automatic VACUUM; -1 = use vacuum_cost_delay."
    ],
@@ -2224,7 +2224,7 @@
     "autovacuum_vacuum_cost_limit",
     "-1 (use vacuum_cost_limit)",
     "integer (cost)",
-    "sighup (+table)",
+    "sighup; also per table",
     "19.10.1 Automatic Vacuuming",
     "Cost limit for automatic VACUUM; **distributed proportionally among running autovacuum workers** so the sum does not exceed it."
    ],
@@ -2354,7 +2354,7 @@
     "boolean",
     "user",
     "19.11.1 Statement Behavior",
-    "off => queries that would apply at least one row security policy raise an error instead (pg_dump sets off). No effect for superusers and BYPASSRLS roles."
+    "Off => queries that would apply at least one row security policy raise an error instead (pg_dump sets off). No effect for superusers and BYPASSRLS roles."
    ],
    [
     "default_table_access_method",
@@ -2394,7 +2394,7 @@
     "boolean",
     "user",
     "19.11.1 Statement Behavior",
-    "off disables validation of routine body during CREATE FUNCTION/PROCEDURE (pg_dump sets off)."
+    "Off disables validation of routine body during CREATE FUNCTION/PROCEDURE (pg_dump sets off)."
    ],
    [
     "default_transaction_isolation",
@@ -2538,7 +2538,7 @@
     "boolean",
     "superuser",
     "19.11.1 Statement Behavior",
-    "false disables all event triggers (for repairing faulty ones)."
+    "False disables all event triggers (for repairing faulty ones)."
    ],
    [
     "restrict_nonsystem_relation_kind",
@@ -2648,7 +2648,7 @@
     "local_preload_libraries",
     "''",
     "string",
-    "any user, effective only at connection start",
+    "user (takes effect only at connection start)",
     "19.11.3 Shared Library Preloading",
     "Libraries preloaded at connection start; restricted to the `plugins` subdirectory of the library directory (`$libdir/plugins/mylib` or just `mylib`). Missing library => connection fails. Typically set via PGOPTIONS or ALTER ROLE SET."
    ],
@@ -2656,7 +2656,7 @@
     "session_preload_libraries",
     "''",
     "string",
-    "superuser, effective at connection start",
+    "superuser (takes effect at connection start)",
     "19.11.3 Shared Library Preloading",
     "Libraries preloaded at connection start (e.g. `auto_explain` for one role via ALTER ROLE SET); no restart needed."
    ],
@@ -2810,7 +2810,7 @@
     "boolean",
     "sighup",
     "19.13 Version and Platform Compatibility",
-    "off => ALTER SYSTEM raises an error. **Not a security feature** (superusers can still write postgresql.auto.conf via shell); for externally managed configuration. postgresql.auto.conf still takes effect."
+    "Off => ALTER SYSTEM raises an error. **Not a security feature** (superusers can still write postgresql.auto.conf via shell); for externally managed configuration. postgresql.auto.conf still takes effect."
    ],
    [
     "exit_on_error",
@@ -2834,7 +2834,7 @@
     "boolean",
     "postmaster",
     "19.14 Error Handling",
-    "off => **PANIC on failure to flush modified data files** (server crashes, recovers from WAL), because after a write-back failure the kernel page cache state is unknown and a retry may falsely succeed. on => report error and retry at a later checkpoint (only after studying the OS's behaviour)."
+    "Off => **PANIC on failure to flush modified data files** (server crashes, recovers from WAL), because after a write-back failure the kernel page cache state is unknown and a retry may falsely succeed. on => report error and retry at a later checkpoint (only after studying the OS's behaviour)."
    ],
    [
     "recovery_init_sync_method",
@@ -3032,7 +3032,7 @@
     "debug_copy_parse_plan_trees",
     "off",
     "boolean",
-    "-",
+    "build option (`DEBUG_NODE_TESTS_ENABLED`)",
     "19.17 Developer Options",
     "Pass all parse/plan trees through copyObject() (needs DEBUG_NODE_TESTS_ENABLED, auto with --enable-cassert)."
    ],
@@ -3040,7 +3040,7 @@
     "debug_discard_caches",
     "0",
     "integer",
-    "-",
+    "superuser",
     "19.17 Developer Options",
     "1 = invalidate every catalog cache entry at first opportunity (catalog caching effectively off; very slow); higher = recursive. Needs DISCARD_CACHES_ENABLED (cassert builds); always 0 in production builds."
    ],
@@ -3064,7 +3064,7 @@
     "debug_raw_expression_coverage_test",
     "off",
     "boolean",
-    "-",
+    "build option (`DEBUG_NODE_TESTS_ENABLED`)",
     "19.17 Developer Options",
     "Walk raw DML parse trees with raw_expression_tree_walker() (cassert builds)."
    ],
@@ -3072,7 +3072,7 @@
     "debug_write_read_parse_plan_trees",
     "off",
     "boolean",
-    "-",
+    "build option (`DEBUG_NODE_TESTS_ENABLED`)",
     "19.17 Developer Options",
     "Round-trip trees through outfuncs.c/readfuncs.c (cassert builds)."
    ],
@@ -3120,7 +3120,7 @@
     "trace_locks",
     "off",
     "boolean",
-    "-",
+    "build option (`LOCK_DEBUG`)",
     "19.17 Developer Options",
     "Dump heavyweight lock operations (lock id tuple, grantMask, req/grant counts per mode, wait mask, lock type). LOCK_DEBUG builds; structure in `src/include/storage/lock.h`. Example line: `LOG: LockAcquire: new: lock(0xb7acd844) id(24688,24696,0,0,0,1) grantMask(0) req(0,0,0,0,0,0,0)=0 grant(0,0,0,0,0,0,0)=0 wait(0) type(AccessShareLock)`; sequence LockAcquire -> GrantLock -> UnGrantLock -> CleanUpLock."
    ],
@@ -3128,7 +3128,7 @@
     "trace_lwlocks",
     "off",
     "boolean",
-    "-",
+    "build option (`LOCK_DEBUG`)",
     "19.17 Developer Options",
     "Lightweight lock usage (LOCK_DEBUG). LWLocks protect shared-memory data structures."
    ],
@@ -3136,7 +3136,7 @@
     "trace_userlocks",
     "off",
     "boolean",
-    "-",
+    "build option (`LOCK_DEBUG`)",
     "19.17 Developer Options",
     "Same as trace_locks for advisory locks (LOCK_DEBUG)."
    ],
@@ -3144,7 +3144,7 @@
     "trace_lock_oidmin",
     "—",
     "integer",
-    "-",
+    "build option (`LOCK_DEBUG`)",
     "19.17 Developer Options",
     "Do not trace locks on tables below this OID (LOCK_DEBUG)."
    ],
@@ -3152,7 +3152,7 @@
     "trace_lock_table",
     "—",
     "integer",
-    "-",
+    "build option (`LOCK_DEBUG`)",
     "19.17 Developer Options",
     "Unconditionally trace locks on this table OID (LOCK_DEBUG)."
    ],
@@ -3160,7 +3160,7 @@
     "debug_deadlocks",
     "off",
     "boolean",
-    "-",
+    "build option (`LOCK_DEBUG`)",
     "19.17 Developer Options",
     "Dump all current locks when a deadlock timeout occurs (LOCK_DEBUG)."
    ],
@@ -3168,7 +3168,7 @@
     "log_btree_build_stats",
     "off",
     "boolean",
-    "-",
+    "build option (`BTREE_BUILD_STATS`)",
     "19.17 Developer Options",
     "Resource usage for B-tree operations (BTREE_BUILD_STATS builds)."
    ],
@@ -3184,7 +3184,7 @@
     "wal_debug",
     "off",
     "boolean",
-    "-",
+    "build option (`WAL_DEBUG`)",
     "19.17 Developer Options",
     "WAL debugging output (WAL_DEBUG builds)."
    ],
@@ -3224,7 +3224,7 @@
     "jit_debugging_support",
     "off",
     "boolean",
-    "sb-backend",
+    "superuser-backend",
     "19.17 Developer Options",
     "Register JIT functions with GDB."
    ],
@@ -3248,7 +3248,7 @@
     "jit_profiling_support",
     "off",
     "boolean",
-    "sb-backend",
+    "superuser-backend",
     "19.17 Developer Options",
     "Emit perf data to `~/.debug/jit/`."
    ],
@@ -3297,48 +3297,48 @@
  {
   "id": "system-catalogs",
   "title": "System catalogs",
-  "description": "The system catalogs: ordinary tables in `pg_catalog` that hold every object definition. Query them directly to see what the server knows.",
+  "description": "The system catalogs: ordinary tables in `pg_catalog` that hold every object definition. Query them directly to see what the server knows. **Cluster-wide** catalogs are shared by all databases; the others exist once per database.",
   "columns": [
    "Catalog",
    "Purpose",
-   "Shared",
+   "Cluster-wide",
    "Key columns"
   ],
   "rows": [
    [
     "pg_aggregate",
     "aggregate functions",
-    "—",
+    "no",
     "aggfnoid (-> pg_proc), aggkind (n/o/h), aggnumdirectargs, aggtransfn, aggfinalfn, aggcombinefn, aggserialfn, aggdeserialfn, aggsortop, aggtranstype, agginitval"
    ],
    [
     "pg_am",
     "relation access methods",
-    "—",
+    "no",
     "oid, amname, amhandler (handler function), amtype (t table / i index)"
    ],
    [
     "pg_amop",
     "access method operators",
-    "—",
+    "no",
     "amopfamily, amoplefttype, amoprighttype, amopstrategy, amoppurpose (s search / o ordering), amopopr, amopmethod, amopsortfamily"
    ],
    [
     "pg_amproc",
     "access method support functions",
-    "—",
+    "no",
     "amprocfamily, amproclefttype, amprocrighttype, amprocnum (support fn number), amproc"
    ],
    [
     "pg_attrdef",
     "column default values",
-    "—",
+    "no",
     "oid, adrelid (-> pg_class), adnum (-> attnum), adbin (use pg_get_expr)"
    ],
    [
     "pg_attribute",
     "table columns (\"attributes\")",
-    "—",
+    "no",
     "attrelid, attname, atttypid, attlen, attnum (system cols negative), atttypmod, attnotnull, atthasdef, atthasmissing, attidentity, attgenerated (s/v), attisdropped, attstattarget"
    ],
    [
@@ -3356,31 +3356,31 @@
    [
     "pg_cast",
     "casts (data type conversions)",
-    "—",
+    "no",
     "oid, castsource, casttarget, castfunc (0 if none), castcontext (e/a/i), castmethod (f/i/b)"
    ],
    [
     "pg_class",
     "tables, indexes, sequences, views (\"relations\")",
-    "—",
+    "no",
     "oid, relname, relnamespace, relkind (r/i/S/t/v/m/c/f/p/I), relpersistence (p/u/t), relpages, reltuples, relallvisible, relallfrozen, relfilenode, reltoastrelid, relfrozenxid, relminmxid"
    ],
    [
     "pg_collation",
     "collations (locale information)",
-    "—",
+    "no",
     "oid, collname, collnamespace, collprovider (d/b/c/i), collisdeterministic, collencoding, collcollate, collctype, colllocale, collversion"
    ],
    [
     "pg_constraint",
     "check, unique, primary key, foreign key constraints (+ not-null, exclusion, constraint triggers, domain checks)",
-    "—",
+    "no",
     "oid, conname, connamespace, contype (c/f/n/p/u/t/x), condeferrable, conenforced, convalidated, conrelid, conindid, confrelid, confupdtype, confdeltype, conkey, confkey, conbin"
    ],
    [
     "pg_conversion",
     "encoding conversion information",
-    "—",
+    "no",
     "oid, conname, connamespace, conowner, conforencoding, contoencoding, conproc, condefault"
    ],
    [
@@ -3398,115 +3398,115 @@
    [
     "pg_default_acl",
     "default privileges for object types",
-    "—",
+    "no",
     "oid, defaclrole, defaclnamespace (0 = global), defaclobjtype (r/S/f/T/n/L), defaclacl"
    ],
    [
     "pg_depend",
     "dependencies between database objects",
-    "—",
+    "no",
     "classid, objid, objsubid, refclassid, refobjid, refobjsubid, deptype (n/a/i/P/S/e/x)"
    ],
    [
     "pg_description",
     "descriptions or comments on database objects",
-    "—",
+    "no",
     "objoid, classoid, objsubid (column number or 0), description"
    ],
    [
     "pg_enum",
     "enum label and value definitions",
-    "—",
+    "no",
     "oid (the enum value's internal representation), enumtypid, enumsortorder, enumlabel"
    ],
    [
     "pg_event_trigger",
     "event triggers",
-    "—",
+    "no",
     "oid, evtname, evtevent, evtowner, evtfoid, evtenabled (O/D/R/A), evttags"
    ],
    [
     "pg_extension",
     "installed extensions",
-    "—",
+    "no",
     "oid, extname, extowner, extnamespace, extrelocatable, extversion, extconfig, extcondition"
    ],
    [
     "pg_foreign_data_wrapper",
     "foreign-data wrapper definitions",
-    "—",
+    "no",
     "oid, fdwname, fdwowner, fdwhandler, fdwvalidator, fdwacl, fdwoptions"
    ],
    [
     "pg_foreign_server",
     "foreign server definitions",
-    "—",
+    "no",
     "oid, srvname, srvowner, srvfdw, srvtype, srvversion, srvacl, srvoptions"
    ],
    [
     "pg_foreign_table",
     "additional foreign table information",
-    "—",
+    "no",
     "ftrelid (-> pg_class), ftserver, ftoptions"
    ],
    [
     "pg_index",
     "additional index information",
-    "—",
+    "no",
     "indexrelid, indrelid, indnatts, indnkeyatts, indisunique, indisprimary, indisvalid, indisready, indislive, indcheckxmin, indkey (0 = expression), indclass, indexprs, indpred"
    ],
    [
     "pg_inherits",
     "table inheritance hierarchy",
-    "—",
+    "no",
     "inhrelid (child), inhparent, inhseqno, inhdetachpending"
    ],
    [
     "pg_init_privs",
     "object initial privileges",
-    "—",
+    "no",
     "objoid, classoid, objsubid, privtype (i initdb / e extension), initprivs"
    ],
    [
     "pg_language",
     "languages for writing functions",
-    "—",
+    "no",
     "oid, lanname, lanowner, lanispl, lanpltrusted, lanplcallfoid, laninline, lanvalidator, lanacl"
    ],
    [
     "pg_largeobject",
     "data pages for large objects",
-    "—",
+    "no",
     "loid, pageno, data (up to LOBLKSIZE bytes per page)"
    ],
    [
     "pg_largeobject_metadata",
     "metadata for large objects",
-    "—",
+    "no",
     "oid, lomowner, lomacl"
    ],
    [
     "pg_namespace",
     "schemas",
-    "—",
+    "no",
     "oid, nspname, nspowner, nspacl"
    ],
    [
     "pg_opclass",
     "access method operator classes",
-    "—",
+    "no",
     "oid, opcmethod, opcname, opcnamespace, opcowner, opcfamily, opcintype, opcdefault, opckeytype"
    ],
    [
     "pg_operator",
     "operators",
-    "—",
+    "no",
     "oid, oprname, oprkind (b/l), oprcanmerge, oprcanhash, oprleft, oprright, oprresult, oprcom, oprnegate, oprcode, oprrest, oprjoin"
    ],
    [
     "pg_opfamily",
     "access method operator families",
-    "—",
+    "no",
     "oid, opfmethod, opfname, opfnamespace, opfowner"
    ],
    [
@@ -3518,43 +3518,43 @@
    [
     "pg_partitioned_table",
     "information about partition key of tables",
-    "—",
+    "no",
     "partrelid, partstrat (h/l/r), partnatts, partdefid, partattrs, partclass, partcollation, partexprs"
    ],
    [
     "pg_policy",
     "row-security policies",
-    "—",
+    "no",
     "oid, polname, polrelid, polcmd (r/a/w/d/*), polpermissive, polroles, polqual, polwithcheck"
    ],
    [
     "pg_proc",
     "functions and procedures",
-    "—",
+    "no",
     "oid, proname, pronamespace, prolang, procost, prorows, prokind (f/p/a/w), prosecdef, proleakproof, proisstrict, proretset, provolatile (i/s/v), proparallel (s/r/u), prorettype, proargtypes, prosrc"
    ],
    [
     "pg_publication",
     "publications for logical replication",
-    "—",
+    "no",
     "oid, pubname, pubowner, puballtables, pubinsert, pubupdate, pubdelete, pubtruncate, pubviaroot, pubgencols (n/s)"
    ],
    [
     "pg_publication_namespace",
     "schema to publication mapping",
-    "—",
+    "no",
     "oid, pnpubid, pnnspid"
    ],
    [
     "pg_publication_rel",
     "relation to publication mapping",
-    "—",
+    "no",
     "oid, prpubid, prrelid, prqual (row filter), prattrs (column list)"
    ],
    [
     "pg_range",
     "information about range types",
-    "—",
+    "no",
     "rngtypid, rngsubtype, rngmultitypid, rngcollation, rngsubopc, rngcanonical, rngsubdiff"
    ],
    [
@@ -3566,19 +3566,19 @@
    [
     "pg_rewrite",
     "query rewrite rules",
-    "—",
+    "no",
     "oid, rulename, ev_class, ev_type (1 SELECT/2 UPDATE/3 INSERT/4 DELETE), ev_enabled, is_instead, ev_qual, ev_action (query tree)"
    ],
    [
     "pg_seclabel",
     "security labels on database objects",
-    "—",
+    "no",
     "objoid, classoid, objsubid, provider, label"
    ],
    [
     "pg_sequence",
     "information about sequences",
-    "—",
+    "no",
     "seqrelid, seqtypid, seqstart, seqincrement, seqmax, seqmin, seqcache, seqcycle"
    ],
    [
@@ -3602,19 +3602,19 @@
    [
     "pg_statistic",
     "planner statistics",
-    "—",
+    "no",
     "starelid, staattnum, stainherit, stanullfrac, stawidth, stadistinct, stakindN, staopN, stacollN, stanumbersN, stavaluesN (slots N)"
    ],
    [
     "pg_statistic_ext",
     "extended planner statistics (definition)",
-    "—",
+    "no",
     "oid, stxrelid, stxname, stxnamespace, stxowner, stxkeys, stxstattarget, stxkind (d/f/m/e), stxexprs"
    ],
    [
     "pg_statistic_ext_data",
     "extended planner statistics (built statistics)",
-    "—",
+    "no",
     "stxoid, stxdinherit, stxdndistinct, stxddependencies, stxdmcv, stxdexpr"
    ],
    [
@@ -3626,7 +3626,7 @@
    [
     "pg_subscription_rel",
     "relation state for subscriptions",
-    "—",
+    "no",
     "srsubid, srrelid, srsubstate (i/d/f/s/r), srsublsn"
    ],
    [
@@ -3638,55 +3638,55 @@
    [
     "pg_transform",
     "transforms (data type to procedural language conversions)",
-    "—",
+    "no",
     "oid, trftype, trflang, trffromsql, trftosql"
    ],
    [
     "pg_trigger",
     "triggers",
-    "—",
+    "no",
     "oid, tgrelid, tgparentid, tgname, tgfoid, tgtype (bit mask), tgenabled (O/D/R/A), tgisinternal, tgconstraint, tgdeferrable, tgattr, tgargs, tgqual, tgoldtable, tgnewtable"
    ],
    [
     "pg_ts_config",
     "text search configurations",
-    "—",
+    "no",
     "oid, cfgname, cfgnamespace, cfgowner, cfgparser"
    ],
    [
     "pg_ts_config_map",
     "text search configurations' token mappings",
-    "—",
+    "no",
     "mapcfg, maptokentype, mapseqno, mapdict"
    ],
    [
     "pg_ts_dict",
     "text search dictionaries",
-    "—",
+    "no",
     "oid, dictname, dictnamespace, dictowner, dicttemplate, dictinitoption"
    ],
    [
     "pg_ts_parser",
     "text search parsers",
-    "—",
+    "no",
     "oid, prsname, prsnamespace, prsstart, prstoken, prsend, prsheadline, prslextype"
    ],
    [
     "pg_ts_template",
     "text search templates",
-    "—",
+    "no",
     "oid, tmplname, tmplnamespace, tmplinit, tmpllexize"
    ],
    [
     "pg_type",
     "data types",
-    "—",
+    "no",
     "oid, typname, typnamespace, typlen (-1 varlena, -2 cstring), typbyval, typtype (b/c/d/e/p/r/m), typcategory, typrelid, typelem, typarray, typinput, typoutput, typalign, typstorage (p/e/m/x)"
    ],
    [
     "pg_user_mapping",
     "mappings of users to foreign servers",
-    "—",
+    "no",
     "oid, umuser (0 = public), umserver, umoptions"
    ]
   ]
@@ -3933,7 +3933,7 @@
   "columns": [
    "View",
    "Kind",
-   "Rows",
+   "One row per",
    "Purpose",
    "Key columns"
   ],
@@ -3941,301 +3941,301 @@
    [
     "pg_stat_activity",
     "dynamic",
-    "one per server process",
+    "server process",
     "current activity: state, current query, wait events",
-    "datid, datname, pid, leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, ..."
+    "datid, datname, pid, leader_pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, state_change, wait_event_type, wait_event, state, backend_xid, backend_xmin, query_id, query, backend_type"
    ],
    [
     "pg_stat_replication",
     "dynamic",
-    "one per WAL sender",
+    "WAL sender",
     "replication to that sender's connected standby",
-    "pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, backend_xmin, state, sent_lsn, write_lsn, flush_lsn, replay_lsn, write_lag, flush_lag, replay_lag, ..."
+    "pid, usesysid, usename, application_name, client_addr, client_hostname, client_port, backend_start, backend_xmin, state, sent_lsn, write_lsn, flush_lsn, replay_lsn, write_lag, flush_lag, replay_lag, sync_priority, sync_state, reply_time"
    ],
    [
     "pg_stat_wal_receiver",
     "dynamic",
-    "one row only",
+    "WAL receiver (single row)",
     "WAL receiver stats (on standby)",
-    "pid, status, receive_start_lsn, receive_start_tli, written_lsn, flushed_lsn, received_tli, last_msg_send_time, last_msg_receipt_time, latest_end_lsn, latest_end_time, slot_name, sender_host, ..."
+    "pid, status, receive_start_lsn, receive_start_tli, written_lsn, flushed_lsn, received_tli, last_msg_send_time, last_msg_receipt_time, latest_end_lsn, latest_end_time, slot_name, sender_host, sender_port, conninfo"
    ],
    [
     "pg_stat_recovery_prefetch",
     "dynamic",
-    "one row only",
+    "server (single row)",
     "blocks prefetched during recovery",
     "stats_reset, prefetch, hit, skip_init, skip_new, skip_fpw, skip_rep, wal_distance, block_distance, io_depth"
    ],
    [
     "pg_stat_subscription",
     "dynamic",
-    "at least one per subscription",
+    "subscription worker (at least one per subscription)",
     "subscription workers",
     "subid, subname, worker_type, pid, leader_pid, relid, received_lsn, last_msg_send_time, last_msg_receipt_time, latest_end_lsn, latest_end_time"
    ],
    [
     "pg_stat_ssl",
     "dynamic",
-    "one per connection (regular and replication)",
+    "connection (regular and replication)",
     "SSL usage",
     "pid, ssl, version, cipher, bits, client_dn, client_serial, issuer_dn"
    ],
    [
     "pg_stat_gssapi",
     "dynamic",
-    "one per connection",
+    "connection",
     "GSSAPI auth/encryption",
     "pid, gss_authenticated, principal, encrypted, credentials_delegated"
    ],
    [
     "pg_stat_progress_analyze",
     "dynamic",
-    "one per backend (incl. autovacuum workers) running ANALYZE",
+    "backend (incl. autovacuum workers) running ANALYZE",
     "progress",
     "Phases: initializing, acquiring sample rows, acquiring inherited sample rows, computing statistics, computing extended statistics, finalizing analyze."
    ],
    [
     "pg_stat_progress_create_index",
     "dynamic",
-    "one per backend running CREATE INDEX or REINDEX",
+    "backend running CREATE INDEX or REINDEX",
     "progress",
     "Phases: initializing, waiting for writers before build, building index, waiting for writers before validation, index validation: scanning index, index validation: sorting tuples, index validation: scanning table, waiting for old snapshots, waiting for readers before marking dead, waiting for readers before dropping."
    ],
    [
     "pg_stat_progress_vacuum",
     "dynamic",
-    "one per backend (incl. autovacuum workers) running VACUUM",
+    "backend (incl. autovacuum workers) running VACUUM",
     "progress",
     "Phases: initializing, scanning heap, vacuuming indexes, vacuuming heap, cleaning up indexes, truncating heap, performing final cleanup."
    ],
    [
     "pg_stat_progress_cluster",
     "dynamic",
-    "one per backend running CLUSTER or VACUUM FULL",
+    "backend running CLUSTER or VACUUM FULL",
     "progress",
     "Phases: initializing, seq scanning heap, index scanning heap, sorting tuples, writing new heap, swapping relation files, rebuilding index, performing final cleanup."
    ],
    [
     "pg_stat_progress_basebackup",
     "dynamic",
-    "one per WAL sender streaming a base backup",
+    "WAL sender streaming a base backup",
     "progress",
     "Phases: initializing, waiting for checkpoint to finish, estimating backup size, streaming database files, waiting for wal archiving to finish, transferring wal files."
    ],
    [
     "pg_stat_progress_copy",
     "dynamic",
-    "one per backend running COPY",
+    "backend running COPY",
     "progress",
     "Phases: no phases (command COPY FROM/TO; type FILE, PROGRAM, PIPE, CALLBACK)."
    ],
    [
     "pg_stat_archiver",
     "cumulative",
-    "one row",
+    "server (single row)",
     "WAL archiver activity",
     "archived_count, last_archived_wal, last_archived_time, failed_count, last_failed_wal, last_failed_time, stats_reset"
    ],
    [
     "pg_stat_bgwriter",
     "cumulative",
-    "one row",
+    "server (single row)",
     "background writer activity",
     "buffers_clean, maxwritten_clean, buffers_alloc, stats_reset"
    ],
    [
     "pg_stat_checkpointer",
     "cumulative",
-    "one row",
+    "server (single row)",
     "checkpointer activity",
     "num_timed, num_requested, num_done, restartpoints_timed, restartpoints_req, restartpoints_done, write_time, sync_time, buffers_written, slru_written, stats_reset"
    ],
    [
     "pg_stat_database",
     "cumulative",
-    "one per database (+ one for shared objects)",
+    "database (+ one for shared objects)",
     "database-wide stats",
-    "datid, datname, numbackends, xact_commit, xact_rollback, blks_read, blks_hit, tup_returned, tup_fetched, tup_inserted, tup_updated, tup_deleted, conflicts, temp_files, temp_bytes, deadlocks, ..."
+    "datid, datname, numbackends, xact_commit, xact_rollback, blks_read, blks_hit, tup_returned, tup_fetched, tup_inserted, tup_updated, tup_deleted, conflicts, temp_files, temp_bytes, deadlocks, checksum_failures, checksum_last_failure, blk_read_time, blk_write_time, session_time, active_time, idle_in_transaction_time, sessions, sessions_abandoned, sessions_fatal, sessions_killed, parallel_workers_to_launch, parallel_workers_launched, stats_reset"
    ],
    [
     "pg_stat_database_conflicts",
     "cumulative",
-    "one per database",
+    "database",
     "query cancels due to recovery conflicts on standbys",
     "datid, datname, confl_tablespace, confl_lock, confl_snapshot, confl_bufferpin, confl_deadlock, confl_active_logicalslot"
    ],
    [
     "pg_stat_io",
     "cumulative",
-    "one per (backend type, context, target object)",
+    "combination of backend type, target object and context",
     "cluster-wide I/O stats",
-    "backend_type, object, context, reads, read_bytes, read_time, writes, write_bytes, write_time, writebacks, writeback_time, extends, extend_bytes, extend_time, hits, evictions, reuses, fsyncs, ..."
+    "backend_type, object, context, reads, read_bytes, read_time, writes, write_bytes, write_time, writebacks, writeback_time, extends, extend_bytes, extend_time, hits, evictions, reuses, fsyncs, fsync_time, stats_reset"
    ],
    [
     "pg_stat_replication_slots",
     "cumulative",
-    "one per (logical) replication slot",
+    "logical replication slot",
     "slot usage (spill/stream)",
     "slot_name, spill_txns, spill_count, spill_bytes, stream_txns, stream_count, stream_bytes, total_txns, total_bytes, stats_reset"
    ],
    [
     "pg_stat_slru",
     "cumulative",
-    "one per SLRU",
+    "SLRU cache",
     "SLRU operations",
-    "name, blks_zeroed, blks_hit, blks_read, blks_written, blks_exists, flushes, truncates, stats_reset, commit_timestamp, multixact_member, multixact_offset, notify, serializable, subtransaction, ..."
+    "name, blks_zeroed, blks_hit, blks_read, blks_written, blks_exists, flushes, truncates, stats_reset; `name` is one of commit_timestamp, multixact_member, multixact_offset, notify, serializable, subtransaction, transaction, other"
    ],
    [
     "pg_stat_subscription_stats",
     "cumulative",
-    "one per subscription",
+    "subscription",
     "errors and conflicts",
-    "subid, subname, apply_error_count, sync_error_count, confl_insert_exists, confl_update_origin_differs, confl_update_exists, confl_update_missing, confl_delete_origin_differs, confl_delete_missing, ..."
+    "subid, subname, apply_error_count, sync_error_count, confl_insert_exists, confl_update_origin_differs, confl_update_exists, confl_update_missing, confl_delete_origin_differs, confl_delete_missing, confl_multiple_unique_conflicts, stats_reset"
    ],
    [
     "pg_stat_wal",
     "cumulative",
-    "one row",
+    "server (single row)",
     "WAL activity",
     "wal_records, wal_fpi, wal_bytes, wal_buffers_full, stats_reset"
    ],
    [
     "pg_stat_all_tables",
     "cumulative",
-    "one per table in current DB (incl. TOAST)",
+    "table in current DB (incl. TOAST)",
     "accesses to the table",
-    "relid, schemaname, relname, seq_scan, last_seq_scan, seq_tup_read, idx_scan, last_idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd, n_live_tup, n_dead_tup, ..."
+    "relid, schemaname, relname, seq_scan, last_seq_scan, seq_tup_read, idx_scan, last_idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd, n_live_tup, n_dead_tup, n_mod_since_analyze, n_ins_since_vacuum, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze, vacuum_count, autovacuum_count, analyze_count, autoanalyze_count, total_vacuum_time, total_autovacuum_time, total_analyze_time, total_autoanalyze_time"
    ],
    [
     "pg_stat_sys_tables",
     "cumulative",
-    "—",
+    "system table in current DB",
     "same, system tables only",
-    "(as pg_stat_all_tables) relid, schemaname, relname, seq_scan, last_seq_scan, seq_tup_read, idx_scan, last_idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd, ..."
+    "(as pg_stat_all_tables) relid, schemaname, relname, seq_scan, last_seq_scan, seq_tup_read, idx_scan, last_idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd, n_live_tup, n_dead_tup, n_mod_since_analyze, n_ins_since_vacuum, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze, vacuum_count, autovacuum_count, analyze_count, autoanalyze_count, total_vacuum_time, total_autovacuum_time, total_analyze_time, total_autoanalyze_time"
    ],
    [
     "pg_stat_user_tables",
     "cumulative",
-    "—",
+    "user table in current DB",
     "same, user tables only",
-    "(as pg_stat_all_tables) relid, schemaname, relname, seq_scan, last_seq_scan, seq_tup_read, idx_scan, last_idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd, ..."
+    "(as pg_stat_all_tables) relid, schemaname, relname, seq_scan, last_seq_scan, seq_tup_read, idx_scan, last_idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd, n_live_tup, n_dead_tup, n_mod_since_analyze, n_ins_since_vacuum, last_vacuum, last_autovacuum, last_analyze, last_autoanalyze, vacuum_count, autovacuum_count, analyze_count, autoanalyze_count, total_vacuum_time, total_autovacuum_time, total_analyze_time, total_autoanalyze_time"
    ],
    [
     "pg_stat_xact_all_tables",
     "cumulative",
-    "—",
+    "table in current DB",
     "like pg_stat_all_tables but counts actions so far in the current transaction (not yet in pg_stat_all_tables); no live/dead row, vacuum, analyze columns",
-    "(as pg_stat_all_tables) relid, schemaname, relname, seq_scan, last_seq_scan, seq_tup_read, idx_scan, last_idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd, ..."
+    "relid, schemaname, relname, seq_scan, seq_tup_read, idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd"
    ],
    [
     "pg_stat_xact_sys_tables",
     "cumulative",
-    "—",
+    "system table in current DB",
     "same, system tables only",
-    "(as pg_stat_all_tables) relid, schemaname, relname, seq_scan, last_seq_scan, seq_tup_read, idx_scan, last_idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd, ..."
+    "relid, schemaname, relname, seq_scan, seq_tup_read, idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd"
    ],
    [
     "pg_stat_xact_user_tables",
     "cumulative",
-    "—",
+    "user table in current DB",
     "same, user tables only",
-    "(as pg_stat_all_tables) relid, schemaname, relname, seq_scan, last_seq_scan, seq_tup_read, idx_scan, last_idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd, ..."
+    "relid, schemaname, relname, seq_scan, seq_tup_read, idx_scan, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_tup_newpage_upd"
    ],
    [
     "pg_stat_all_indexes",
     "cumulative",
-    "one per index in current DB",
+    "index in current DB",
     "accesses to the index",
     "relid, indexrelid, schemaname, relname, indexrelname, idx_scan, last_idx_scan, idx_tup_read, idx_tup_fetch"
    ],
    [
     "pg_stat_sys_indexes",
     "cumulative",
-    "—",
+    "index on a system table",
     "indexes on system tables only",
     "(as pg_stat_all_indexes) relid, indexrelid, schemaname, relname, indexrelname, idx_scan, last_idx_scan, idx_tup_read, idx_tup_fetch"
    ],
    [
     "pg_stat_user_indexes",
     "cumulative",
-    "—",
+    "index on a user table",
     "indexes on user tables only",
     "(as pg_stat_all_indexes) relid, indexrelid, schemaname, relname, indexrelname, idx_scan, last_idx_scan, idx_tup_read, idx_tup_fetch"
    ],
    [
     "pg_stat_user_functions",
     "cumulative",
-    "one per tracked function",
+    "tracked function",
     "function executions",
     "funcid, schemaname, funcname, calls, total_time, self_time"
    ],
    [
     "pg_stat_xact_user_functions",
     "cumulative",
-    "—",
+    "tracked function",
     "calls during the current transaction only",
     "(as pg_stat_user_functions) funcid, schemaname, funcname, calls, total_time, self_time"
    ],
    [
     "pg_statio_all_tables",
     "cumulative",
-    "one per table in current DB",
+    "table in current DB",
     "I/O on the table",
     "relid, schemaname, relname, heap_blks_read, heap_blks_hit, idx_blks_read, idx_blks_hit, toast_blks_read, toast_blks_hit, tidx_blks_read, tidx_blks_hit"
    ],
    [
     "pg_statio_sys_tables",
     "cumulative",
-    "—",
+    "system table in current DB",
     "system tables only",
     "(as pg_statio_all_tables) relid, schemaname, relname, heap_blks_read, heap_blks_hit, idx_blks_read, idx_blks_hit, toast_blks_read, toast_blks_hit, tidx_blks_read, tidx_blks_hit"
    ],
    [
     "pg_statio_user_tables",
     "cumulative",
-    "—",
+    "user table in current DB",
     "user tables only",
     "(as pg_statio_all_tables) relid, schemaname, relname, heap_blks_read, heap_blks_hit, idx_blks_read, idx_blks_hit, toast_blks_read, toast_blks_hit, tidx_blks_read, tidx_blks_hit"
    ],
    [
     "pg_statio_all_indexes",
     "cumulative",
-    "one per index",
+    "index in current DB",
     "I/O on the index",
     "relid, indexrelid, schemaname, relname, indexrelname, idx_blks_read, idx_blks_hit"
    ],
    [
     "pg_statio_sys_indexes",
     "cumulative",
-    "—",
+    "index on a system table",
     "indexes on system tables",
     "(as pg_statio_all_indexes) relid, indexrelid, schemaname, relname, indexrelname, idx_blks_read, idx_blks_hit"
    ],
    [
     "pg_statio_user_indexes",
     "cumulative",
-    "—",
+    "index on a user table",
     "indexes on user tables",
     "(as pg_statio_all_indexes) relid, indexrelid, schemaname, relname, indexrelname, idx_blks_read, idx_blks_hit"
    ],
    [
     "pg_statio_all_sequences",
     "cumulative",
-    "one per sequence",
+    "sequence in current DB",
     "I/O on the sequence",
     "relid, schemaname, relname, blks_read, blks_hit"
    ],
    [
     "pg_statio_sys_sequences",
     "cumulative",
-    "—",
+    "system sequence",
     "system sequences (presently none defined -> always empty)",
     "(as pg_statio_all_sequences) relid, schemaname, relname, blks_read, blks_hit"
    ],
    [
     "pg_statio_user_sequences",
     "cumulative",
-    "—",
+    "user sequence",
     "user sequences",
     "(as pg_statio_all_sequences) relid, schemaname, relname, blks_read, blks_hit"
    ]
@@ -4394,17 +4394,17 @@
    [
     "DblinkConnect",
     "Extension",
-    "defined by dblink / postgres_fdw (Appendix F)"
+    "Defined by the `dblink` extension"
    ],
    [
     "DblinkGetConnect",
     "Extension",
-    "defined by dblink / postgres_fdw (Appendix F)"
+    "Defined by the `dblink` extension"
    ],
    [
     "DblinkGetResult",
     "Extension",
-    "defined by dblink / postgres_fdw (Appendix F)"
+    "Defined by the `dblink` extension"
    ],
    [
     "Extension",
@@ -4414,17 +4414,17 @@
    [
     "PostgresFdwCleanupResult",
     "Extension",
-    "defined by dblink / postgres_fdw (Appendix F)"
+    "Defined by the `postgres_fdw` extension"
    ],
    [
     "PostgresFdwConnect",
     "Extension",
-    "defined by dblink / postgres_fdw (Appendix F)"
+    "Defined by the `postgres_fdw` extension"
    ],
    [
     "PostgresFdwGetResult",
     "Extension",
-    "defined by dblink / postgres_fdw (Appendix F)"
+    "Defined by the `postgres_fdw` extension"
    ],
    [
     "AioIoCompletion",
@@ -5767,11 +5767,11 @@
  {
   "id": "sql-commands",
   "title": "SQL commands",
-  "description": "Every SQL command, its purpose, and the lock it takes or the caveat worth knowing before running it in production.",
+  "description": "Every SQL command, its purpose, the table lock it takes where that matters, and the caveats worth knowing before running it in production.",
   "columns": [
    "Command",
    "Purpose",
-   "Lock taken / caveat"
+   "Lock and caveats"
   ],
   "rows": [
    [
@@ -5992,7 +5992,7 @@
    [
     "ANALYZE",
     "collect statistics about a database",
-    "Only a read lock (runs alongside non-DDL activity); needs MAINTAIN; autovacuum never analyzes partitioned parents"
+    "SHARE UPDATE EXCLUSIVE on the table (does not block reads or writes; one ANALYZE or VACUUM per table at a time); needs MAINTAIN; autovacuum never analyzes partitioned parents"
    ],
    [
     "BEGIN",
@@ -6107,7 +6107,7 @@
    [
     "CREATE INDEX",
     "define a new index",
-    "Blocks writes but not reads; CONCURRENTLY: no lock blocking DML, one per table, not in a transaction block, failure leaves an INVALID index"
+    "SHARE on the table: blocks writes, not reads; CONCURRENTLY: SHARE UPDATE EXCLUSIVE (does not block DML), one concurrent build per table, not in a transaction block, failure leaves an INVALID index"
    ],
    [
     "CREATE LANGUAGE",
@@ -6177,7 +6177,7 @@
    [
     "CREATE STATISTICS",
     "define extended statistics",
-    "Not used for join selectivity estimates; data is computed only by ANALYZE"
+    "SHARE UPDATE EXCLUSIVE on the table; not used for join selectivity estimates; data is computed only by ANALYZE"
    ],
    [
     "CREATE SUBSCRIPTION",
@@ -6227,7 +6227,7 @@
    [
     "CREATE TRIGGER",
     "define a new trigger",
-    "Default is FOR EACH STATEMENT; needs TRIGGER on the table and EXECUTE; replacing a trigger mid-transaction after modifications not recommended"
+    "SHARE ROW EXCLUSIVE on the table; default is FOR EACH STATEMENT; needs TRIGGER on the table and EXECUTE; replacing a trigger mid-transaction after modifications not recommended"
    ],
    [
     "CREATE TYPE",
@@ -6262,7 +6262,7 @@
    [
     "DELETE",
     "delete rows of a table",
-    "No WHERE deletes all rows (TRUNCATE is faster); no LIMIT (batch via a ctid CTE)"
+    "ROW EXCLUSIVE on the target table; no WHERE deletes all rows (TRUNCATE is faster); no LIMIT (batch via a ctid CTE)"
    ],
    [
     "DISCARD",
@@ -6352,7 +6352,7 @@
    [
     "DROP MATERIALIZED VIEW",
     "remove a materialized view",
-    "—"
+    "ACCESS EXCLUSIVE on the materialized view"
    ],
    [
     "DROP OPERATOR",
@@ -6412,7 +6412,7 @@
    [
     "DROP SEQUENCE",
     "remove a sequence",
-    "—"
+    "ACCESS EXCLUSIVE on the sequence"
    ],
    [
     "DROP SERVER",
@@ -6432,7 +6432,7 @@
    [
     "DROP TABLE",
     "remove a table",
-    "Dropping a partition: ACCESS EXCLUSIVE on the parent; CASCADE needed for dependent views or inbound FKs"
+    "ACCESS EXCLUSIVE on the table; dropping a partition: also ACCESS EXCLUSIVE on the parent; CASCADE needed for dependent views or inbound FKs"
    ],
    [
     "DROP TABLESPACE",
@@ -6487,7 +6487,7 @@
    [
     "DROP VIEW",
     "remove a view",
-    "—"
+    "ACCESS EXCLUSIVE on the view"
    ],
    [
     "END",
@@ -6522,7 +6522,7 @@
    [
     "INSERT",
     "create new rows in a table",
-    "Can block only with unique indexes and concurrent conflicting rows; ON CONFLICT DO UPDATE errors if one row is hit twice"
+    "ROW EXCLUSIVE on the target table; can block only with unique indexes and concurrent conflicting rows; ON CONFLICT DO UPDATE errors if one row is hit twice"
    ],
    [
     "LISTEN",
@@ -6542,7 +6542,7 @@
    [
     "MERGE",
     "conditionally insert, update, or delete rows of a table",
-    "Cardinality violation if a target row matches several source rows; not supported on matviews, foreign tables, or tables with rules"
+    "ROW EXCLUSIVE on the target table; cardinality violation if a target row matches several source rows; not supported on matviews, foreign tables, or tables with rules"
    ],
    [
     "MOVE",
@@ -6572,7 +6572,7 @@
    [
     "REFRESH MATERIALIZED VIEW",
     "replace the contents of a materialized view",
-    "Blocks readers unless CONCURRENTLY (needs a column-only unique index, populated view); one refresh at a time per matview"
+    "ACCESS EXCLUSIVE (blocks readers); CONCURRENTLY: EXCLUSIVE, readers continue (needs a column-only unique index, populated view); one refresh at a time per matview"
    ],
    [
     "REINDEX",
@@ -6622,7 +6622,7 @@
    [
     "SELECT",
     "retrieve rows from a table or view",
-    "FOR UPDATE/SHARE etc.: ROW SHARE table lock + row locks (NOWAIT/SKIP LOCKED apply only to row locks); locking needs UPDATE privilege"
+    "ACCESS SHARE on each table read; FOR UPDATE/SHARE etc.: ROW SHARE table lock + row locks (NOWAIT/SKIP LOCKED apply only to row locks); locking needs UPDATE privilege"
    ],
    [
     "SELECT INTO",
@@ -6677,12 +6677,12 @@
    [
     "UPDATE",
     "update rows of a table",
-    "FROM join silently picks an unpredictable match; concurrent update of a row moved between partitions fails with 40001"
+    "ROW EXCLUSIVE on the target table; FROM join silently picks an unpredictable match; concurrent update of a row moved between partitions fails with 40001"
    ],
    [
     "VACUUM",
     "garbage-collect and optionally analyze a database",
-    "Plain: no exclusive lock (end-of-table truncation needs ACCESS EXCLUSIVE); FULL: ACCESS EXCLUSIVE; not in a transaction block"
+    "Plain: SHARE UPDATE EXCLUSIVE, does not block reads or writes (end-of-table truncation briefly needs ACCESS EXCLUSIVE); FULL: ACCESS EXCLUSIVE; not in a transaction block"
    ],
    [
     "VALUES",
@@ -6861,7 +6861,7 @@
    [
     "pg_snapshot",
     "—",
-    "—",
+    "variable",
     "user-level transaction ID snapshot"
    ],
    [
@@ -6933,19 +6933,19 @@
    [
     "tsquery",
     "—",
-    "—",
+    "variable",
     "text search query"
    ],
    [
     "tsvector",
     "—",
-    "—",
+    "variable",
     "text search document; must be < 1 MB"
    ],
    [
     "txid_snapshot",
     "—",
-    "—",
+    "variable",
     "deprecated; see pg_snapshot"
    ],
    [
@@ -6957,7 +6957,7 @@
    [
     "xml",
     "—",
-    "—",
+    "variable",
     "XML data; requires --with-libxml"
    ],
    [
@@ -7005,302 +7005,302 @@
    [
     "tid",
     "—",
-    "—",
+    "6 bytes",
     "tuple identifier (block number, tuple index)"
    ],
    [
     "regclass",
     "—",
-    "—",
-    "OID alias type referencing `pg_class` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_class`"
    ],
    [
     "regcollation",
     "—",
-    "—",
-    "OID alias type referencing `pg_collation` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_collation`"
    ],
    [
     "regconfig",
     "—",
-    "—",
-    "OID alias type referencing `pg_ts_config` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_ts_config`"
    ],
    [
     "regdictionary",
     "—",
-    "—",
-    "OID alias type referencing `pg_ts_dict` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_ts_dict`"
    ],
    [
     "regnamespace",
     "—",
-    "—",
-    "OID alias type referencing `pg_namespace` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_namespace`"
    ],
    [
     "regoper",
     "—",
-    "—",
-    "OID alias type referencing `pg_operator` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_operator`"
    ],
    [
     "regoperator",
     "—",
-    "—",
-    "OID alias type referencing `pg_operator` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_operator`"
    ],
    [
     "regproc",
     "—",
-    "—",
-    "OID alias type referencing `pg_proc` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_proc`"
    ],
    [
     "regprocedure",
     "—",
-    "—",
-    "OID alias type referencing `pg_proc` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_proc`"
    ],
    [
     "regrole",
     "—",
-    "—",
-    "OID alias type referencing `pg_authid` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_authid`"
    ],
    [
     "regtype",
     "—",
-    "—",
-    "OID alias type referencing `pg_type` (Table 8.26)"
+    "4 bytes",
+    "OID alias type referencing `pg_type`"
    ],
    [
     "int4range",
     "—",
-    "—",
+    "variable",
     "built-in range type"
    ],
    [
     "int4multirange",
     "—",
-    "—",
+    "variable",
     "built-in multirange type"
    ],
    [
     "int8range",
     "—",
-    "—",
+    "variable",
     "built-in range type"
    ],
    [
     "int8multirange",
     "—",
-    "—",
+    "variable",
     "built-in multirange type"
    ],
    [
     "numrange",
     "—",
-    "—",
+    "variable",
     "built-in range type"
    ],
    [
     "nummultirange",
     "—",
-    "—",
+    "variable",
     "built-in multirange type"
    ],
    [
     "tsrange",
     "—",
-    "—",
+    "variable",
     "built-in range type"
    ],
    [
     "tsmultirange",
     "—",
-    "—",
+    "variable",
     "built-in multirange type"
    ],
    [
     "tstzrange",
     "—",
-    "—",
+    "variable",
     "built-in range type"
    ],
    [
     "tstzmultirange",
     "—",
-    "—",
+    "variable",
     "built-in multirange type"
    ],
    [
     "daterange",
     "—",
-    "—",
+    "variable",
     "built-in range type"
    ],
    [
     "datemultirange",
     "—",
-    "—",
+    "variable",
     "built-in multirange type"
    ],
    [
     "jsonpath",
     "—",
-    "—",
+    "variable",
     "SQL/JSON path expression"
    ],
    [
     "any",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anyelement",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anyarray",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anynonarray",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anyenum",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anyrange",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anymultirange",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anycompatible",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anycompatiblearray",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anycompatiblenonarray",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anycompatiblerange",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "anycompatiblemultirange",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "cstring",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "internal",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "language_handler",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "fdw_handler",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "table_am_handler",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "index_am_handler",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "tsm_handler",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "record",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "trigger",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "event_trigger",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "pg_ddl_command",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "void",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ],
    [
     "unknown",
     "—",
     "n/a",
-    "pseudo-type (Table 8.27)"
+    "pseudo-type"
    ]
   ]
  },
@@ -7322,7 +7322,7 @@
    [
     "B-tree",
     "balanced multi-way tree, metapage + internal + leaf, sibling-linked levels",
-    "`<` `<=` `=` `>=` `>`; Ch. 11 examples: `< <= = >= >`, BETWEEN, IN, IS [NOT] NULL, anchored LIKE/`~`",
+    "`<` `<=` `=` `>=` `>`, BETWEEN, IN, IS [NOT] NULL, anchored LIKE/`~`",
     "yes",
     "yes (only AM with `amcanunique`)",
     "yes (`amcanorder`)",
@@ -7332,7 +7332,7 @@
    [
     "Hash",
     "meta page, bucket pages, overflow pages, bitmap pages",
-    "`=` only; Ch. 11 examples: `=` (32-bit hash code)",
+    "`=` only (compares 32-bit hash codes)",
     "no (single column)",
     "no",
     "no",
@@ -7342,8 +7342,8 @@
    [
     "GiST",
     "balanced tree template (R-tree, etc.)",
-    "opclass-defined (Table 65.1); Ch. 11 examples: geometric `<< &< &> >> <<| &<| |&> |>> @> <@ ~= &&`; nearest-neighbor `<->`",
-    "yes (first column most important) (Ch. 11)",
+    "opclass-defined; examples: geometric `<< &< &> >> <<| &<| |&> |>> @> <@ ~= &&`; nearest-neighbor `<->`",
+    "yes (first column most important)",
     "no",
     "ordering operators via `distance` (k-NN)",
     "per-opclass via recheck",
@@ -7352,8 +7352,8 @@
    [
     "SP-GiST",
     "non-balanced partitioned trees (quad-tree, k-d tree, radix tree)",
-    "opclass-defined (Table 65.2); Ch. 11 examples: points `<< >> ~= <@ <<| |>>`; nearest-neighbor",
-    "INCLUDE columns in leaf tuples",
+    "opclass-defined; examples: points `<< >> ~= <@ <<| |>>`; nearest-neighbor",
+    "no (one key column; INCLUDE columns allowed)",
     "no",
     "`<->` k-NN for point/polygon/box opclasses",
     "per-opclass via recheck",
@@ -7362,7 +7362,7 @@
    [
     "GIN",
     "B-tree over keys (entry tree) + posting list / posting tree; pending list",
-    "opclass-defined (Table 65.3); Ch. 11 examples: arrays `<@ @> = &&`; jsonb `? ?| ?& @> @? @@`",
+    "opclass-defined; examples: arrays `<@ @> = &&`; jsonb `? ?| ?& @> @? @@`",
     "yes (single tree over (column number, key))",
     "no",
     "no",
@@ -7372,19 +7372,19 @@
    [
     "BRIN",
     "per-block-range summaries",
-    "per opclass kind; Ch. 11 examples: min/max `< <= = >= >` per block range",
-    "yes (any column equally) (Ch. 11)",
+    "per opclass kind; examples: min/max `< <= = >= >` per block range",
+    "yes (any column equally)",
     "no",
     "no",
     "yes, always (bitmap scans only)",
-    "pages_per_range, autosummarize; `amsummarizing` keeps HOT; INCLUDE: no; index-only scan: no; parallel scan: no; locking: not covered"
+    "pages_per_range, autosummarize; `amsummarizing` keeps HOT; INCLUDE: no; index-only scan: no; parallel scan: no"
    ]
   ]
  },
  {
   "id": "extensions",
   "title": "Extensions",
-  "description": "Modules shipped with PostgreSQL, plus `vector` (pgvector). **Trusted** extensions can be installed by non-superusers with CREATE privilege on the database.",
+  "description": "Modules shipped with PostgreSQL, plus the third-party `vector` (pgvector). **Trusted** extensions can be installed by non-superusers with CREATE privilege on the database. Kind: **ext** = installed with `CREATE EXTENSION`; **lib** = a library loaded through the named setting, so Trusted does not apply (n/a).",
   "columns": [
    "Module",
    "Purpose",
@@ -7396,7 +7396,7 @@
    [
     "amcheck",
     "verify table/index structural consistency",
-    "N",
+    "no",
     "ext",
     "bt_index_check, bt_index_parent_check, gin_index_check, verify_heapam"
    ],
@@ -7412,7 +7412,7 @@
     "log plans of slow statements",
     "n/a",
     "lib, LOAD / session_preload_libraries / shared_preload_libraries",
-    "auto_explain.* GUCs"
+    "`auto_explain.*` settings"
    ],
    [
     "basebackup_to_shell",
@@ -7431,128 +7431,128 @@
    [
     "bloom",
     "Bloom-filter index access method",
-    "N",
+    "no",
     "ext",
     "AM `bloom`, WITH (length, col1..col32)"
    ],
    [
     "btree_gin",
     "GIN opclasses with B-tree behaviour",
-    "Y",
+    "yes",
     "ext",
     "opclasses for scalar types"
    ],
    [
     "btree_gist",
     "GiST opclasses with B-tree behaviour, `<>`, `<->`",
-    "Y",
+    "yes",
     "ext",
     "opclasses, exclusion constraints"
    ],
    [
     "citext",
     "case-insensitive text type",
-    "Y",
+    "yes",
     "ext",
     "type citext"
    ],
    [
     "cube",
     "multidimensional cube type",
-    "Y",
+    "yes",
     "ext",
-    "type cube, `<->` `<#>` `<=>` `~>`, cube_* functions"
+    "type cube, `<->` `<#>` `<=>` `~>`, `cube_*` functions"
    ],
    [
     "dblink",
     "ad hoc connections to other PostgreSQL databases",
-    "N",
+    "no",
     "ext",
     "dblink, dblink_connect, dblink_exec, dblink_open/fetch/close, dblink_send_query/get_result, dblink_fdw"
    ],
    [
     "dict_int",
     "example FTS dictionary for integers",
-    "Y",
+    "yes",
     "ext",
     "intdict_template, intdict"
    ],
    [
     "dict_xsyn",
     "example extended synonym FTS dictionary",
-    "N",
+    "no",
     "ext",
     "xsyn_template, xsyn"
    ],
    [
     "earthdistance",
     "great-circle distances",
-    "N",
+    "no",
     "ext (requires cube)",
     "earth domain, ll_to_earth, earth_distance, earth_box, `<@>`"
    ],
    [
     "file_fdw",
     "read server files / program output as foreign tables",
-    "N",
+    "no",
     "ext",
     "FDW file_fdw; filename/program + COPY options"
    ],
    [
     "fuzzystrmatch",
     "string similarity/distance",
-    "Y",
+    "yes",
     "ext",
     "soundex, difference, daitch_mokotoff, levenshtein, levenshtein_less_equal, metaphone, dmetaphone, dmetaphone_alt"
    ],
    [
     "hstore",
     "key/value type",
-    "Y",
+    "yes",
     "ext",
     "type hstore, `->` `?` `?&` `?|` `@>` `||` `-` `#=`, gist_hstore_ops"
    ],
    [
     "intagg",
     "obsolete integer aggregator/enumerator",
-    "N",
+    "no",
     "ext",
     "int_array_aggregate, int_array_enum"
    ],
    [
     "intarray",
     "null-free int[] functions, operators, indexes",
-    "Y",
+    "yes",
     "ext",
     "query_int, `@@`, gist__int_ops, gist__intbig_ops, gin__int_ops"
    ],
    [
     "isn",
     "product-number types",
-    "Y",
+    "yes",
     "ext",
     "EAN13, ISBN13, ISMN13, ISSN13, ISBN, ISMN, ISSN, UPC; isn.weak"
    ],
    [
     "lo",
     "large object management",
-    "Y",
+    "yes",
     "ext",
     "domain lo, trigger lo_manage"
    ],
    [
     "ltree",
     "hierarchical label paths",
-    "Y",
+    "yes",
     "ext",
     "ltree, lquery, ltxtquery, gist_ltree_ops, gist__ltree_ops"
    ],
    [
     "pageinspect",
     "raw page inspection",
-    "N",
+    "no",
     "ext (superuser-only functions)",
-    "get_raw_page, page_header, heap_page_items, bt_*, brin_*, gin_*, gist_*, hash_*"
+    "get_raw_page, page_header, heap_page_items, `bt_*`, `brin_*`, `gin_*`, `gist_*`, `hash_*`"
    ],
    [
     "passwordcheck",
@@ -7564,28 +7564,28 @@
    [
     "pg_buffercache",
     "shared buffer cache inspection/eviction",
-    "N",
+    "no",
     "ext",
     "pg_buffercache, pg_buffercache_numa, pg_buffercache_summary, _usage_counts, _evict, _evict_relation, _evict_all"
    ],
    [
     "pgcrypto",
     "cryptographic functions",
-    "Y",
+    "yes",
     "ext",
-    "digest, hmac, crypt, gen_salt, pgp_sym_*/pgp_pub_*, encrypt/decrypt, gen_random_bytes"
+    "digest, hmac, crypt, gen_salt, `pgp_sym_*` / `pgp_pub_*`, encrypt/decrypt, gen_random_bytes"
    ],
    [
     "pg_freespacemap",
     "examine the FSM",
-    "N",
+    "no",
     "ext",
     "pg_freespace"
    ],
    [
     "pg_logicalinspect",
     "inspect logical decoding snapshots",
-    "N",
+    "no",
     "ext",
     "pg_get_logical_snapshot_meta, pg_get_logical_snapshot_info"
    ],
@@ -7599,70 +7599,70 @@
    [
     "pg_prewarm",
     "preload relation data; autoprewarm",
-    "N",
+    "no",
     "ext + optional shared_preload_libraries",
     "pg_prewarm, autoprewarm_start_worker, autoprewarm_dump_now"
    ],
    [
     "pgrowlocks",
     "row lock information",
-    "N",
+    "no",
     "ext",
     "pgrowlocks"
    ],
    [
     "pg_stat_statements",
     "per-statement planning/execution stats",
-    "N",
+    "no",
     "ext + shared_preload_libraries (required)",
     "pg_stat_statements, pg_stat_statements_info, pg_stat_statements_reset"
    ],
    [
     "pgstattuple",
     "tuple-level statistics / bloat",
-    "N",
+    "no",
     "ext",
     "pgstattuple, pgstattuple_approx, pgstatindex, pgstatginindex, pgstathashindex, pg_relpages"
    ],
    [
     "pg_surgery",
     "last-resort heap surgery",
-    "N",
+    "no",
     "ext",
     "heap_force_kill, heap_force_freeze"
    ],
    [
     "pg_trgm",
     "trigram similarity and indexes",
-    "Y",
+    "yes",
     "ext",
     "similarity, word_similarity, `%`, `<->`, gist_trgm_ops, gin_trgm_ops"
    ],
    [
     "pg_visibility",
     "visibility map inspection",
-    "N",
+    "no",
     "ext",
     "pg_visibility_map, pg_visibility, pg_visibility_map_summary, pg_check_frozen, pg_check_visible, pg_truncate_visibility_map"
    ],
    [
     "pg_walinspect",
     "WAL inspection via SQL",
-    "N",
+    "no",
     "ext",
     "pg_get_wal_record_info, pg_get_wal_records_info, pg_get_wal_block_info, pg_get_wal_stats"
    ],
    [
     "postgres_fdw",
     "FDW for remote PostgreSQL servers",
-    "N",
+    "no",
     "ext",
     "FDW postgres_fdw, postgres_fdw_get_connections, postgres_fdw_disconnect(_all)"
    ],
    [
     "seg",
     "interval type preserving precision",
-    "Y",
+    "yes",
     "ext",
     "type seg, GiST opclass"
    ],
@@ -7676,28 +7676,28 @@
    [
     "spi (refint, autoinc, insert_username, moddatetime)",
     "example SPI triggers",
-    "N",
+    "no",
     "4 separate exts",
     "check_primary_key, check_foreign_key, autoinc, insert_username, moddatetime"
    ],
    [
     "sslinfo",
     "client SSL certificate info",
-    "N",
+    "no",
     "ext",
     "ssl_is_used, ssl_version, ssl_cipher, ssl_client_dn, ssl_client_dn_field, ssl_extension_info"
    ],
    [
     "tablefunc",
     "pivot and hierarchy table functions",
-    "Y",
+    "yes",
     "ext",
     "crosstab, crosstabN, connectby, normal_rand"
    ],
    [
     "tcn",
     "change notification trigger",
-    "Y",
+    "yes",
     "ext",
     "triggered_change_notification"
    ],
@@ -7711,44 +7711,44 @@
    [
     "tsm_system_rows",
     "TABLESAMPLE SYSTEM_ROWS",
-    "Y",
+    "yes",
     "ext",
     "SYSTEM_ROWS(n)"
    ],
    [
     "tsm_system_time",
     "TABLESAMPLE SYSTEM_TIME",
-    "Y",
+    "yes",
     "ext",
     "SYSTEM_TIME(ms)"
    ],
    [
     "unaccent",
     "accent-removing filtering dictionary",
-    "Y",
+    "yes",
     "ext",
     "template/dictionary unaccent, unaccent()"
    ],
    [
     "uuid-ossp",
     "UUID generation",
-    "Y",
+    "yes",
     "ext",
-    "uuid_generate_v1, v1mc, v3, v4, v5; uuid_ns_*"
+    "uuid_generate_v1, v1mc, v3, v4, v5; `uuid_ns_*`"
    ],
    [
     "xml2",
     "deprecated XPath/XSLT",
-    "N",
+    "no",
     "ext",
     "xpath_string, xpath_table, xslt_process"
    ],
    [
     "vector",
-    "Vector similarity search (third-party **pgvector**, bundled with PGlite): a `vector(n)` type, distance operators, and approximate nearest-neighbour indexes.",
-    "n/a (third-party)",
+    "Vector similarity search (third-party **pgvector**, not shipped with PostgreSQL): a `vector(n)` type, distance operators, and approximate nearest-neighbour indexes.",
+    "n/a",
     "third-party extension",
-    "`vector` type; `<->` L2, `<#>` negative inner product, `<=>` cosine distance; `hnsw` and `ivfflat` index methods (HNSW verified in this site's PGlite)"
+    "`vector` type; `<->` L2, `<#>` negative inner product, `<=>` cosine distance; `hnsw` and `ivfflat` index methods"
    ]
   ]
  },
@@ -8094,7 +8094,7 @@
    ],
    [
     "inet_client_addr() / inet_client_port() / inet_server_addr() / inet_server_port()",
-    "—",
+    "inet / integer / inet / integer",
     "Client and server address/port of the current connection; NULL over a Unix-domain socket."
    ],
    [
@@ -8354,37 +8354,37 @@
    ],
    [
     "pg_get_constraintdef(oid [, pretty])",
-    "—",
+    "text",
     "Decompiled reconstruction of a constraint definition (not the original text)."
    ],
    [
     "pg_get_expr(pg_node_tree, relation oid [, pretty])",
-    "—",
+    "text",
     "Decompiles an internal expression tree; pass 0 for relation if no Vars."
    ],
    [
     "pg_get_functiondef(oid)",
-    "—",
+    "text",
     "Complete CREATE OR REPLACE FUNCTION/PROCEDURE statement for a function."
    ],
    [
     "pg_get_function_arguments(oid)",
-    "—",
+    "text",
     "Argument list of a function as it would appear in CREATE FUNCTION."
    ],
    [
     "pg_get_function_identity_arguments(oid)",
-    "—",
+    "text",
     "Argument list identifying a function, omitting defaults."
    ],
    [
     "pg_get_function_result(oid)",
-    "—",
+    "text",
     "RETURNS clause of a function; NULL for a procedure."
    ],
    [
     "pg_get_indexdef(index oid [, column integer, pretty boolean])",
-    "—",
+    "text",
     "Decompiled CREATE INDEX command, or one column's definition."
    ],
    [
@@ -8394,17 +8394,17 @@
    ],
    [
     "pg_get_partition_constraintdef(table oid)",
-    "—",
+    "text",
     "Decompiled partition constraint of a partition."
    ],
    [
     "pg_get_partkeydef(table oid)",
-    "—",
+    "text",
     "Decompiled partition key definition of a partitioned table."
    ],
    [
     "pg_get_ruledef(oid [, pretty])",
-    "—",
+    "text",
     "Decompiled CREATE RULE command."
    ],
    [
@@ -8414,12 +8414,12 @@
    ],
    [
     "pg_get_statisticsobjdef(oid)",
-    "—",
+    "text",
     "Decompiled CREATE STATISTICS command for an extended statistics object."
    ],
    [
     "pg_get_triggerdef(oid [, pretty])",
-    "—",
+    "text",
     "Decompiled CREATE TRIGGER command."
    ],
    [
@@ -8429,7 +8429,7 @@
    ],
    [
     "pg_get_viewdef(view oid [, pretty]) / (view oid, wrap_column integer) / (view text [, pretty])",
-    "—",
+    "text",
     "Decompiled SELECT of a view or matview; wrap_column variant wraps lines; text-name variant is deprecated."
    ],
    [
@@ -8479,47 +8479,47 @@
    ],
    [
     "to_regclass(text)",
-    "—",
+    "regclass",
     "Like the regclass cast but returns NULL instead of an error when not found."
    ],
    [
     "to_regcollation(text)",
-    "—",
+    "regcollation",
     "Like the regcollation cast but returns NULL instead of an error when not found."
    ],
    [
     "to_regnamespace(text)",
-    "—",
+    "regnamespace",
     "Like the regnamespace cast but returns NULL instead of an error when not found."
    ],
    [
     "to_regoper(text)",
-    "—",
+    "regoper",
     "Like the regoper cast but returns NULL instead of an error when not found or ambiguous."
    ],
    [
     "to_regoperator(text)",
-    "—",
+    "regoperator",
     "Like the regoperator cast but returns NULL instead of an error when not found."
    ],
    [
     "to_regproc(text)",
-    "—",
+    "regproc",
     "Like the regproc cast but returns NULL instead of an error when not found or ambiguous."
    ],
    [
     "to_regprocedure(text)",
-    "—",
+    "regprocedure",
     "Like the regprocedure cast but returns NULL instead of an error when not found."
    ],
    [
     "to_regrole(text)",
-    "—",
+    "regrole",
     "Like the regrole cast but returns NULL instead of an error when not found."
    ],
    [
     "to_regtype(text)",
-    "—",
+    "regtype",
     "Like the regtype cast but returns NULL instead of an error when not found."
    ],
    [
@@ -8554,17 +8554,17 @@
    ],
    [
     "col_description(table oid, column integer)",
-    "—",
+    "text",
     "Comment for a table column."
    ],
    [
     "obj_description(object oid, catalog name) / obj_description(object oid)",
-    "—",
+    "text",
     "Comment for an object in the given catalog, e.g. obj_description(123456, 'pg_class'); one-arg form deprecated (OIDs not unique across catalogs)."
    ],
    [
     "shobj_description(object oid, catalog name)",
-    "—",
+    "text",
     "Comment for a shared object (databases, roles, tablespaces)."
    ],
    [
@@ -8629,7 +8629,7 @@
    ],
    [
     "txid_current() / txid_current_if_assigned() / txid_current_snapshot() / txid_snapshot_xip() / txid_snapshot_xmax() / txid_snapshot_xmin() / txid_visible_in_snapshot() / txid_status()",
-    "—",
+    "bigint / bigint / txid_snapshot / setof bigint / bigint / bigint / boolean / text",
     "Deprecated pre-13 equivalents using bigint / txid_snapshot instead of xid8 / pg_snapshot."
    ],
    [
@@ -8649,22 +8649,22 @@
    ],
    [
     "pg_control_checkpoint()",
-    "—",
+    "record",
     "Current checkpoint state from pg_control (checkpoint_lsn, redo_lsn, timeline_id, next_xid, oldest_xid, checkpoint_time, ...)."
    ],
    [
     "pg_control_system()",
-    "—",
+    "record",
     "Control file state: pg_control_version, catalog_version_no, system_identifier, pg_control_last_modified."
    ],
    [
     "pg_control_init()",
-    "—",
+    "record",
     "Cluster initialization constants: block size, WAL segment size, max identifier length, checksum version, etc."
    ],
    [
     "pg_control_recovery()",
-    "—",
+    "record",
     "Recovery state: min_recovery_end_lsn/timeline, backup_start_lsn, backup_end_lsn, end_of_backup_record_required."
    ],
    [
@@ -8864,12 +8864,12 @@
    ],
    [
     "pg_copy_physical_replication_slot(src, dst [, temporary])",
-    "—",
+    "record(slot_name, lsn)",
     "Copies a physical slot, reserving WAL from the source's LSN; temporary defaults to the source's; invalidated slots cannot be copied."
    ],
    [
     "pg_copy_logical_replication_slot(src, dst [, temporary [, plugin]])",
-    "—",
+    "record(slot_name, lsn)",
     "Copies a logical slot starting from the source LSN; failover is not copied (set false); invalidated slots cannot be copied."
    ],
    [
@@ -8879,17 +8879,17 @@
    ],
    [
     "pg_logical_slot_peek_changes(...)",
-    "—",
+    "setof record(lsn pg_lsn, xid xid, data text)",
     "Like pg_logical_slot_get_changes but does not consume changes (they are returned again next call)."
    ],
    [
     "pg_logical_slot_get_binary_changes(...)",
-    "—",
+    "setof record(lsn pg_lsn, xid xid, data bytea)",
     "Like pg_logical_slot_get_changes but returns data as bytea."
    ],
    [
     "pg_logical_slot_peek_binary_changes(...)",
-    "—",
+    "setof record(lsn pg_lsn, xid xid, data bytea)",
     "Like pg_logical_slot_peek_changes but returns data as bytea."
    ],
    [
@@ -8904,7 +8904,7 @@
    ],
    [
     "pg_replication_origin_drop(node_name)",
-    "—",
+    "void",
     "Drops a replication origin, including its replay progress. Superuser by default."
    ],
    [
@@ -8914,12 +8914,12 @@
    ],
    [
     "pg_replication_origin_session_setup(node_name)",
-    "—",
+    "void",
     "Marks the session as replaying from the origin; only if no origin selected yet."
    ],
    [
     "pg_replication_origin_session_reset()",
-    "—",
+    "void",
     "Cancels the effects of pg_replication_origin_session_setup."
    ],
    [
@@ -8934,17 +8934,17 @@
    ],
    [
     "pg_replication_origin_xact_setup(origin_lsn pg_lsn, origin_timestamp timestamptz)",
-    "—",
+    "void",
     "Marks the current transaction as replaying a remote xact at the given LSN/time; requires session setup first."
    ],
    [
     "pg_replication_origin_xact_reset()",
-    "—",
+    "void",
     "Cancels the effects of pg_replication_origin_xact_setup."
    ],
    [
     "pg_replication_origin_advance(node_name, lsn)",
-    "—",
+    "void",
     "Sets replication progress for an origin; careless use can produce inconsistently replicated data."
    ],
    [
@@ -10584,7 +10584,7 @@
    [
     "columns per table",
     "1,600",
-    "further limited by tuple size fitting on a single page; see note below"
+    "further limited by the row having to fit in one 8 kB page: 1,600 `int` columns (6,400 bytes) fit, 1,600 `bigint` columns (12,800 bytes) do not"
    ],
    [
     "CHECK constraints per table",
@@ -10648,11 +10648,11 @@
    ],
    [
     "Aggregate function (routine)",
-    "A function that combines (aggregates) multiple input values, for example by counting, averaging or adding, yielding a single output value. For more information, see Section 9.21. See Also Window function (routine)."
+    "A function that combines (aggregates) multiple input values, for example by counting, averaging or adding, yielding a single output value. See also: Window function (routine)."
    ],
    [
     "Access Method",
-    "Interfaces which PostgreSQL use in order to access data in tables and indexes. This abstraction allows for adding support for new types of data storage. For more information, see Chapter 62 and Chapter 63."
+    "Interfaces which PostgreSQL use in order to access data in tables and indexes. This abstraction allows for adding support for new types of data storage."
    ],
    [
     "Analytic function",
@@ -10660,11 +10660,11 @@
    ],
    [
     "Analyze (operation)",
-    "The act of collecting statistics from data in tables and other relations to help the query planner to make decisions about how to execute queries. (Don't confuse this term with the ANALYZE option to the EXPLAIN command.) For more information, see ANALYZE."
+    "The act of collecting statistics from data in tables and other relations to help the query planner to make decisions about how to execute queries. (Don't confuse this term with the ANALYZE option to the EXPLAIN command.)"
    ],
    [
     "Asynchronous I/O (AIO)",
-    "Asynchronous I/O (AIO) describes performing I/O in a non-blocking way (asynchronously), in contrast to synchronous I/O, which blocks for the entire duration of the I/O. With AIO, starting an I/O operation is separated from waiting for the result of the operation, allowing multiple I/O operations to be initiated concurrently, as well as performing CPU heavy operations concurrently with I/O. The price for that increased concurrency is increased complexity. See Also Input/Output."
+    "Asynchronous I/O (AIO) describes performing I/O in a non-blocking way (asynchronously), in contrast to synchronous I/O, which blocks for the entire duration of the I/O. With AIO, starting an I/O operation is separated from waiting for the result of the operation, allowing multiple I/O operations to be initiated concurrently, as well as performing CPU heavy operations concurrently with I/O. The price for that increased concurrency is increased complexity. See also: Input/Output."
    ],
    [
     "Atomic",
@@ -10680,7 +10680,7 @@
    ],
    [
     "Autovacuum (process)",
-    "A set of background processes that routinely perform vacuum and analyze operations. The auxiliary process that coordinates the work and is always present (unless autovacuum is disabled) is known as the autovacuum launcher, and the processes that carry out the tasks are known as the autovacuum workers. For more information, see Section 24.1.6."
+    "A set of background processes that routinely perform vacuum and analyze operations. The auxiliary process that coordinates the work and is always present (unless autovacuum is disabled) is known as the autovacuum launcher, and the processes that carry out the tasks are known as the autovacuum workers."
    ],
    [
     "Auxiliary process",
@@ -10692,11 +10692,11 @@
    ],
    [
     "Background worker (process)",
-    "Process within an instance, which runs system- or user-supplied code. Serves as infrastructure for several features in PostgreSQL, such as logical replication and parallel queries. In addition, Extensions can add custom background worker processes. For more information, see Chapter 46."
+    "Process within an instance, which runs system- or user-supplied code. Serves as infrastructure for several features in PostgreSQL, such as logical replication and parallel queries. In addition, Extensions can add custom background worker processes."
    ],
    [
     "Background writer (process)",
-    "An auxiliary process that writes dirty data pages from shared memory to the file system. It wakes up periodically, but works only for a short period in order to distribute its expensive I/O activity over time to avoid generating larger I/O peaks which could block other processes. For more information, see Section 19.4.4."
+    "An auxiliary process that writes dirty data pages from shared memory to the file system. It wakes up periodically, but works only for a short period in order to distribute its expensive I/O activity over time to avoid generating larger I/O peaks which could block other processes."
    ],
    [
     "Base Backup",
@@ -10716,19 +10716,19 @@
    ],
    [
     "Cast",
-    "A conversion of a datum from its current data type to another data type. For more information, see CREATE CAST."
+    "A conversion of a datum from its current data type to another data type."
    ],
    [
     "Catalog",
-    "The SQL standard uses this term to indicate what is called a database in PostgreSQL's terminology. (Don't confuse this term with system catalog). For more information, see Section 22.1."
+    "The SQL standard uses this term to indicate what is called a database in PostgreSQL's terminology. (Don't confuse this term with system catalog)."
    ],
    [
     "Check constraint",
-    "A type of constraint defined on a relation which restricts the values allowed in one or more attributes. The check constraint can make reference to any attribute of the same row in the relation, but cannot reference other rows of the same relation or other relations. For more information, see Section 5.5."
+    "A type of constraint defined on a relation which restricts the values allowed in one or more attributes. The check constraint can make reference to any attribute of the same row in the relation, but cannot reference other rows of the same relation or other relations."
    ],
    [
     "Checkpoint",
-    "A point in the WAL sequence at which it is guaranteed that the heap and index data files have been updated with all information from shared memory modified before that checkpoint; a checkpoint record is written and flushed to WAL to mark that point. A checkpoint is also the act of carrying out all the actions that are necessary to reach a checkpoint as defined above. This process is initiated when predefined conditions are met, such as a specified amount of time has passed, or a certain volume of records has been written; or it can be invoked by the user with the command CHECKPOINT. For more information, see Section 28.5."
+    "A point in the WAL sequence at which it is guaranteed that the heap and index data files have been updated with all information from shared memory modified before that checkpoint; a checkpoint record is written and flushed to WAL to mark that point. A checkpoint is also the act of carrying out all the actions that are necessary to reach a checkpoint as defined above. This process is initiated when predefined conditions are met, such as a specified amount of time has passed, or a certain volume of records has been written; or it can be invoked by the user with the command CHECKPOINT."
    ],
    [
     "Checkpointer (process)",
@@ -10752,7 +10752,7 @@
    ],
    [
     "Commit",
-    "The act of finalizing a transaction within the database, which makes it visible to other transactions and assures its durability. For more information, see COMMIT."
+    "The act of finalizing a transaction within the database, which makes it visible to other transactions and assures its durability."
    ],
    [
     "Concurrency",
@@ -10760,7 +10760,7 @@
    ],
    [
     "Connection",
-    "An established line of communication between a client process and a backend process, usually over a network, supporting a session. This term is sometimes used as a synonym for session. For more information, see Section 19.3."
+    "An established line of communication between a client process and a backend process, usually over a network, supporting a session. This term is sometimes used as a synonym for session."
    ],
    [
     "Consistency",
@@ -10768,11 +10768,11 @@
    ],
    [
     "Constraint",
-    "A restriction on the values of data allowed within a table, or in attributes of a domain. For more information, see Section 5.5."
+    "A restriction on the values of data allowed within a table, or in attributes of a domain."
    ],
    [
     "Cumulative Statistics System",
-    "A system which, if enabled, accumulates statistical information about the instance's activities. For more information, see Section 27.2."
+    "A system which, if enabled, accumulates statistical information about the instance's activities."
    ],
    [
     "Data area",
@@ -10780,7 +10780,7 @@
    ],
    [
     "Database",
-    "A named collection of local SQL objects. For more information, see Section 22.1."
+    "A named collection of local SQL objects."
    ],
    [
     "Database cluster",
@@ -10792,11 +10792,11 @@
    ],
    [
     "Database superuser",
-    "A role having superuser status (see Section 21.2). Frequently referred to as superuser."
+    "A role having superuser status. Frequently referred to as superuser."
    ],
    [
     "Data directory",
-    "The base directory on the file system of a server that contains all data files and subdirectories associated with a database cluster (with the exception of tablespaces, and optionally WAL). The environment variable PGDATA is commonly used to refer to the data directory. A cluster's storage space comprises the data directory plus any additional tablespaces. For more information, see Section 66.1."
+    "The base directory on the file system of a server that contains all data files and subdirectories associated with a database cluster (with the exception of tablespaces, and optionally WAL). The environment variable PGDATA is commonly used to refer to the data directory. A cluster's storage space comprises the data directory plus any additional tablespaces."
    ],
    [
     "Data page",
@@ -10808,11 +10808,11 @@
    ],
    [
     "Delete",
-    "An SQL command which removes rows from a given table or relation. For more information, see DELETE."
+    "An SQL command which removes rows from a given table or relation."
    ],
    [
     "Domain",
-    "A user-defined data type that is based on another underlying data type. It acts the same as the underlying type except for possibly restricting the set of allowed values. For more information, see Section 8.18."
+    "A user-defined data type that is based on another underlying data type. It acts the same as the underlying type except for possibly restricting the set of allowed values."
    ],
    [
     "Durability",
@@ -10824,15 +10824,15 @@
    ],
    [
     "Extension",
-    "A software add-on package that can be installed on an instance to get extra features. For more information, see Section 36.17."
+    "A software add-on package that can be installed on an instance to get extra features."
    ],
    [
     "File segment",
-    "A physical file which stores data for a given relation. File segments are limited in size by a configuration value (typically 1 gigabyte), so if a relation exceeds that size, it is split into multiple segments. For more information, see Section 66.1. (Don't confuse this term with the similar term WAL segment)."
+    "A physical file which stores data for a given relation. File segments are limited in size by a configuration value (typically 1 gigabyte), so if a relation exceeds that size, it is split into multiple segments. (Don't confuse this term with the similar term WAL segment)."
    ],
    [
     "Foreign data wrapper",
-    "A means of representing data that is not contained in the local database so that it appears as if were in local table(s). With a foreign data wrapper it is possible to define a foreign server and foreign tables. For more information, see CREATE FOREIGN DATA WRAPPER."
+    "A means of representing data that is not contained in the local database so that it appears as if were in local table(s). With a foreign data wrapper it is possible to define a foreign server and foreign tables."
    ],
    [
     "Foreign key",
@@ -10840,11 +10840,11 @@
    ],
    [
     "Foreign server",
-    "A named collection of foreign tables which all use the same foreign data wrapper and have other configuration values in common. For more information, see CREATE SERVER."
+    "A named collection of foreign tables which all use the same foreign data wrapper and have other configuration values in common."
    ],
    [
     "Foreign table (relation)",
-    "A relation which appears to have rows and columns similar to a regular table, but will forward requests for data through its foreign data wrapper, which will return result sets structured according to the definition of the foreign table. For more information, see CREATE FOREIGN TABLE."
+    "A relation which appears to have rows and columns similar to a regular table, but will forward requests for data through its foreign data wrapper, which will return result sets structured according to the definition of the foreign table."
    ],
    [
     "Fork",
@@ -10852,11 +10852,11 @@
    ],
    [
     "Free space map (fork)",
-    "A storage structure that keeps metadata about each data page of a table's main fork. The free space map entry for each page stores the amount of free space that's available for future tuples, and is structured to be efficiently searched for available space for a new tuple of a given size. For more information, see Section 66.3."
+    "A storage structure that keeps metadata about each data page of a table's main fork. The free space map entry for each page stores the amount of free space that's available for future tuples, and is structured to be efficiently searched for available space for a new tuple of a given size."
    ],
    [
     "Function (routine)",
-    "A type of routine that receives zero or more arguments, returns zero or more output values, and is constrained to run within one transaction. Functions are invoked as part of a query, for example via SELECT. Certain functions can return sets; those are called set-returning functions. Functions can also be used for triggers to invoke. For more information, see CREATE FUNCTION."
+    "A type of routine that receives zero or more arguments, returns zero or more output values, and is constrained to run within one transaction. Functions are invoked as part of a query, for example via SELECT. Certain functions can return sets; those are called set-returning functions. Functions can also be used for triggers to invoke."
    ],
    [
     "GMT",
@@ -10864,7 +10864,7 @@
    ],
    [
     "Grant",
-    "An SQL command that is used to allow a user or role to access specific objects within the database. For more information, see GRANT."
+    "An SQL command that is used to allow a user or role to access specific objects within the database."
    ],
    [
     "Heap",
@@ -10876,19 +10876,19 @@
    ],
    [
     "Index (relation)",
-    "A relation that contains data derived from a table or materialized view. Its internal structure supports fast retrieval of and access to the original data. For more information, see CREATE INDEX."
+    "A relation that contains data derived from a table or materialized view. Its internal structure supports fast retrieval of and access to the original data."
    ],
    [
     "Incremental backup",
-    "A special base backup that for some files may contain only those pages that were modified since a previous backup, as opposed to the full contents of every file. Like base backups, it is generated by the tool pg_basebackup. To restore incremental backups the tool pg_combinebackup is used, which combines incremental backups with a base backup. Afterwards, recovery can use WAL to bring the database cluster to a consistent state. For more information, see Section 25.3.3."
+    "A special base backup that for some files may contain only those pages that were modified since a previous backup, as opposed to the full contents of every file. Like base backups, it is generated by the tool pg_basebackup. To restore incremental backups the tool pg_combinebackup is used, which combines incremental backups with a base backup. Afterwards, recovery can use WAL to bring the database cluster to a consistent state."
    ],
    [
     "Input/Output (I/O)",
-    "Input/Output (I/O) describes the communication between a program and peripheral devices. In the context of database systems, I/O commonly, but not exclusively, refers to interaction with storage devices or the network. See Also Asynchronous I/O."
+    "Input/Output (I/O) describes the communication between a program and peripheral devices. In the context of database systems, I/O commonly, but not exclusively, refers to interaction with storage devices or the network. See also: Asynchronous I/O."
    ],
    [
     "Insert",
-    "An SQL command used to add new data into a table. For more information, see INSERT."
+    "An SQL command used to add new data into a table."
    ],
    [
     "Instance",
@@ -10896,7 +10896,7 @@
    ],
    [
     "Isolation",
-    "The property that the effects of a transaction are not visible to concurrent transactions before it commits. This is one of the ACID properties. For more information, see Section 13.2."
+    "The property that the effects of a transaction are not visible to concurrent transactions before it commits. This is one of the ACID properties."
    ],
    [
     "Join",
@@ -10912,7 +10912,7 @@
    ],
    [
     "Log file",
-    "Log files contain human-readable text lines about events. Examples include login failures, long-running queries, etc. For more information, see Section 24.3."
+    "Log files contain human-readable text lines about events. Examples include login failures, long-running queries, etc."
    ],
    [
     "Logged",
@@ -10920,7 +10920,7 @@
    ],
    [
     "Logger (process)",
-    "An auxiliary process which, if enabled, writes information about database events into the current log file. When reaching certain time- or volume-dependent criteria, a new log file is created. Also called syslogger. For more information, see Section 19.8."
+    "An auxiliary process which, if enabled, writes information about database events into the current log file. When reaching certain time- or volume-dependent criteria, a new log file is created. Also called syslogger."
    ],
    [
     "Logical replication cluster",
@@ -10932,7 +10932,7 @@
    ],
    [
     "Log sequence number (LSN)",
-    "Byte offset into the WAL, increasing monotonically with each new WAL record. For more information, see pg_lsn and Section 28.6."
+    "Byte offset into the WAL, increasing monotonically with each new WAL record."
    ],
    [
     "LSN",
@@ -10948,11 +10948,11 @@
    ],
    [
     "Materialized view (relation)",
-    "A relation that is defined by a SELECT statement (just like a view), but stores data in the same way that a table does. It cannot be modified via INSERT, UPDATE, DELETE, or MERGE operations. For more information, see CREATE MATERIALIZED VIEW."
+    "A relation that is defined by a SELECT statement (just like a view), but stores data in the same way that a table does. It cannot be modified via INSERT, UPDATE, DELETE, or MERGE operations."
    ],
    [
     "Merge",
-    "An SQL command used to conditionally add, modify, or remove rows in a given table, using data from a source relation. For more information, see MERGE."
+    "An SQL command used to conditionally add, modify, or remove rows in a given table, using data from a source relation."
    ],
    [
     "Multi-version concurrency control (MVCC)",
@@ -10980,7 +10980,7 @@
    ],
    [
     "Postmaster (process)",
-    "The very first process of an instance. It starts and manages the auxiliary processes and creates backend processes on demand. For more information, see Section 18.3."
+    "The very first process of an instance. It starts and manages the auxiliary processes and creates backend processes on demand."
    ],
    [
     "Primary key",
@@ -10992,7 +10992,7 @@
    ],
    [
     "Procedure (routine)",
-    "A type of routine. Their distinctive qualities are that they do not return values, and that they are allowed to make transactional statements such as COMMIT and ROLLBACK. They are invoked via the CALL command. For more information, see CREATE PROCEDURE."
+    "A type of routine. Their distinctive qualities are that they do not return values, and that they are allowed to make transactional statements such as COMMIT and ROLLBACK. They are invoked via the CALL command."
    ],
    [
     "Query",
@@ -11028,7 +11028,7 @@
    ],
    [
     "Restartpoint",
-    "A variant of a checkpoint performed on a replica. For more information, see Section 28.5."
+    "A variant of a checkpoint performed on a replica."
    ],
    [
     "Result set",
@@ -11036,15 +11036,15 @@
    ],
    [
     "Revoke",
-    "A command to prevent access to a named set of database objects for a named list of roles. For more information, see REVOKE."
+    "A command to prevent access to a named set of database objects for a named list of roles."
    ],
    [
     "Role",
-    "A collection of access privileges to the instance. Roles are themselves a privilege that can be granted to other roles. This is often done for convenience or to ensure completeness when multiple users need the same privileges. For more information, see CREATE ROLE."
+    "A collection of access privileges to the instance. Roles are themselves a privilege that can be granted to other roles. This is often done for convenience or to ensure completeness when multiple users need the same privileges."
    ],
    [
     "Rollback",
-    "A command to undo all of the operations performed since the beginning of a transaction. For more information, see ROLLBACK."
+    "A command to undo all of the operations performed since the beginning of a transaction."
    ],
    [
     "Routine",
@@ -11056,11 +11056,11 @@
    ],
    [
     "Savepoint",
-    "A special mark in the sequence of steps in a transaction. Data modifications after this point in time may be reverted to the time of the savepoint. For more information, see SAVEPOINT."
+    "A special mark in the sequence of steps in a transaction. Data modifications after this point in time may be reverted to the time of the savepoint."
    ],
    [
     "Schema",
-    "A schema is a namespace for SQL objects, which all reside in the same database. Each SQL object must reside in exactly one schema. All system-defined SQL objects reside in schema pg_catalog. More generically, the term schema is used to mean all data descriptions (table definitions, constraints, comments, etc.) for a given database or subset thereof. For more information, see Section 5.10."
+    "A schema is a namespace for SQL objects, which all reside in the same database. Each SQL object must reside in exactly one schema. All system-defined SQL objects reside in schema pg_catalog. More generically, the term schema is used to mean all data descriptions (table definitions, constraints, comments, etc.) for a given database or subset thereof."
    ],
    [
     "Segment",
@@ -11068,7 +11068,7 @@
    ],
    [
     "Select",
-    "The SQL command used to request data from a database. Normally, SELECT commands are not expected to modify the database in any way, but it is possible that functions invoked within the query could have side effects that do modify data. For more information, see SELECT."
+    "The SQL command used to request data from a database. Normally, SELECT commands are not expected to modify the database in any way, but it is possible that functions invoked within the query could have side effects that do modify data."
    ],
    [
     "Sequence (relation)",
@@ -11084,11 +11084,11 @@
    ],
    [
     "Shared memory",
-    "RAM which is used by the processes common to an instance. It mirrors parts of database files, provides a transient area for WAL records, and stores additional common information. Note that shared memory belongs to the complete instance, not to a single database. The largest part of shared memory is known as shared buffers and is used to mirror part of data files, organized into pages. When a page is modified, it is called a dirty page until it is written back to the file system. For more information, see Section 19.4.1."
+    "RAM which is used by the processes common to an instance. It mirrors parts of database files, provides a transient area for WAL records, and stores additional common information. Note that shared memory belongs to the complete instance, not to a single database. The largest part of shared memory is known as shared buffers and is used to mirror part of data files, organized into pages. When a page is modified, it is called a dirty page until it is written back to the file system."
    ],
    [
     "SQL object",
-    "Any object that can be created with a CREATE command. Most objects are specific to one database, and are commonly known as local objects. Most local objects reside in a specific schema in their containing database, such as relations (all types), routines (all types), data types, etc. The names of such objects of the same type in the same schema are enforced to be unique. There also exist local objects that do not reside in schemas; some examples are extensions, data type casts, and foreign data wrappers. The names of such objects of the same type are enforced to be unique within the database. Other object types, such as roles, tablespaces, replication origins, subscriptions for logical replication, and databases themselves are not local SQL objects since they exist entirely outside of any specific database; they are called global objects. The names of such objects are enforced to be unique within the whole database cluster. For more information, see Section 22.1."
+    "Any object that can be created with a CREATE command. Most objects are specific to one database, and are commonly known as local objects. Most local objects reside in a specific schema in their containing database, such as relations (all types), routines (all types), data types, etc. The names of such objects of the same type in the same schema are enforced to be unique. There also exist local objects that do not reside in schemas; some examples are extensions, data type casts, and foreign data wrappers. The names of such objects of the same type are enforced to be unique within the database. Other object types, such as roles, tablespaces, replication origins, subscriptions for logical replication, and databases themselves are not local SQL objects since they exist entirely outside of any specific database; they are called global objects. The names of such objects are enforced to be unique within the whole database cluster."
    ],
    [
     "SQL standard",
@@ -11108,31 +11108,31 @@
    ],
    [
     "System catalog",
-    "A collection of tables which describe the structure of all SQL objects of the instance. The system catalog resides in the schema pg_catalog. These tables contain data in internal representation and are not typically considered useful for user examination; a number of user-friendlier views, also in schema pg_catalog, offer more convenient access to some of that information, while additional tables and views exist in schema information_schema (see Chapter 35) that expose some of the same and additional information as mandated by the SQL standard. For more information, see Section 5.10."
+    "A collection of tables which describe the structure of all SQL objects of the instance. The system catalog resides in the schema pg_catalog. These tables contain data in internal representation and are not typically considered useful for user examination; a number of user-friendlier views, also in schema pg_catalog, offer more convenient access to some of that information, while additional tables and views exist in schema information_schema that expose some of the same and additional information as mandated by the SQL standard."
    ],
    [
     "Table",
-    "A collection of tuples having a common data structure (the same number of attributes, in the same order, having the same name and type per position). A table is the most common form of relation in PostgreSQL. For more information, see CREATE TABLE."
+    "A collection of tuples having a common data structure (the same number of attributes, in the same order, having the same name and type per position). A table is the most common form of relation in PostgreSQL."
    ],
    [
     "Tablespace",
-    "A named location on the server file system. All SQL objects which require storage beyond their definition in the system catalog must belong to a single tablespace. Initially, a database cluster contains a single usable tablespace which is used as the default for all SQL objects, called pg_default. For more information, see Section 22.6."
+    "A named location on the server file system. All SQL objects which require storage beyond their definition in the system catalog must belong to a single tablespace. Initially, a database cluster contains a single usable tablespace which is used as the default for all SQL objects, called pg_default."
    ],
    [
     "Temporary table",
-    "Tables that exist either for the lifetime of a session or a transaction, as specified at the time of creation. The data in them is not visible to other sessions, and is not logged. Temporary tables are often used to store intermediate data for a multi-step operation. For more information, see CREATE TABLE."
+    "Tables that exist either for the lifetime of a session or a transaction, as specified at the time of creation. The data in them is not visible to other sessions, and is not logged. Temporary tables are often used to store intermediate data for a multi-step operation."
    ],
    [
     "TOAST",
-    "A mechanism by which large attributes of table rows are split and stored in a secondary table, called the TOAST table. Each relation with large attributes has its own TOAST table. For more information, see Section 66.2."
+    "A mechanism by which large attributes of table rows are split and stored in a secondary table, called the TOAST table. Each relation with large attributes has its own TOAST table."
    ],
    [
     "Transaction",
-    "A combination of commands that must act as a single atomic command: they all succeed or all fail as a single unit, and their effects are not visible to other sessions until the transaction is complete, and possibly even later, depending on the isolation level. For more information, see Section 13.2."
+    "A combination of commands that must act as a single atomic command: they all succeed or all fail as a single unit, and their effects are not visible to other sessions until the transaction is complete, and possibly even later, depending on the isolation level."
    ],
    [
     "Transaction ID",
-    "The numerical, unique, sequentially-assigned identifier that each transaction receives when it first causes a database modification. Frequently abbreviated as xid. When stored on disk, xids are only 32-bits wide, so only approximately four billion write transaction IDs can be generated; to permit the system to run for longer than that, epochs are used, also 32 bits wide. When the counter reaches the maximum xid value, it starts over at 3 (values under that are reserved) and the epoch value is incremented by one. In some contexts, the epoch and xid values are considered together as a single 64-bit value; see Section 67.1 for more details. For more information, see Section 8.19."
+    "The numerical, unique, sequentially-assigned identifier that each transaction receives when it first causes a database modification. Frequently abbreviated as xid. When stored on disk, xids are only 32-bits wide, so only approximately four billion write transaction IDs can be generated; to permit the system to run for longer than that, epochs are used, also 32 bits wide. When the counter reaches the maximum xid value, it starts over at 3 (values under that are reserved) and the epoch value is incremented by one. In some contexts, the epoch and xid values are considered together as a single 64-bit value."
    ],
    [
     "Transactions per second (TPS)",
@@ -11140,7 +11140,7 @@
    ],
    [
     "Trigger",
-    "A function which can be defined to execute whenever a certain operation (INSERT, UPDATE, DELETE, TRUNCATE) is applied to a relation. A trigger executes within the same transaction as the statement which invoked it, and if the function fails, then the invoking statement also fails. For more information, see CREATE TRIGGER."
+    "A function which can be defined to execute whenever a certain operation (INSERT, UPDATE, DELETE, TRUNCATE) is applied to a relation. A trigger executes within the same transaction as the statement which invoked it, and if the function fails, then the invoking statement also fails."
    ],
    [
     "Tuple",
@@ -11156,15 +11156,15 @@
    ],
    [
     "Update",
-    "An SQL command used to modify rows that may already exist in a specified table. It cannot create or remove rows. For more information, see UPDATE."
+    "An SQL command used to modify rows that may already exist in a specified table. It cannot create or remove rows."
    ],
    [
     "User",
-    "A role that has the login privilege (see Section 21.2)."
+    "A role that has the login privilege."
    ],
    [
     "User mapping",
-    "The translation of login credentials in the local database to credentials in a remote data system defined by a foreign data wrapper. For more information, see CREATE USER MAPPING."
+    "The translation of login credentials in the local database to credentials in a remote data system defined by a foreign data wrapper."
    ],
    [
     "UTC",
@@ -11172,11 +11172,11 @@
    ],
    [
     "Vacuum",
-    "The process of removing outdated tuple versions from tables or materialized views, and other closely related processing required by PostgreSQL's implementation of MVCC. This can be initiated through the use of the VACUUM command, but can also be handled automatically via autovacuum processes. For more information, see Section 24.1 ."
+    "The process of removing outdated tuple versions from tables or materialized views, and other closely related processing required by PostgreSQL's implementation of MVCC. This can be initiated through the use of the VACUUM command, but can also be handled automatically via autovacuum processes."
    ],
    [
     "View",
-    "A relation that is defined by a SELECT statement, but has no storage of its own. Any time a query references a view, the definition of the view is substituted into the query as if the user had typed it as a subquery instead of the name of the view. For more information, see CREATE VIEW."
+    "A relation that is defined by a SELECT statement, but has no storage of its own. Any time a query references a view, the definition of the view is substituted into the query as if the user had typed it as a subquery instead of the name of the view."
    ],
    [
     "Visibility map (fork)",
@@ -11188,19 +11188,19 @@
    ],
    [
     "WAL archiver (process)",
-    "An auxiliary process which, if enabled, saves copies of WAL files for the purpose of creating backups or keeping replicas current. For more information, see Section 25.3."
+    "An auxiliary process which, if enabled, saves copies of WAL files for the purpose of creating backups or keeping replicas current."
    ],
    [
     "WAL file",
-    "Also known as WAL segment or WAL segment file. Each of the sequentially-numbered files that provide storage space for WAL. The files are all of the same predefined size and are written in sequential order, interspersing changes as they occur in multiple simultaneous sessions. If the system crashes, the files are read in order, and each of the changes is replayed to restore the system to the state it was in before the crash. Each WAL file can be released after a checkpoint writes all the changes in it to the corresponding data files. Releasing the file can be done either by deleting it, or by changing its name so that it will be used in the future, which is called recycling. For more information, see Section 28.6."
+    "Also known as WAL segment or WAL segment file. Each of the sequentially-numbered files that provide storage space for WAL. The files are all of the same predefined size and are written in sequential order, interspersing changes as they occur in multiple simultaneous sessions. If the system crashes, the files are read in order, and each of the changes is replayed to restore the system to the state it was in before the crash. Each WAL file can be released after a checkpoint writes all the changes in it to the corresponding data files. Releasing the file can be done either by deleting it, or by changing its name so that it will be used in the future, which is called recycling."
    ],
    [
     "WAL record",
-    "A low-level description of an individual data change. It contains sufficient information for the data change to be re-executed (replayed) in case a system failure causes the change to be lost. WAL records use a non-printable binary format. For more information, see Section 28.6."
+    "A low-level description of an individual data change. It contains sufficient information for the data change to be re-executed (replayed) in case a system failure causes the change to be lost. WAL records use a non-printable binary format."
    ],
    [
     "WAL receiver (process)",
-    "An auxiliary process that runs on a replica to receive WAL from the primary server for replay by the startup process. For more information, see Section 26.2."
+    "An auxiliary process that runs on a replica to receive WAL from the primary server for replay by the startup process."
    ],
    [
     "WAL segment",
@@ -11212,15 +11212,15 @@
    ],
    [
     "WAL summarizer (process)",
-    "An auxiliary process that summarizes WAL data for incremental backups. For more information, see Section 19.5.7."
+    "An auxiliary process that summarizes WAL data for incremental backups."
    ],
    [
     "WAL writer (process)",
-    "An auxiliary process that writes WAL records from shared memory to WAL files. For more information, see Section 19.5."
+    "An auxiliary process that writes WAL records from shared memory to WAL files."
    ],
    [
     "Window function (routine)",
-    "A type of function used in a query that applies to a partition of the query's result set; the function's result is based on values found in rows of the same partition or frame. All aggregate functions can be used as window functions, but window functions can also be used to, for example, give ranks to each of the rows in the partition. Also known as analytic functions. For more information, see Section 3.5."
+    "A type of function used in a query that applies to a partition of the query's result set; the function's result is based on values found in rows of the same partition or frame. All aggregate functions can be used as window functions, but window functions can also be used to, for example, give ranks to each of the rows in the partition. Also known as analytic functions."
    ],
    [
     "Write-ahead log",

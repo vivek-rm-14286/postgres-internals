@@ -161,9 +161,9 @@ function IndexViz() {
         </div>
         <div className="grid content-start gap-3">
           <div className="grid grid-cols-2 gap-2">
-            <Tile label="index pages read" value={indexed ? (ph >= 2 ? sim.pages : ph === 1 ? 1 + sim.innerHit.size : 1) : 0} t="header" sub={`of ${1 + TREE.kids.length + sim.leaves.length} in the tree`} />
+            <Tile label="index pages read" value={indexed ? (ph >= 2 ? sim.pages : ph === 1 ? 1 + sim.innerHit.size : 0) : 0} t="header" sub={`of ${1 + TREE.kids.length + sim.leaves.length} in the tree`} />
             <Tile label="rows read" value={rowsRead} t={indexed ? 'new' : 'dead'} sub={`of ${PTS60.length} in the table`} />
-            <Tile label="removed by filter" value={removed} t="dead" sub={mode === 'bbox' ? 'no recheck: corners kept' : mode === 'cast' ? 'every row tested' : 'box hit, circle miss'} />
+            <Tile label="removed by filter" value={removed} t="dead" sub={mode === 'bbox' ? 'no exact test: corners kept' : mode === 'cast' ? 'every row tested' : 'box hit, circle miss'} />
             <Tile label="result rows" value={ph < (mode === 'idx' ? 4 : mode === 'bbox' ? 3 : 2) ? '–' : mode === 'bbox' ? c : m} t={mode === 'bbox' && c > m ? 'dead' : 'ok'} sub={mode === 'bbox' ? `${c - m} false positives` : 'exact answer'} />
           </div>
           <Panel title="Plan shape">
@@ -201,11 +201,15 @@ export const lesson: Lesson = {
       { label: 'Box overlap: &&', sql: `EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT count(*) FROM places
 WHERE geom && ST_MakeEnvelope(-0.14, 51.50, -0.12, 51.52, 4326);`,
-        note: '`&&` is answered by the GiST index alone: **Bitmap Index Scan**, about 5 index buffers. The long hex string is the query box in WKB.' },
+        note: '`&&` needs no exact filter step: a **Bitmap Index Scan** (about 5 index buffers) finds 19 rows, and the heap scan above it has no `Rows Removed by Filter` line. The long hex string is the query box in WKB.' },
       { label: 'ST_DWithin, indexed', sql: `EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT count(*) FROM places
 WHERE ST_DWithin(geom, ${Q}, 0.005);`,
         note: 'Read the **Index Cond**: `geom && st_expand(…, 0.005)`. Two-step filtering in one plan. The radius is **0.005 degrees**, because the column is geometry in 4326.' },
+      { label: 'ST_Intersects: both steps', sql: `EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+SELECT count(*) FROM places
+WHERE ST_Intersects(geom, ST_Buffer(ST_Point(-0.13, 51.51, 4326), 0.01));`,
+        note: '`Index Cond: geom && …` tests the circle\'s **box** and finds 19 rows. `Filter: st_intersects` then runs the exact test: **4** rows sat in the corners of the box and are removed, 15 remain. `ST_Contains`, `ST_Within` and `ST_Covers` plan the same way.' },
       { label: 'The geography cast trap', sql: `EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT count(*) FROM places
 WHERE ST_DWithin(geom::geography, ${Q}::geography, 500);`,
@@ -227,7 +231,7 @@ SELECT c.relname AS index, am.amname AS method, pg_size_pretty(pg_relation_size(
 FROM pg_class c JOIN pg_am am ON am.oid = c.relam
 WHERE c.relname LIKE 'places_geom%'
 ORDER BY pg_relation_size(c.oid) DESC;`,
-        note: 'GiST 864 kB, SP-GiST 968 kB, BRIN **24 kB**. BRIN is tiny because it stores one box per range of 4 pages. Whether it helps depends on row order (next preset).' },
+        note: 'GiST 864 kB, SP-GiST 968 kB, BRIN **24 kB**. BRIN is tiny because it stores one box per range of 4 pages. Whether it helps depends on row order (next preset). From now on the planner may choose `places_geom_spgist` instead of the GiST index in the earlier presets; both answer `&&`.' },
       { label: 'BRIN needs sorted rows', sql: `CREATE INDEX IF NOT EXISTS places_geom_brin ON places USING brin (geom) WITH (pages_per_range = 4);
 DROP TABLE IF EXISTS places_sorted;
 CREATE TABLE places_sorted AS SELECT * FROM places ORDER BY geom;
@@ -281,7 +285,7 @@ SELECT * FROM places WHERE ST_DWithin(ST_Transform(geom, 27700), ST_Transform($1
     'Indexes store **boxes**; queries run in two steps: box filter (index) then exact test (recheck).',
     'Index-aware: `&&`, `~`, `@`, `ST_Intersects`, `ST_Contains`, `ST_Within`, `ST_Covers`, `ST_DWithin` and friends. Not `ST_Distance`.',
     'Casting the column (`geom::geography`) needs a matching **expression index** or the plan becomes a Seq Scan.',
-    'GiST is the default; SP-GiST suits points; BRIN is tiny but needs spatially sorted rows. Compare [GiST and SP-GiST](/m4/gist-spgist) and [BRIN](/m4/brin) internals.',
+    'GiST is the default and the only one that also serves nearest-neighbour `<->` ordering; SP-GiST suits points for box tests; BRIN is tiny but needs spatially sorted rows. Compare [GiST and SP-GiST](/m4/gist-spgist) and [BRIN](/m4/brin) internals.',
     'Read the plan for `Index Cond` and `Rows Removed by Filter`, as in [EXPLAIN ANALYZE](/m4/explain-analyze).',
   ],
   sources: ['using_postgis_dbmanagement.html', 'using_postgis_query.html', 'ST_DWithin.html', 'geometry_overlaps.html', 'performance_tips.html'],

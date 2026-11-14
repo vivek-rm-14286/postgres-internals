@@ -56,7 +56,7 @@ export const exercises: Exercise[] = [
     explanation: 'Comparing anything with NULL using `=` gives NULL, not true, so `WHERE email = NULL` returns no rows. Use `IS NULL` / `IS NOT NULL`.',
   },
   {
-    id: 'shop-revenue-by-category', dataset: 'shop', level: 'intermediate', topic: 'joins & aggregates',
+    id: 'shop-revenue-by-category', dataset: 'shop', level: 'intermediate', topic: 'joins',
     title: 'Revenue per top-level category',
     task: 'For each **top-level** category (no parent), return `category` and `revenue` = the sum of `quantity * unit_price` over all non-cancelled orders of products in that category or its direct subcategories. Sort by revenue, highest first.',
     hint: 'Map each product to its top-level category with `COALESCE(parent_id, id)`.',
@@ -122,7 +122,7 @@ WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id AND o.status
     explanation: 'Alan placed one order and cancelled it; Ken never ordered. A `LEFT JOIN orders … WHERE o.id IS NULL` finds only Ken, unless the status test moves into the `ON` clause. `NOT EXISTS` with the condition inside the subquery says exactly what is meant.',
   },
   {
-    id: 'shop-orders-per-month', dataset: 'shop', level: 'intermediate', topic: 'dates',
+    id: 'shop-orders-per-month', dataset: 'shop', level: 'intermediate', topic: 'dates & time zones',
     title: 'Orders per month',
     task: 'Return `month` (the first day of the month, as a `date`) and `orders` (number of orders placed that month, any status), oldest month first. Months without orders are not listed.',
     solution: `SELECT date_trunc('month', ordered_at)::date AS month, count(*) AS orders
@@ -131,7 +131,7 @@ FROM orders GROUP BY month ORDER BY month;`,
     ordered: true,
   },
   {
-    id: 'shop-big-orders', dataset: 'shop', level: 'intermediate', topic: 'GROUP BY / HAVING',
+    id: 'shop-big-orders', dataset: 'shop', level: 'intermediate', topic: 'aggregates',
     title: 'Orders over 1,000',
     task: 'Return `order_id` and `total` (sum of `quantity * unit_price`) for every **non-cancelled** order whose total is above 1000.',
     solution: `SELECT oi.order_id, sum(oi.quantity * oi.unit_price) AS total
@@ -140,6 +140,20 @@ WHERE o.status <> 'cancelled'
 GROUP BY oi.order_id
 HAVING sum(oi.quantity * oi.unit_price) > 1000;`,
     explanation: 'The status test is about rows, so it goes in `WHERE`; the total exists only per group, so its test goes in `HAVING`. Testing `unit_price > 1000` in `WHERE` instead would keep only single expensive lines and miss orders that add up past the limit.',
+  },
+  {
+    id: 'shop-repeat-after-q1', dataset: 'shop', level: 'intermediate', topic: 'set operations',
+    title: 'Ordered in the first quarter and again later',
+    task: 'Return the `id` and `name` of every customer who has a non-cancelled order **in the first quarter of 2025** (January to March) and also a non-cancelled order **on or after 1 April 2025**. One row per customer, sorted by `id`.',
+    hint: '`INTERSECT` keeps the rows that two queries have in common.',
+    solution: `SELECT c.id, c.name FROM customers c JOIN orders o ON o.customer_id = c.id
+WHERE o.status <> 'cancelled' AND o.ordered_at >= '2025-01-01' AND o.ordered_at < '2025-04-01'
+INTERSECT
+SELECT c.id, c.name FROM customers c JOIN orders o ON o.customer_id = c.id
+WHERE o.status <> 'cancelled' AND o.ordered_at >= '2025-04-01'
+ORDER BY id;`,
+    explanation: '`INTERSECT` returns the rows present in both results and removes duplicates, so Ada, who has two later orders, appears once. A single `WHERE` with both date conditions on the same order row matches nothing, because no one order is in both periods. The final `ORDER BY` applies to the combined result.',
+    ordered: true,
   },
   {
     id: 'shop-price-bands', dataset: 'shop', level: 'intermediate', topic: 'CASE',
@@ -194,7 +208,23 @@ ORDER BY o.ordered_at;`,
     ordered: true,
   },
   {
-    id: 'shop-status-pivot', dataset: 'shop', level: 'advanced', topic: 'pivot with FILTER',
+    id: 'shop-revenue-share', dataset: 'shop', level: 'advanced', topic: 'window functions',
+    title: 'Each product’s share of revenue',
+    task: 'For every product sold in a non-cancelled order, return `product` (its name), `revenue` = the sum of `quantity * unit_price` over non-cancelled orders, and `pct` = that revenue as a percentage of the total non-cancelled revenue, rounded to 1 decimal. Sort by `revenue`, highest first.',
+    hint: 'A window function can run over the result of `GROUP BY`: `sum(sum(x)) OVER ()` is the grand total.',
+    solution: `SELECT p.name AS product,
+       sum(oi.quantity * oi.unit_price) AS revenue,
+       round(100 * sum(oi.quantity * oi.unit_price) / sum(sum(oi.quantity * oi.unit_price)) OVER (), 1) AS pct
+FROM order_items oi
+JOIN orders o   ON o.id = oi.order_id AND o.status <> 'cancelled'
+JOIN products p ON p.id = oi.product_id
+GROUP BY p.name
+ORDER BY revenue DESC;`,
+    explanation: 'Window functions are evaluated after grouping, so the inner `sum(…)` is the per-product aggregate and the outer `sum(…) OVER ()` adds those up across all groups. An empty `OVER ()` makes the whole result one window. The MacBook Air appears only in a cancelled order, so it is not listed and does not count towards the total.',
+    ordered: true,
+  },
+  {
+    id: 'shop-status-pivot', dataset: 'shop', level: 'advanced', topic: 'aggregates',
     title: 'Order statuses per country',
     task: 'Return one row per customer country with `country` and four columns `pending`, `paid`, `shipped`, `cancelled`, each counting that country’s orders with that status (0 when none). Countries whose customers have no orders still appear, with zeros.',
     solution: `SELECT c.country,
@@ -223,9 +253,9 @@ GROUP BY c.country;`,
     explanation: 'Rank inside each top-level category after aggregating, then filter in an outer query (window results cannot be used in `WHERE`). ThinkPad and keyboard tie on 2 units for third place in Electronics; `rank()` keeps both, `row_number()` keeps an arbitrary one. Leaving the cancelled order in would lift the MacBook (3 units) into second place and push both of them out.',
   },
   {
-    id: 'shop-upsert-stock', dataset: 'shop', level: 'expert', topic: 'upsert',
+    id: 'shop-upsert-stock', dataset: 'shop', level: 'expert', topic: 'data changes',
     title: 'Book in a delivery',
-    task: 'A delivery arrived: 20 × product 7, 30 × product 8, and 10 × a new product 9, `Programming Rust` (category 5, price 59.90). In one statement, insert the new product and **add** the delivered quantity to the stock of existing ones. The check lists `id` and `stock` of all products.',
+    task: 'A delivery arrived: 20 × product 7, 30 × product 8, and 10 × a new product 9, `Programming Rust` (category 5, price 59.90). In one statement, insert the new product and **add** the delivered quantity to the stock of existing ones. The check lists every column of every product.',
     hint: '`INSERT … ON CONFLICT (id) DO UPDATE SET stock = …`. Which row does `EXCLUDED` refer to?',
     solution: `INSERT INTO products (id, name, category_id, price, stock) VALUES
   (7, 'USB-C Hub', 6, 59.00, 20),
@@ -233,11 +263,11 @@ GROUP BY c.country;`,
   (9, 'Programming Rust', 5, 59.90, 10)
 ON CONFLICT (id) DO UPDATE SET stock = products.stock + EXCLUDED.stock;`,
     explanation: 'In `DO UPDATE`, the table name refers to the existing row and `EXCLUDED` to the row you tried to insert. `SET stock = EXCLUDED.stock` overwrites the hub’s 100 units with 20 instead of adding them. The upsert is atomic, so no concurrent insert can slip in between a check and the write.',
-    check: `SELECT id, stock FROM products ORDER BY id;`,
+    check: `SELECT id, name, category_id, price, stock FROM products ORDER BY id;`,
     ordered: true,
   },
   {
-    id: 'shop-revenue-rollup', dataset: 'shop', level: 'expert', topic: 'GROUPING SETS',
+    id: 'shop-revenue-rollup', dataset: 'shop', level: 'expert', topic: 'aggregates',
     title: 'Revenue with subtotals',
     task: 'Over non-cancelled orders, return `country`, `category` (top-level category name) and `revenue` (sum of `quantity * unit_price`) for every country–category pair, **plus** one subtotal row per country (category NULL) and one grand-total row (both NULL), all from one query.',
     solution: `SELECT cu.country, top.name AS category, sum(oi.quantity * oi.unit_price) AS revenue
@@ -251,9 +281,9 @@ GROUP BY GROUPING SETS ((cu.country, top.name), (cu.country), ());`,
     explanation: '`GROUPING SETS` computes several groupings in one pass and fills the columns a set does not group by with NULL; here that is the same as `ROLLUP (cu.country, top.name)`. When the data itself can contain NULLs, `GROUPING(col)` tells a subtotal row from a real NULL group.',
   },
   {
-    id: 'shop-restock', dataset: 'shop', level: 'expert', topic: 'data modification',
+    id: 'shop-restock', dataset: 'shop', level: 'intermediate', topic: 'data changes',
     title: 'Restock everything that is sold out',
-    task: 'In **one statement**, set `stock = 50` for every product whose stock is 0, and return the `id` and `name` of the products you changed. The check lists `id` and `stock` of all products afterwards.',
+    task: 'In **one statement**, set `stock = 50` for every product whose stock is 0, and return the `id` and `name` of the products you changed. The check lists `id` and `stock` of all products afterwards; it compares only the table, so the returned rows are for you to see.',
     hint: '`UPDATE … RETURNING`.',
     solution: `UPDATE products SET stock = 50 WHERE stock = 0 RETURNING id, name;`,
     explanation: '`RETURNING` sends back the modified rows, which saves a second round trip and avoids a race between "find" and "change". The checker compares the whole table afterwards.',

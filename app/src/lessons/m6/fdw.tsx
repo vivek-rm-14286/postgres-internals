@@ -95,7 +95,7 @@ function FdwViz() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={next} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">Next scenario ({idx + 1}/{SCENARIOS.length})</button>
+        <button onClick={next} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent">Next scenario ({idx + 1}/{SCENARIOS.length})</button>
         <span className="text-xs text-muted">or build your own query below</span>
       </div>
       <div className="min-h-[52px] rounded-lg border border-line bg-surface-2 px-4 py-2.5 text-sm" aria-live="polite">
@@ -268,7 +268,7 @@ ALTER SERVER warehouse OPTIONS (ADD fetch_size '1000', ADD use_remote_estimate '
   ],
   pointers: [
     'SQL/MED chain: **wrapper** (handler + validator) → **server** (where) → **user mapping** (who) → **foreign table** (what).',
-    'The handler returns an **FdwRoutine** of callbacks: plan with GetForeignRelSize/Paths/Plan, execute with Begin/Iterate/ReScan/EndForeignScan.',
+    'The handler returns an **FdwRoutine** of callbacks: plan with GetForeignRelSize/Paths/Plan, execute with Begin/Iterate/ReScan/EndForeignScan. `file_fdw` is the simplest wrapper: a read-only foreign table over a server-side file or program output (`OPTIONS (filename \'/path/x.csv\', format \'csv\')`), parsed by the COPY code and limited to superusers and members of `pg_read_server_files` or `pg_execute_server_program`.',
     'postgres_fdw ships WHERE clauses only with **built-in, IMMUTABLE** functions and operators; joins only between tables on the **same server**.',
     'Read pushdown in `EXPLAIN VERBOSE`: the `Remote SQL:` line is what the other server actually runs.',
     'Remote transactions run at **REPEATABLE READ** or SERIALIZABLE, without two-phase commit.',

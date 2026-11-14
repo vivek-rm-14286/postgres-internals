@@ -117,7 +117,17 @@ WHERE loaned_on >= '2025-01-01' AND loaned_on < '2026-01-01';`,
 
   // ── intermediate ─────────────────────────────────────────────────────────
   {
-    id: 'lib-book-authors', dataset: 'library', level: 'intermediate', topic: 'joins & strings',
+    id: 'lib-email-parts', dataset: 'library', level: 'beginner', topic: 'strings',
+    title: 'Split an email address',
+    task: 'For every member return `name`, `mailbox` = the part of `email` before the `@`, and `domain` = the part after it, sorted by `name`.',
+    hint: '`split_part(text, delimiter, n)` returns the n-th field.',
+    solution: `SELECT name, split_part(email, '@', 1) AS mailbox, split_part(email, '@', 2) AS domain
+FROM members ORDER BY name;`,
+    explanation: '`split_part` cuts a string at a delimiter and returns the field with the given number, counting from 1; a negative number counts from the end. `substring(email from \'@(.*)$\')` or `regexp_replace` also work, but for a fixed delimiter `split_part` is the shortest and needs no pattern.',
+    ordered: true,
+  },
+  {
+    id: 'lib-book-authors', dataset: 'library', level: 'intermediate', topic: 'joins',
     title: 'Books with their authors',
     task: 'Return one row per book: `title` and `authors`, the author names in alphabetical order joined with `\', \'`. A book with no known author gets NULL.',
     solution: `SELECT b.title, string_agg(a.name, ', ' ORDER BY a.name) AS authors
@@ -128,7 +138,7 @@ GROUP BY b.id, b.title;`,
     explanation: 'A many-to-many relationship goes through the link table. Both joins must be outer joins, or *Beowulf* disappears; `string_agg` ignores the NULL name and returns NULL for an empty group. The `ORDER BY` inside the aggregate fixes the order of names within the string.',
   },
   {
-    id: 'lib-overdue', dataset: 'library', level: 'intermediate', topic: 'dates',
+    id: 'lib-overdue', dataset: 'library', level: 'intermediate', topic: 'dates & time zones',
     title: 'Overdue today',
     task: 'As of 2025-06-30, return `member` (name), `title` and `days_overdue` (an integer) for every loan that is not returned and whose `due_on` is **before** 2025-06-30.',
     solution: `SELECT m.name AS member, b.title, date '2025-06-30' - l.due_on AS days_overdue
@@ -147,7 +157,7 @@ WHERE NOT EXISTS (SELECT 1 FROM loans l WHERE l.book_id = b.id);`,
     explanation: '`NOT EXISTS` is the anti-join: keep rows with no match. `LEFT JOIN loans l … WHERE l.id IS NULL` is equivalent. `NOT IN` works here only because `loans.book_id` is `NOT NULL`; with a nullable column it would return nothing.',
   },
   {
-    id: 'lib-prolific', dataset: 'library', level: 'intermediate', topic: 'GROUP BY / HAVING',
+    id: 'lib-prolific', dataset: 'library', level: 'intermediate', topic: 'aggregates',
     title: 'Authors with several books',
     task: 'Return `name` and `books` (number of books in the catalogue) for authors with **at least two** books. Co-written books count for each author.',
     solution: `SELECT a.name, count(*) AS books
@@ -157,7 +167,7 @@ HAVING count(*) >= 2;`,
     explanation: 'Counting through the link table credits *Good Omens* and *Nightfall* to both of their authors. Group by the id as well as the name, so two different authors who share a name are not merged.',
   },
   {
-    id: 'lib-availability', dataset: 'library', level: 'intermediate', topic: 'outer joins',
+    id: 'lib-availability', dataset: 'library', level: 'intermediate', topic: 'joins',
     title: 'Copies on the shelf',
     task: 'For every book return `title`, `copies`, `on_loan` (loans not yet returned) and `available` = copies − on_loan.',
     solution: `SELECT b.title, b.copies, count(l.id) AS on_loan, b.copies - count(l.id) AS available
@@ -181,7 +191,7 @@ LIMIT 5;`,
     ordered: true,
   },
   {
-    id: 'lib-monthly-pivot', dataset: 'library', level: 'advanced', topic: 'pivot with FILTER',
+    id: 'lib-monthly-pivot', dataset: 'library', level: 'advanced', topic: 'aggregates',
     title: 'Loans per member per month',
     task: 'For members with at least one loan in the first half of 2025, return `name` and six columns `jan`, `feb`, `mar`, `apr`, `may`, `jun` counting their loans dated in each month of 2025 (0 when none).',
     solution: `SELECT m.name,
@@ -209,7 +219,7 @@ GROUP BY m.id, m.name;`,
     explanation: 'Here integer division is what you want: `1968 / 10 * 10` is 1960. Aggregate first, then rank within each decade; `rank()` keeps ties (the 1980s have one), while `DISTINCT ON` or `row_number()` would arbitrarily keep only one.',
   },
   {
-    id: 'lib-loan-gaps', dataset: 'library', level: 'advanced', topic: 'lag / lead',
+    id: 'lib-loan-gaps', dataset: 'library', level: 'advanced', topic: 'window functions',
     title: 'Days between a member’s loans',
     task: 'For every loan return `member` (name), `loaned_on` and `days_since_prev`: days since the same member’s previous loan (an integer; NULL for their first).',
     solution: `SELECT m.name AS member, l.loaned_on,
@@ -220,9 +230,9 @@ FROM loans l JOIN members m ON m.id = l.member_id;`,
 
   // ── expert ───────────────────────────────────────────────────────────────
   {
-    id: 'lib-open-loan-index', dataset: 'library', level: 'expert', topic: 'constraints',
+    id: 'lib-open-loan-index', dataset: 'library', level: 'expert', topic: 'data changes',
     title: 'One open loan per member and book',
-    task: 'Make it impossible for a member to have two **unreturned** loans of the same book, while still allowing any number of returned ones. The check reads the catalog: `is_unique`, `columns` (the indexed columns, sorted by name) and `predicate`.',
+    task: 'Make it impossible for a member to have two **unreturned** loans of the same book, while still allowing any number of returned ones. Do it with **one index**. The check reads the catalog: `is_unique`, `columns` (the indexed columns, sorted by name) and `predicate`.',
     hint: 'A unique index can have a `WHERE` clause.',
     solution: `CREATE UNIQUE INDEX loans_one_open ON loans (member_id, book_id) WHERE returned_on IS NULL;`,
     explanation: 'A partial unique index enforces uniqueness only among the rows that satisfy its predicate, here the open loans. A plain `UNIQUE (member_id, book_id)` constraint would also forbid borrowing a book again after returning it, and fails on this data anyway.',
@@ -232,7 +242,7 @@ FROM loans l JOIN members m ON m.id = l.member_id;`,
 FROM pg_index i WHERE i.indrelid = 'loans'::regclass AND NOT i.indisprimary;`,
   },
   {
-    id: 'lib-upsert-members', dataset: 'library', level: 'expert', topic: 'upsert',
+    id: 'lib-upsert-members', dataset: 'library', level: 'expert', topic: 'data changes',
     title: 'Import members, duplicates and all',
     task: 'Load `member_import` into `members` keyed by `email`: new emails become new members with `joined = \'2025-07-01\'`; existing emails get their `name` and `tier` overwritten. The import lists one email **twice**: the row with the higher `import_id` wins. The check lists `email`, `name`, `tier`, `joined` of all members.',
     hint: 'Try a plain `INSERT … ON CONFLICT (email) DO UPDATE` first and read the error.',
@@ -245,7 +255,7 @@ ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, tier = EXCLUDED.tier;`,
     check: `SELECT email, name, tier, joined FROM members;`,
   },
   {
-    id: 'lib-promote-gold', dataset: 'library', level: 'expert', topic: 'UPDATE … FROM',
+    id: 'lib-promote-gold', dataset: 'library', level: 'advanced', topic: 'data changes',
     title: 'Promote frequent borrowers',
     task: 'In one statement, set `tier = \'gold\'` for every member with **at least 4 loans dated in 2025**. Do not touch anyone else. The check lists `id` and `tier` of all members, by id.',
     solution: `UPDATE members m SET tier = 'gold'
@@ -260,10 +270,10 @@ WHERE busy.member_id = m.id;`,
     ordered: true,
   },
   {
-    id: 'lib-fines', dataset: 'library', level: 'expert', topic: 'set-based rewrite',
+    id: 'lib-fines', dataset: 'library', level: 'expert', topic: 'data changes',
     title: 'Replace the nightly fines loop',
-    task: 'The starter code computes fines one loan at a time. Do the same in a single `INSERT … SELECT`: a loan is late if it was returned after `due_on`, or is still out on 2025-06-30 and `due_on` is before that day. Fine = 0.25 per day late (up to the return date, or to 2025-06-30 if still out), capped at 10.00. The check lists `loan_id`, `amount` from `fines`.',
-    starter: `-- the row-by-row version, for reference
+    task: 'The loop in the starter comment computes fines one loan at a time. Do the same in a single `INSERT … SELECT`: a loan is late if it was returned after `due_on`, or is still out on 2025-06-30 and `due_on` is before that day. Fine = 0.25 per day late (up to the return date, or to 2025-06-30 if still out), capped at 10.00. The check lists `loan_id`, `amount` from `fines`.',
+    starter: `/* the row-by-row version, for reference (do not run it)
 DO $$
 DECLARE l record; days int;
 BEGIN
@@ -274,6 +284,9 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+*/
+
+-- your single INSERT … SELECT here
 `,
     solution: `INSERT INTO fines (loan_id, amount)
 SELECT id, LEAST((COALESCE(returned_on, date '2025-06-30') - due_on) * 0.25, 10.00)

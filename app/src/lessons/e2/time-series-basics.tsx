@@ -53,7 +53,7 @@ function BrinViz() {
         <Segmented label="Physical row order" value={order} onChange={setOrder} options={[['ordered', 'Inserted in time order'], ['shuffled', 'Shuffled']]} />
         <Segmented label="Query window" value={width} onChange={setWidth} options={WIDTHS} />
         <button type="button" data-testid="viz-next" onClick={() => setStartH((h) => (h + 6 > 54 ? 0 : h + 6))}
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">Move window +6 h</button>
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent">Move window +6 h</button>
       </div>
       <label className="flex items-center gap-3 text-xs text-muted">
         <span className="whitespace-nowrap">window start</span>
@@ -136,7 +136,7 @@ const has = (w: Where, ed: Edition) => ed === 'apache' || (ed === 'community' &&
 const WHERE_NOTE: Record<Where, string> = {
   apache: '`timescaledb.license = \'apache\'`. Only Apache-2.0 code paths load, so anyone may offer it as a service.',
   community: 'The default, `timescaledb.license = \'timescale\'`, under the Tiger Data License: free to self-host and modify, but you may not sell it as a service.',
-  neon: 'Neon ships the Apache edition (2.24.0 on PostgreSQL 18). Compression and every Community feature are unavailable.',
+  neon: 'This managed service ships the Apache edition only. Compression and every other Community feature are unavailable.',
   cloud: 'Tiger Cloud, the managed service, runs the Community edition and adds tiered storage.',
 }
 
@@ -279,12 +279,12 @@ SELECT drop_chunks('readings', older_than => INTERVAL '30 days');`,
       sql: `SELECT attname, correlation FROM pg_stats WHERE tablename = 'readings';` },
     { title: 'Retention with DELETE',
       symptom: 'Nightly deletes create WAL spikes and replication lag, autovacuum never finishes, and disk usage stays flat.',
-      cause: '`DELETE` marks every row dead and logs every change. The space is reused only after VACUUM, and the file never gets smaller (see [VACUUM](/m7/vacuum)).',
+      cause: '`DELETE` marks every row dead and logs every change. The space is reused only after VACUUM, and the file does not shrink: the freed pages are at the start of the table, and VACUUM can only give back empty pages at the end (see [VACUUM](/m7/vacuum)).',
       fix: 'Partition by time and drop whole partitions. With TimescaleDB, use `drop_chunks` (Apache 2 edition) or `add_retention_policy` (Community edition).',
       sql: `SELECT drop_chunks('readings', older_than => INTERVAL '30 days');` },
     { title: 'Expecting the full feature set on a managed service',
       symptom: '`ERROR: functionality not supported under the current "apache" license` when creating a continuous aggregate or enabling compression.',
-      cause: 'Services that resell PostgreSQL, Neon among them, may ship only the **Apache 2 edition**. Continuous aggregates, the columnstore, gap filling, policies and jobs are **Community edition** features under the Tiger Data License.',
+      cause: 'Services that resell PostgreSQL may ship only the **Apache 2 edition**. Continuous aggregates, the columnstore, gap filling, policies and jobs are **Community edition** features under the Tiger Data License.',
       fix: 'Run `SHOW timescaledb.license;` before designing around a feature. Use the Community edition (self-hosted) or Tiger Cloud, or the native equivalents shown in this module.',
       sql: 'SHOW timescaledb.license;  -- apache | timescale' },
     { title: 'Monthly buckets with date_bin',
@@ -297,7 +297,7 @@ SELECT drop_chunks('readings', older_than => INTERVAL '30 days');`,
     '**BRIN** stores min/max per block range: tiny, and only useful when physical order follows the column (`correlation` near 1). More in [BRIN indexes](/m4/brin).',
     'Partition by time so queries **prune** to a few partitions and retention is a `DROP`, not a `DELETE`.',
     '**TimescaleDB** is an extension loaded through `shared_preload_libraries`. Version 2.32 supports PostgreSQL 16 to 18.',
-    '**Apache 2 edition**: hypertables, `time_bucket`, `drop_chunks`. **Community edition**: continuous aggregates, columnstore, gap filling, policies and jobs. Neon offers only the Apache edition.',
+    '**Apache 2 edition**: hypertables, `time_bucket`, `drop_chunks`. **Community edition**: continuous aggregates, columnstore, gap filling, policies and jobs. Some managed services offer only the Apache edition.',
   ],
   sources: ['brin.html', 'brin-intro.html', 'ddl-partitioning.html', 'functions-datetime.html', 'view-pg-stats.html', 'using-explain.html',
     'tigerdata.com/docs/get-started/choose-your-path/timescaledb-editions', 'neon.com/docs/extensions/timescaledb'],

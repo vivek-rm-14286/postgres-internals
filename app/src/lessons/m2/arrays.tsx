@@ -307,7 +307,7 @@ SELECT max(t) FROM unnest(string_to_array('2,9,16', ',')::int[]) AS t;  -- 16` }
     'Header: **vl_len, ndim, dataoffset, elemtype** (16 bytes), then 8 bytes per dimension, then an optional null bitmap and the aligned elements.',
     '`dataoffset = 0` means no NULLs. NULL elements cost **one bit**, no data bytes.',
     'Arrays are **1-based**, out-of-range reads return NULL, and declared sizes like `int[3]` are not enforced.',
-    'GIN `array_ops` indexes `@>`, `<@`, `&&` and `=`. Rewrite `x = ANY(col)` as `col @> ARRAY[x]`.',
+    'GIN `array_ops` indexes `@>`, `<@`, `&&` and `=`. Rewrite `x = ANY(col)` as `col @> ARRAY[x]`. See [GIN: inverted indexes](/m4/gin).',
     'Any change rewrites the whole array, so keep growing lists in a child table.',
   ],
   sources: ['arrays.html', 'functions-array.html', 'gin-builtin-opclasses.html', 'storage-toast.html', 'datatype.html'],

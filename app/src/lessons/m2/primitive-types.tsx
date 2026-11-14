@@ -131,7 +131,7 @@ function PaddingViz() {
                   <span className={c.isNull ? 'text-muted line-through' : ''}>{c.name}</span> <span className="text-muted">{c.type}</span>
                 </button>
                 <button type="button" title="Toggle NULL" onClick={() => setCols(cols.map((x) => (x.id === c.id ? { ...x, isNull: !x.isNull } : x)))}
-                  className={`rounded px-1 text-[10px] ${c.isNull ? 'bg-accent text-white' : 'text-muted hover:text-ink'}`}>NULL</button>
+                  className={`rounded px-1 text-[10px] ${c.isNull ? 'bg-accent text-on-accent' : 'text-muted hover:text-ink'}`}>NULL</button>
                 <button type="button" aria-label="Move up" onClick={() => move(i, -1)} className="text-muted hover:text-ink"><ArrowUp className="size-3.5" /></button>
                 <button type="button" aria-label="Move down" onClick={() => move(i, 1)} className="text-muted hover:text-ink"><ArrowDown className="size-3.5" /></button>
                 <button type="button" aria-label="Remove" onClick={() => setCols(cols.filter((x) => x.id !== c.id))} className="text-muted hover:text-ink"><X className="size-3.5" /></button>
@@ -318,7 +318,7 @@ SELECT pg_input_is_valid('100', 'numeric(7,5)');             -- false: overflow`
       sql: `SET TimeZone = 'America/New_York';
 SELECT '2016-06-22 19:10:25-07'::timestamp   AS offset_ignored,
        '2016-06-22 19:10:25-07'::timestamptz AS converted;` },
-    { title: 'Integer and numeric arithmetic in generated columns',
+    { title: 'Assuming / truncates: EXTRACT returns numeric',
       symptom: 'A calendar table built with `(EXTRACT(month FROM d) - 1) / 3 + 1` puts March in quarter 2 and December in quarter 5.',
       cause: '`EXTRACT` returns `numeric` (since PostgreSQL 14), so the division is exact: March gives 1.67, which an `int` column rounds to 2. A common claim is that EXTRACT returns double precision, or that `/` always truncates. Integer `/` integer truncates, but numeric does not.',
       fix: 'Use `EXTRACT(quarter FROM d)`, or cast before dividing: `(EXTRACT(month FROM d)::int - 1) / 3 + 1`. Check `pg_typeof()` of any expression feeding an integer column.',

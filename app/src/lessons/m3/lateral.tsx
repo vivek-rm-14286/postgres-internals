@@ -90,12 +90,12 @@ function LateralViz() {
                         className="grid grid-cols-[2.2rem_1fr_4rem_6rem_3.5rem] items-center gap-2 rounded px-2 py-1 font-mono text-[12px]"
                         style={{ background: match ? toneBg(t, 16) : 'transparent', boxShadow: match ? `inset 3px 0 0 ${tone(t)}` : 'inset 0 0 0 transparent' }}>
                         <span className="text-muted">#{p.id}</span><span>{p.item}</span><span className="text-muted">acct {p.account_id}</span><span>{p.created_at}</span>
-                        <span className="text-right text-[11px]" style={{ color: tone(t) }}>{match ? (ok ? `keep ${rank.get(p.id)}` : 'cut') : ''}</span>
+                        <span className="text-right text-[11px]" style={{ color: tone.text(t) }}>{match ? (ok ? `keep ${rank.get(p.id)}` : 'cut') : ''}</span>
                       </motion.div>
                     )
                   })}
                 </div>
-                {a && mine.length === 0 && <p className="mt-2 text-xs" style={{ color: 'var(--c-new)' }}>No purchase has account_id = {a.id}: the subquery returns 0 rows.</p>}
+                {a && mine.length === 0 && <p className="mt-2 text-xs" style={{ color: 'var(--t-new)' }}>No purchase has account_id = {a.id}: the subquery returns 0 rows.</p>}
               </Panel>
             </div>
             <div className="grid gap-3 md:grid-cols-[1fr_1fr]">
@@ -265,8 +265,8 @@ WHERE f.follower_id = $1;`,
     '`LATERAL` lets a FROM subquery reference columns of FROM items **to its left**; it runs once per outer row.',
     'Set-returning functions in FROM are **implicitly lateral**; the keyword is optional there.',
     'CROSS JOIN / comma LATERAL drops rows with an empty result; `LEFT JOIN LATERAL … ON true` keeps them.',
-    'Top-N per group: LATERAL + `ORDER BY … LIMIT n` + index on `(key, sort DESC)` → Nested Loop with Index Scan.',
-    '`WITH ORDINALITY` numbers the rows of a function in FROM (bigint, from 1).',
+    'Top-N per group: LATERAL + `ORDER BY … LIMIT n` + index on `(key, sort DESC)` → Nested Loop with Index Scan (the [window-function](/m3/window-functions) form ranks every row first).',
+    '`WITH ORDINALITY` numbers the rows of a function in FROM (bigint, from 1). A spatial use of LATERAL: [nearest neighbour per row](/e4/nearest-neighbour).',
   ],
   sources: ['queries-table-expressions.html', 'sql-select.html', 'functions-srf.html', 'using-explain.html'],
 }

@@ -122,7 +122,7 @@ function GatekeeperViz() {
         <Btn onClick={reset}>Reset table</Btn>
         <span className="font-mono text-xs text-muted">next identity value: <b className="text-ink">{nextId}</b></span>
       </div>
-      <p className="font-mono text-[12px] break-words" style={{ color: tone('accent') }}>{sql}</p>
+      <p className="font-mono text-[12px] break-words" style={{ color: tone.text('accent') }}>{sql}</p>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
         {GATES.map((g, i) => {
@@ -138,7 +138,7 @@ function GatekeeperViz() {
               <p className="text-[11.5px] leading-snug text-muted"><Md>{g.rule}</Md></p>
               {run && i === Math.min(at, last) && (
                 <motion.div layoutId="row-token" className="mt-auto self-start rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold"
-                  style={{ background: toneBg(t, 30), color: tone(t === 'muted' ? 'accent' : t) }}>
+                  style={{ background: toneBg(t, 30), color: tone.text(t === 'muted' ? 'accent' : t) }}>
                   row id {run.cand.id}{done && !run.o.ok && i === run.stop ? ' ✗ rejected' : done && run.o.ok ? ' ✓ stored' : ''}
                 </motion.div>
               )}
@@ -197,29 +197,31 @@ CREATE TABLE accounts (
 );
 INSERT INTO accounts (email, username) VALUES ('ana@example.com', 'ana');`,
     presets: [
-      { label: 'Defaults fill the gaps', sql: `INSERT INTO accounts (email) VALUES ('bo@example.com')
+      { label: '1. Defaults fill the gaps', sql: `INSERT INTO accounts (email) VALUES ('bo@example.com')
 RETURNING id, email, username, plan, seats, created_at;`,
         note: 'Only `email` was given. `plan` became **free**, `seats` became **1**, `created_at` got the current time, and `username` is NULL because it has no default.' },
-      { label: 'One rejection per gate', sql: `SELECT try($$INSERT INTO accounts (email) VALUES (NULL)$$)                  AS not_null,
+      { label: '2. One rejection per gate', sql: `SELECT try($$INSERT INTO accounts (email) VALUES (NULL)$$)                  AS not_null,
        try($$INSERT INTO accounts (email, seats) VALUES ('cy@example.com', 0)$$) AS check_seats,
        try($$INSERT INTO accounts (email) VALUES ('ana@example.com')$$)       AS unique_email,
        try($$INSERT INTO accounts (email, plan) VALUES ('cy@example.com', 'gold')$$) AS foreign_key;`,
         note: 'Each column shows a different SQLSTATE: **23502**, **23514**, **23505**, **23503**. The constraint name in each message tells you exactly which rule fired.' },
-      { label: 'Failed inserts still use ids', sql: `INSERT INTO accounts (email) VALUES ('cy@example.com') RETURNING id;`,
-        note: 'The four failed attempts each drew a value from the identity sequence. Expect **id 7**, not 3. Gaps are normal and harmless.' },
-      { label: 'NULLs and UNIQUE', sql: `SELECT try($$INSERT INTO accounts (email) VALUES ('dee@example.com')$$) AS first_null_username,
+      { label: '3. Failed inserts still use ids', sql: `SELECT try($$INSERT INTO accounts (email, seats) VALUES ('zed@example.com', 0)$$) AS failed_insert;
+
+INSERT INTO accounts (email) VALUES ('cy@example.com') RETURNING id;`,
+        note: 'The error shows the id the rejected row had already drawn (`Failing row contains (N, …)`), and the next insert gets **N + 1**: that number is never reused. After presets 1 and 2 this insert gets **id 8**, not 3. Gaps are normal and harmless.' },
+      { label: '4. NULLs and UNIQUE', sql: `SELECT try($$INSERT INTO accounts (email) VALUES ('dee@example.com')$$) AS first_null_username,
        try($$INSERT INTO accounts (email) VALUES ('eli@example.com')$$) AS second_null_username;
 
 CREATE TABLE badges (owner text UNIQUE NULLS NOT DISTINCT);
 INSERT INTO badges VALUES (NULL);
 SELECT try($$INSERT INTO badges VALUES (NULL)$$) AS with_nulls_not_distinct;`,
         note: 'A plain `UNIQUE` column accepts many NULLs, because NULL is never equal to NULL. `NULLS NOT DISTINCT` treats them as equal and rejects the second one.' },
-      { label: 'CHECK lets NULL through', sql: `CREATE TABLE discounts (pct int CONSTRAINT pct_range CHECK (pct BETWEEN 0 AND 100));
+      { label: '5. CHECK lets NULL through', sql: `CREATE TABLE discounts (pct int CONSTRAINT pct_range CHECK (pct BETWEEN 0 AND 100));
 INSERT INTO discounts VALUES (NULL), (15);
 SELECT try($$INSERT INTO discounts VALUES (120)$$) AS too_big;
 SELECT * FROM discounts;`,
         note: 'A CHECK passes when its expression is **true or NULL**. NULL BETWEEN 0 AND 100 is NULL, so the NULL row is stored. Add `NOT NULL` if the value is required.' },
-      { label: 'Enum, domain, exclusion', sql: `CREATE TYPE ticket_status AS ENUM ('open', 'pending', 'closed');
+      { label: '6. Enum, domain, exclusion', sql: `CREATE TYPE ticket_status AS ENUM ('open', 'pending', 'closed');
 CREATE DOMAIN email_address AS text CHECK (VALUE ~ '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
 CREATE TABLE room_bookings (
   room   text NOT NULL,
@@ -232,7 +234,7 @@ SELECT try($$SELECT 'done'::ticket_status$$)    AS enum_value,
        try($$SELECT 'nope'::email_address$$)    AS domain_value,
        try($$INSERT INTO room_bookings VALUES ('A', '[2026-03-02 09:30, 2026-03-02 11:00)')$$) AS overlap;`,
         note: 'An enum rejects unknown labels (**22P02**). A domain is a reusable type with its own CHECK (**23514**). An exclusion constraint rejects overlapping time ranges (**23P01**).' },
-      { label: 'See every constraint', sql: `SELECT conname,
+      { label: '7. See every constraint', sql: `SELECT conname,
        CASE contype WHEN 'p' THEN 'PRIMARY KEY' WHEN 'u' THEN 'UNIQUE' WHEN 'c' THEN 'CHECK'
                     WHEN 'f' THEN 'FOREIGN KEY' WHEN 'n' THEN 'NOT NULL' END AS kind,
        pg_get_constraintdef(oid) AS definition
@@ -269,7 +271,7 @@ ALTER TABLE wallets VALIDATE CONSTRAINT balance_non_negative;
       fix: 'Pair the CHECK with `NOT NULL`, or write the NULL case into the expression explicitly.' },
     { title: 'Unnamed constraints make errors cryptic',
       symptom: 'Logs say `violates check constraint "accounts_check1"` and nobody knows which rule that was.',
-      cause: 'Without a name, PostgreSQL generates one from the table name and a counter.',
+      cause: 'Without a name, PostgreSQL builds one from the table, the column (when the rule uses exactly one) and the word `check`, adding a number on a clash: `accounts_seats_check`, `accounts_check`, `accounts_check1`.',
       fix: 'Name every CHECK and UNIQUE with `CONSTRAINT <name>` so errors explain themselves and the app can map them to messages.' },
     { title: 'An enum you cannot shrink',
       symptom: 'A status is retired, but there is no `ALTER TYPE … DROP VALUE` to remove it.',
@@ -278,7 +280,7 @@ ALTER TABLE wallets VALIDATE CONSTRAINT balance_non_negative;
   ],
   pointers: [
     'Order of checks on INSERT: **defaults** fill missing columns, then **NOT NULL**, **CHECK**, **UNIQUE**, and finally the **foreign key**.',
-    'SQLSTATEs to know: **23502** not null, **23514** check, **23505** unique, **23503** foreign key, **23P01** exclusion.',
+    'SQLSTATEs to know: **23502** not null, **23514** check, **23505** unique, **23503** foreign key, **23P01** exclusion (exclusion constraints at work: [Gaps and islands](/f4/gaps-and-islands)).',
     '`CHECK` passes on NULL. Plain `UNIQUE` allows many NULLs unless you add `NULLS NOT DISTINCT`.',
     'Fixed set of values: **enum** (compact, cannot drop labels), **lookup table + FK** (flexible, can carry extra columns) or **CHECK … IN** (simple). A **domain** packages a type with its rules for reuse.',
     '**Going deeper:** [Modelling data: normalization and constraints](/m1/normalization-constraints) covers deferrable, temporal and not-enforced constraints.',

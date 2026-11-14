@@ -119,7 +119,7 @@ function Stat({ k, v, t }: { k: string; v: string; t?: Tone }) {
   return (
     <div className="rounded-lg border border-line bg-surface-2 px-3 py-2">
       <p className="text-[11px] tracking-wide text-muted uppercase">{k}</p>
-      <motion.p key={v} initial={{ opacity: 0.3, y: -3 }} animate={{ opacity: 1, y: 0 }} className="font-mono text-lg font-bold" style={t ? { color: tone(t) } : undefined}>{v}</motion.p>
+      <motion.p key={v} initial={{ opacity: 0.3, y: -3 }} animate={{ opacity: 1, y: 0 }} className="font-mono text-lg font-bold" style={t ? { color: tone.text(t) } : undefined}>{v}</motion.p>
     </div>
   )
 }
@@ -279,7 +279,8 @@ FROM pg_stat_user_tables WHERE relname = 'items';`,
 SELECT lp, lp_off, lp_flags, t_ctid FROM heap_page_items(get_raw_page('items', 0));
 SELECT itemoffset, ctid FROM bt_page_items('items_pkey', 1);`,
         note: '`lp_flags = 2` is a **redirect**: lp 1 now points to lp 5 (its `lp_off` holds the target). lp 2 and lp 4 are unused (0). The pkey entry for (0,2) is gone.' },
-      { label: 'fillfactor 100 vs 80', sql: `CREATE TABLE ff100 (id int PRIMARY KEY, sku text, qty int, note text) WITH (fillfactor = 100, autovacuum_enabled = false);
+      { label: 'fillfactor 100 vs 80', sql: `DROP TABLE IF EXISTS ff100, ff80;
+CREATE TABLE ff100 (id int PRIMARY KEY, sku text, qty int, note text) WITH (fillfactor = 100, autovacuum_enabled = false);
 CREATE TABLE ff80  (LIKE ff100 INCLUDING INDEXES) WITH (fillfactor = 80, autovacuum_enabled = false);
 INSERT INTO ff100 SELECT g, 'SKU-' || g, 0, repeat('x', 40) FROM generate_series(1, 10000) g;
 INSERT INTO ff80 SELECT * FROM ff100;
@@ -292,12 +293,16 @@ SELECT relname, n_tup_upd, n_tup_hot_upd,
        pg_relation_size(relname || '_pkey') / 8192 AS pkey_pages
 FROM pg_stat_user_tables WHERE relname IN ('ff100', 'ff80') ORDER BY 1;`,
         note: 'Same 2,000 updates. **ff80** does all of them HOT and the primary key stays the same size. **ff100** does none HOT and its primary key index nearly doubles from page splits.' },
-      { label: 'An index on the hot column', sql: `CREATE INDEX ON ff80 (qty);
+      { label: 'An index on the hot column', sql: `-- the fillfactor-80 table of the previous preset (built here if it is missing)
+CREATE TABLE IF NOT EXISTS ff80 (id int PRIMARY KEY, sku text, qty int, note text) WITH (fillfactor = 80, autovacuum_enabled = false);
+INSERT INTO ff80 SELECT g, 'SKU-' || g, 0, repeat('x', 40) FROM generate_series(1, 10000) g ON CONFLICT DO NOTHING;
+
+CREATE INDEX IF NOT EXISTS ff80_qty_idx ON ff80 (qty);
 UPDATE ff80 SET qty = qty + 1 WHERE id % 5 = 2;
 SELECT pg_stat_force_next_flush();
 
 SELECT n_tup_upd, n_tup_hot_upd FROM pg_stat_user_tables WHERE relname = 'ff80';`,
-        note: 'Free space no longer helps: `qty` is now indexed, so `n_tup_hot_upd` does not move. A BRIN index would not block HOT, because BRIN is a *summarizing* index.' },
+        note: 'Free space no longer helps: `qty` is now indexed, so none of these 2,000 updates is HOT and `n_tup_hot_upd` does not move (0 on a fresh table, still 2000 after the previous preset). A BRIN index would not block HOT, because BRIN is a *summarizing* index.' },
       { label: 'No-op updates are real writes', sql: `UPDATE users SET name = name WHERE id = 1
 RETURNING old.ctid AS old_version, new.ctid AS new_version;
 

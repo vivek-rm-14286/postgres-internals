@@ -50,7 +50,7 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
           <dl className="grid gap-4 px-5 py-4 text-[15px] leading-relaxed">
             <div><dt className="text-xs font-bold tracking-wider text-dead uppercase">Problem</dt><dd className="mt-1"><Md>{lesson.production.problem}</Md></dd></div>
             <div><dt className="text-xs font-bold tracking-wider text-ok uppercase">Solution</dt><dd className="mt-1"><Md>{lesson.production.solution}</Md></dd></div>
-            {lesson.production.sql && <pre className="overflow-x-auto rounded-lg bg-code p-3 text-[12.5px] leading-relaxed">{lesson.production.sql.trim()}</pre>}
+            {lesson.production.sql && <div><dt className="sr-only">SQL</dt><dd><pre className="overflow-x-auto rounded-lg bg-code p-3 text-[12.5px] leading-relaxed" tabIndex={0}>{lesson.production.sql.trim()}</pre></dd></div>}
             <div><dt className="text-xs font-bold tracking-wider text-accent uppercase">Outcome</dt><dd className="mt-1"><Md>{lesson.production.outcome}</Md></dd></div>
           </dl>
         </div>
@@ -85,7 +85,7 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
       <footer className="mt-10 grid gap-6">
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={() => setDone(lesson.slug, !done)}
-            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${done ? 'bg-ok/15 text-ok' : 'bg-accent text-white hover:opacity-90'}`}>
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${done ? 'bg-ok/15 text-ok' : 'bg-accent text-on-accent hover:opacity-90'}`}>
             <Check className="size-4" /> {done ? 'Completed' : 'Mark lesson complete'}
           </button>
         </div>

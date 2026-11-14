@@ -171,7 +171,7 @@ function ByteStrip({ s }: { s: PageState }) {
   const px = (b: number) => (b / 8192) * 100
   return (
     <div className="mt-3">
-      <div className="relative h-5 w-full overflow-hidden rounded border border-line" style={{ background: 'var(--c-free)' }} aria-label="Page drawn to scale">
+      <div className="relative h-5 w-full overflow-hidden rounded border border-line" style={{ background: 'var(--c-free)' }} role="img" aria-label="Page drawn to scale">
         <div className="absolute inset-y-0 left-0" style={{ width: `${px(24)}%`, background: tone('header') }} />
         <div className="absolute inset-y-0" style={{ left: `${px(24)}%`, width: `${px(s.lower - 24)}%`, background: tone('pointer') }} />
         {s.items.filter((i) => i.flag === 1).map((i) => (
@@ -277,7 +277,7 @@ SELECT (ctid::text::point)[0]::int AS block, count(*) AS rows_on_page
 FROM fill GROUP BY 1 ORDER BY 1 LIMIT 5;
 
 SELECT pg_relation_size('fill') AS bytes, pg_relation_size('fill') / 8192 AS pages;`,
-        note: 'Each 61-byte row needs 64 bytes plus a 4-byte line pointer, so about **120 rows fit per page**. Files grow in whole pages, so even a one-row table takes 8192 bytes.' },
+        note: 'Each 61-byte row needs 64 bytes plus a 4-byte line pointer, so about **120 rows fit per page**. Files grow in whole pages, so even a one-row table takes 8192 bytes. The file here is 16 pages although only 9 hold rows: a bulk load extends the file several pages at a time.' },
       { label: 'Heap order is not id order', sql: `CREATE TABLE courses (id int PRIMARY KEY, name text, price numeric(7,2));
 INSERT INTO courses VALUES (1, 'SQL', 299.99), (2, 'Go', 777.99), (3, 'Rust', 999.99), (4, 'Vue', 549.99), (5, 'K8s', 349.99);
 UPDATE courses SET price = 749.99 WHERE id = 3;
@@ -338,7 +338,7 @@ SELECT ctid, id FROM courses ORDER BY id;  -- the order you meant` },
     'Free space is exactly **`pd_upper - pd_lower`**. The page is full when they would meet.',
     'A **ctid `(block, lp)`** names a line pointer, not a byte offset, so tuples can move inside the page without breaking index entries.',
     'Each tuple carries a **23-byte header** (`t_xmin`, `t_xmax`, `t_cid`, `t_ctid`, `t_infomask2`, `t_infomask`, `t_hoff`), padded to 24 before the row data.',
-    'Line pointer states: **NORMAL**, **REDIRECT** (HOT chain root), **DEAD** (waiting for index cleanup), **UNUSED** (free for reuse).',
+    'Line pointer states: **NORMAL**, **REDIRECT** (HOT chain root), **DEAD** (waiting for index cleanup), **UNUSED** (free for reuse). See [HOT updates and fillfactor](/m5/hot-fillfactor) and [VACUUM vs VACUUM FULL](/m7/vacuum).',
   ],
   sources: ['storage-page-layout.html', 'storage-hot.html', 'pageinspect.html', 'ddl-system-columns.html'],
 }

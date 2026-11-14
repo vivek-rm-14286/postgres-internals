@@ -138,7 +138,7 @@ function WindowViz() {
   const unit = spec.mode === 'RANGE' ? 50 : 1
   const maxN = spec.mode === 'RANGE' ? 500 : 4
   const frameSql = `${spec.mode} BETWEEN ${boundSql(spec.start, spec.n)} AND ${boundSql(spec.end, spec.n)}${spec.excl === 'none' ? '' : ` EXCLUDE ${{ current: 'CURRENT ROW', group: 'GROUP', ties: 'TIES' }[spec.excl]}`}`
-  const sql = `SELECT product_name, price,\n       sum(price)        OVER w,\n       first_value(product_name) OVER w,\n       last_value(product_name)  OVER w\nFROM products\nWINDOW w AS (${spec.part ? 'PARTITION BY group_name ' : ''}ORDER BY price\n             ${frameSql});`
+  const sql = `SELECT product_name, price,\n       sum(price)        OVER w,\n       first_value(product_name) OVER w,\n       last_value(product_name)  OVER w\nFROM products\nWINDOW w AS (${spec.part ? 'PARTITION BY group_id ' : ''}ORDER BY price\n             ${frameSql});`
   const names = c.frame.map((k) => c.part[k].name)
 
   return (
@@ -167,7 +167,7 @@ function WindowViz() {
       <div className="min-h-[44px] rounded-lg border border-line bg-surface-2 px-4 py-2 text-sm" aria-live="polite">
         <AnimatePresence mode="wait">
           <motion.p key={`${note}-${err}-${cur}-${JSON.stringify(spec)}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {err ? <span style={{ color: 'var(--c-dead)' }} className="font-mono text-[12px]">ERROR: {err}</span>
+            {err ? <span style={{ color: 'var(--t-dead)' }} className="font-mono text-[12px]">ERROR: {err}</span>
               : <Md>{note || `Frame of **${c.p.name}** (${c.p.price}): ${names.length ? `${names.length} row${names.length > 1 ? 's' : ''}` : 'empty, so sum() is NULL'}.${spec.mode !== 'ROWS' && peers.size > 1 ? ` It has ${peers.size - 1} peer${peers.size > 2 ? 's' : ''} at the same price; ${spec.mode} treats peers alike.` : ''}`}</Md>}
           </motion.p>
         </AnimatePresence>
@@ -383,7 +383,7 @@ WHERE rn = 1;`,
       fix: 'Add a unique tie-breaker (`ORDER BY price DESC, product_id`), or include every tie with `FETCH FIRST 4 ROWS WITH TIES` (6 rows here) or `rank() <= 4`.' },
   ],
   pointers: [
-    'Window functions run **after** WHERE/GROUP BY/HAVING and never collapse rows.',
+    'Window functions run **after** WHERE/GROUP BY/HAVING and never collapse rows. For top-N per group compare [LATERAL](/m3/lateral); for runs and sessions see [gaps and islands](/f4/gaps-and-islands).',
     '**Peers** are rows equal under the window ORDER BY; rank functions give peers the same value.',
     'Default frame with ORDER BY: `RANGE UNBOUNDED PRECEDING` to the current row\'s **last peer**; without ORDER BY: the whole partition.',
     '`ROWS` counts rows, `RANGE` compares values (one ORDER BY column for offsets), `GROUPS` counts peer groups; `EXCLUDE` trims the result.',

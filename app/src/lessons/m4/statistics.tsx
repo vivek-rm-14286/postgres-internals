@@ -101,7 +101,11 @@ function StatsViz() {
   const pg = mode === 'eq' ? ZONE.zeq[v] : ZONE.zlt[v]
   const h = histLess(v)
   const mcvBelow = ZONE.mcf.filter((_, i) => ZONE.mcv[i] < v).reduce((a, b) => a + b, 0)
-  const sel = mode === 'eq' ? (mi >= 0 ? ZONE.mcf[mi] : histFrac / (ZONE.nDistinct - ZONE.mcv.length)) : mcvBelow + h.sel * histFrac
+  // `<` is strict: scalarineqsel takes the share of rows equal to v (one non-MCV value) back out of the histogram
+  // fraction, and in the first bucket adds back the part of it that lies above v. Matches the planner to within a row.
+  const eqNon = 1 / (ZONE.nDistinct - ZONE.mcv.length)
+  const hAdj = h.bucket < 0 ? 0 : Math.max(0, h.sel - eqNon + (h.bucket === 0 ? eqNon * (1 - h.part) : 0))
+  const sel = mode === 'eq' ? (mi >= 0 ? ZONE.mcf[mi] : histFrac / (ZONE.nDistinct - ZONE.mcv.length)) : mcvBelow + hAdj * histFrac
 
   const formula: [string, string, string?][] = mode === 'eq'
     ? mi >= 0
@@ -109,7 +113,8 @@ function StatsViz() {
       : [['rule', `${v} is not in the MCV list`, 'spread the rest evenly'], ['selectivity', `(1 − ${sumMcf.toFixed(5)}) / (${ZONE.nDistinct} − ${ZONE.mcv.length}) = ${sel.toFixed(6)}`, '(1 − Σ freqs − null_frac) / (n_distinct − #MCVs)'], ['rows', `${N} × ${sel.toFixed(6)} = ${Math.round(N * sel)}`]]
     : [['MCV part', `Σ freqs of MCVs < ${v} = ${mcvBelow.toFixed(5)}`, 'exact for the MCVs'],
       ['histogram part', h.bucket < 0 ? '0' : `(${h.bucket} + (${v} − ${ZONE.hb[h.bucket]}) / (${ZONE.hb[h.bucket + 1]} − ${ZONE.hb[h.bucket]})) / ${NB} = ${h.sel.toFixed(4)}`, 'linear inside the bucket'],
-      ['selectivity', `${mcvBelow.toFixed(5)} + ${h.sel.toFixed(4)} × ${histFrac.toFixed(5)} = ${sel.toFixed(5)}`, 'histogram covers only non-MCV rows'],
+      ['strict <', `${h.sel.toFixed(4)} − ${(h.sel - hAdj).toFixed(4)} = ${hAdj.toFixed(4)}`, 'rows equal to v do not match: take out 1 / (n_distinct − #MCVs)'],
+      ['selectivity', `${mcvBelow.toFixed(5)} + ${hAdj.toFixed(4)} × ${histFrac.toFixed(5)} = ${sel.toFixed(5)}`, 'histogram covers only non-MCV rows'],
       ['rows', `${N} × ${sel.toFixed(5)} = ${Math.round(N * sel)}`]]
 
   return (
@@ -228,17 +233,24 @@ SELECT zone, count(*) FROM trips WHERE zone IN (7, 99) GROUP BY zone;`,
         note: 'zone 7 is an MCV with frequency 0.2214, so the estimate is 4428. zone 99 is not, so it gets (1 − 0.48515) / 490 × 20000 = **21** rows.' },
       { label: 'Range: MCV + histogram', sql: `EXPLAIN SELECT * FROM trips WHERE zone < 60;
 SELECT count(*) FROM trips WHERE zone < 60;`,
-        note: 'MCVs 7, 3, 12 and 40 contribute 0.4753 exactly. The histogram adds one full bucket plus 9/54 of bucket 51–105, times the non-MCV share 0.515. Estimate **10686**, actual 10706.' },
+        note: 'MCVs 7, 3, 12 and 40 contribute 0.4753 exactly. The histogram adds one full bucket plus 9/54 of bucket 51–105, times the non-MCV share 0.515, minus the 21 rows estimated to equal 60 (they do not satisfy `<`). Estimate **10686**, actual 10706.' },
       { label: 'Independence assumption', sql: `EXPLAIN SELECT * FROM trips WHERE zip = 42 AND city = 4;
 SELECT count(*) FROM trips WHERE zip = 42 AND city = 4;
 EXPLAIN SELECT city, zip, count(*) FROM trips GROUP BY city, zip;`,
         note: 'zip determines city, but the planner multiplies their selectivities: **5** rows estimated vs 100 real, and 2000 groups vs 200.' },
-      { label: 'Extended statistics', sql: `CREATE STATISTICS trips_city_zip (dependencies, ndistinct) ON city, zip FROM trips;
+      { label: 'Extended statistics', sql: `DROP STATISTICS IF EXISTS trips_city_zip, trips_city_zip_mcv;
+CREATE STATISTICS trips_city_zip (dependencies, ndistinct) ON city, zip FROM trips;
 ANALYZE trips;
 SELECT statistics_name, dependencies, n_distinct FROM pg_stats_ext WHERE tablename = 'trips';
 EXPLAIN SELECT * FROM trips WHERE zip = 42 AND city = 4;
-EXPLAIN SELECT city, zip, count(*) FROM trips GROUP BY city, zip;`,
-        note: '`{"4 => 5": 1.000000}`: column 4 (zip) fully determines column 5 (city). Estimates become 100 rows and 200 groups. CREATE STATISTICS collects nothing until ANALYZE runs.' },
+EXPLAIN SELECT city, zip, count(*) FROM trips GROUP BY city, zip;
+
+-- an impossible pair: zip 42 belongs to city 4, not 9
+EXPLAIN SELECT * FROM trips WHERE zip = 42 AND city = 9;
+CREATE STATISTICS trips_city_zip_mcv (mcv) ON city, zip FROM trips;
+ANALYZE trips;
+EXPLAIN SELECT * FROM trips WHERE zip = 42 AND city = 9;`,
+        note: '`{"4 => 5": 1.000000}`: column 4 (zip) fully determines column 5 (city). Estimates become 100 rows and 200 groups. CREATE STATISTICS collects nothing until ANALYZE runs. A dependency assumes the values are compatible, so the impossible pair is also estimated at 100 rows (actual 0). The `mcv` kind stores real value combinations and brings it back down to 5.' },
       { label: 'Statistics target', sql: `ALTER TABLE trips ALTER COLUMN zone SET STATISTICS 100;
 ANALYZE trips;
 SELECT array_length(most_common_vals, 1) AS mcvs, array_length(histogram_bounds, 1) AS bounds
@@ -263,7 +275,7 @@ WHERE statistics_name = 'shipments_carrier_service';`,
     { title: 'No statistics after a bulk load',
       symptom: 'Right after loading or creating a table, queries get absurd estimates and plans until autovacuum catches up.',
       cause: 'Statistics are only collected by `ANALYZE` (manual, autovacuum, or VACUUM ANALYZE). A fresh table has none, and the planner falls back to fixed default selectivities.',
-      fix: 'Run `ANALYZE` as the last step of every bulk load or migration, and after creating an **expression index** (its expression gets its own statistics).',
+      fix: 'Run `ANALYZE` as the last step of every bulk load or migration, and after creating an **expression index** (its expression gets its own statistics). After a major upgrade, PostgreSQL 18\'s `pg_upgrade` carries per-column statistics over, but not extended statistics: run `vacuumdb --all --analyze-in-stages --missing-stats-only` to fill in the rest.',
       sql: `ANALYZE trips;` },
     { title: 'Correlated columns',
       symptom: 'Estimated rows are orders of magnitude below actual rows for filters on two related columns (city and zip, tenant and account).',
@@ -279,7 +291,7 @@ WHERE statistics_name = 'shipments_carrier_service';`,
     '`=` on an MCV uses its frequency. Otherwise **(1 − Σ mcv freqs − null_frac) / (n_distinct − #MCVs)**.',
     '`<` sums matching MCV freqs exactly, then adds histogram buckets (linear inside a bucket) scaled by the non-MCV fraction.',
     'ANDed predicates are **multiplied**. Correlated columns need `CREATE STATISTICS` (dependencies, ndistinct, mcv) plus ANALYZE.',
-    '`default_statistics_target` = **100** caps MCVs and histogram buckets. ANALYZE samples 300 × the largest target rows.',
+    '`default_statistics_target` = **100** caps MCVs and histogram buckets. ANALYZE samples 300 × the largest target rows. See [Reading EXPLAIN (ANALYZE, BUFFERS)](/m4/explain-analyze) to spot a misestimate.',
   ],
   sources: ['planner-stats.html', 'planner-stats-details.html', 'row-estimation-examples.html', 'multivariate-statistics-examples.html', 'view-pg-stats.html', 'sql-analyze.html', 'sql-createstatistics.html'],
 }

@@ -61,7 +61,7 @@ function TrigramExplorer({ q }: { q: string }) {
         <AnimatePresence initial={false}>
           {qt.map((t) => (
             <motion.span key={t} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
-              className="rounded px-1.5 py-0.5 font-mono text-[11.5px] whitespace-pre" style={{ background: toneBg('pointer', 20), color: tone('pointer') }}>"{t}"</motion.span>
+              className="rounded px-1.5 py-0.5 font-mono text-[11.5px] whitespace-pre" style={{ background: toneBg('pointer', 20), color: tone.text('pointer') }}>"{t}"</motion.span>
           ))}
         </AnimatePresence>
         {qt.length === 0 && <span className="text-xs text-muted">no trigrams: an index cannot help this pattern</span>}
@@ -109,7 +109,7 @@ function IndexMatrix() {
                     <td key={k} className="p-0.5 text-center">
                       <button type="button" onClick={() => setSel([r, k])} aria-label={`${p.sql} with ${IDX[k]}`}
                         className="w-full rounded px-1 py-0.5 font-mono tabular-nums"
-                        style={{ background: toneBg(t, active ? 36 : 16), color: tone(t), outline: active ? `1.5px solid ${tone(t)}` : undefined }}>
+                        style={{ background: toneBg(t, active ? 36 : 16), color: tone.text(t), outline: active ? `1.5px solid ${tone(t)}` : undefined }}>
                         {c.ok ? '✓' : '✗'} {c.buf}
                       </button>
                     </td>
@@ -274,7 +274,7 @@ SELECT word FROM words WHERE word % $1 ORDER BY word <-> $1 LIMIT 3;`,
       cause: 'A pattern with no complete trigram gives the index nothing to look up, so the scan degenerates to reading everything.',
       fix: 'Require a minimum of three characters, or use a prefix search on a `text_pattern_ops` B-tree for very short input.' },
     { title: 'Using LIKE for word search',
-      symptom: '`%drill%` also matches "drilling" and "screwdriller", and "drills" misses "drill".',
+      symptom: '`LIKE \'%drill%\'` also matches "drilling" and "mandrill", and a search for "drills" finds no product named "drill".',
       cause: 'LIKE and trigrams match characters, not words. They know nothing about stemming or stop words.',
       fix: 'Use full-text search for natural-language queries: `to_tsvector(\'english\', …) @@ websearch_to_tsquery(…)`, ranked with `ts_rank`.' },
   ],
@@ -283,7 +283,7 @@ SELECT word FROM words WHERE word % $1 ORDER BY word <-> $1 LIMIT 3;`,
     '**Substring, ILIKE, regex**: `gin_trgm_ops`. Patterns need at least one full trigram to be selective.',
     '**Typos**: `similarity()`, `%` (threshold 0.3) and `<->`. Distance ordering needs **GiST**.',
     '**Words**: a stored `tsvector` with a GIN index, `@@ websearch_to_tsquery`, ranked by `ts_rank`.',
-    'Going deeper: [Full-text search](/m6/full-text-search) covers parsers, dictionaries and ranking.',
+    '**Going deeper:** [Full-text search](/m6/full-text-search) covers parsers, dictionaries and ranking.',
   ],
   sources: ['functions-matching.html', 'indexes-opclass.html', 'indexes-collations.html', 'pgtrgm.html', 'textsearch-controls.html', 'textsearch-tables.html', 'textsearch-indexes.html', 'ddl-generated-columns.html'],
 }

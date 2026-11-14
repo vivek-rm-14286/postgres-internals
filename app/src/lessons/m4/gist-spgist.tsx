@@ -289,7 +289,7 @@ DROP INDEX shops_gist;
 EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
 SELECT id FROM shops ORDER BY loc <-> point '(50,50)' LIMIT 5;
 SELECT pg_size_pretty(pg_relation_size('shops_spg')) AS spgist_size;`,
-        note: '`quad_point_ops` is the default SP-GiST opclass for `point`. Same KNN plan shape; here it reads about 14 buffers, and the index is smaller (about 2.3 MB vs 3.3 MB for GiST).' },
+        note: '`quad_point_ops` is the default SP-GiST opclass for `point`. Same KNN plan shape; here it reads about 14 buffers, and the index is smaller (about 2.3 MB vs 3.2 MB for GiST).' },
       { label: 'Exclusion constraint', sql: `CREATE TABLE bookings (
   room int,
   during tstzrange,
@@ -354,7 +354,7 @@ ALTER TABLE reservations
     '**SP-GiST**: unbalanced space partitioning (quad-tree, k-d tree, radix tree). Regions never overlap. `quad_point_ops` is the default for point.',
     'KNN: `ORDER BY col <-> value LIMIT k` walks the tree best-first with lower-bound distances, so it never sorts the table.',
     'Exclusion constraints (`EXCLUDE USING gist (… WITH &&)`) generalise UNIQUE to "no two rows overlap". `btree_gist` adds `=` for scalars.',
-    'Both are lossy per opclass: `Recheck Cond` and `Rows Removed by Index Recheck` show rows re-tested against the heap.',
+    'Both are lossy per opclass: `Recheck Cond` and `Rows Removed by Index Recheck` show rows re-tested against the heap. For geometry at scale see [Spatial indexes](/e4/spatial-indexes).',
   ],
   sources: ['gist.html', 'spgist.html', 'indexes-types.html', 'ddl-constraints.html', 'btree-gist.html', 'sql-createindex.html'],
 }

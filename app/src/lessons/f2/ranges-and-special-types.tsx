@@ -120,7 +120,7 @@ function OpsView() {
 
   const boundCtl = (w: 'A' | 'B', r: In, set: (f: (x: In) => In) => void) => (
     <div className="flex flex-wrap items-center gap-1.5 text-xs">
-      <span className="font-mono font-semibold" style={{ color: tone(w === 'A' ? 'tuple' : 'pointer') }}>{w}</span>
+      <span className="font-mono font-semibold" style={{ color: tone.text(w === 'A' ? 'tuple' : 'pointer') }}>{w}</span>
       <Segmented label={`${w} lower bound`} value={r.loInf ? 'inf' : r.loInc ? 'inc' : 'exc'} onChange={(v) => set((x) => ({ ...x, loInf: v === 'inf', loInc: v === 'inc' }))} options={[['inc', '['], ['exc', '('], ['inf', 'no lower']]} />
       <Segmented label={`${w} upper bound`} value={r.hiInf ? 'inf' : r.hiInc ? 'inc' : 'exc'} onChange={(v) => set((x) => ({ ...x, hiInf: v === 'inf', hiInc: v === 'inc' }))} options={[['exc', ')'], ['inc', ']'], ['inf', 'no upper']]} />
     </div>
@@ -220,10 +220,10 @@ function BookView() {
     if (n >= SCEN.length) { setRows(BASE); setScen(-1); setCand(SCEN[0].c); setMsg(null); return }
     setScen(n); setCand(SCEN[n].c); setRows((cur) => tryBook(SCEN[n].c, cur))
   }
-  const bump = (f: 'lo' | 'hi', d: number) => setCand((c) => {
+  const bump = (f: 'lo' | 'hi', d: number) => { setMsg(null); setCand((c) => {
     const v = Math.max(DAY0, Math.min(DAY1, c[f] + d))
     return f === 'lo' ? { ...c, lo: Math.min(v, c.hi - 30) } : { ...c, hi: Math.max(v, c.lo + 30) }
-  })
+  }) }
 
   const free = (room: number) => R.mrMinus('num', [R.mk('num', DAY0, DAY1, true, false)], rows.filter((b) => b.room === room).map(asR))
   const note = scen >= 0 && JSON.stringify(SCEN[scen].c) === JSON.stringify(cand) ? SCEN[scen].note
@@ -233,11 +233,11 @@ function BookView() {
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <Btn primary testid="viz-next" onClick={next}>{scen + 1 >= SCEN.length ? 'Reset bookings' : 'Try next booking →'}</Btn>
-        <Segmented label="Room" value={String(cand.room)} onChange={(v) => setCand((c) => ({ ...c, room: Number(v) }))} options={[['1', 'Lisbon'], ['2', 'Oslo']]} />
+        <Segmented label="Room" value={String(cand.room)} onChange={(v) => { setMsg(null); setCand((c) => ({ ...c, room: Number(v) })) }} options={[['1', 'Lisbon'], ['2', 'Oslo']]} />
         <span className="inline-flex items-center gap-1 text-xs"><Btn onClick={() => bump('lo', -30)}>−</Btn><span className="font-mono">{hm(cand.lo)}</span><Btn onClick={() => bump('lo', 30)}>+</Btn></span>
         <span className="inline-flex items-center gap-1 text-xs"><Btn onClick={() => bump('hi', -30)}>−</Btn><span className="font-mono">{hm(cand.hi)}</span><Btn onClick={() => bump('hi', 30)}>+</Btn></span>
-        <Segmented label="Upper bound" value={cand.hiInc ? ']' : ')'} onChange={(v) => setCand((c) => ({ ...c, hiInc: v === ']' }))} options={[[')', ')'], [']', ']']]} />
-        <Btn onClick={() => { setScen(-1); setRows((cur) => tryBook({ ...cand, guest: 'new' }, cur)) }}>Insert</Btn>
+        <Segmented label="Upper bound" value={cand.hiInc ? ']' : ')'} onChange={(v) => { setMsg(null); setCand((c) => ({ ...c, hiInc: v === ']' })) }} options={[[')', ')'], [']', ']']]} />
+        <Btn onClick={() => { const c = { ...cand, guest: 'new' }; setScen(-1); setCand(c); setRows((cur) => tryBook(c, cur)) }}>Insert</Btn>
       </div>
       <div className="overflow-x-auto scrollbar-thin">
         <svg viewBox="0 0 640 196" className="w-full min-w-[520px]">
@@ -477,11 +477,18 @@ CREATE TABLE room_slots (
   during  tstzrange,
   PRIMARY KEY (room_id, during WITHOUT OVERLAPS)
 );
+INSERT INTO room_slots VALUES (1, '[2026-11-16 09:00, 2026-11-16 10:00)');
+DO $$
+BEGIN
+  INSERT INTO room_slots VALUES (1, '[2026-11-16 09:30, 2026-11-16 10:30)');
+EXCEPTION WHEN exclusion_violation THEN
+  RAISE NOTICE '%', SQLERRM;
+END $$;
 
 SET enable_seqscan = off;
 EXPLAIN (COSTS OFF) SELECT * FROM bookings WHERE during && tstzrange('2026-11-16 09:45', '2026-11-16 10:15');
 RESET enable_seqscan;`,
-        note: 'The two touching or other-room bookings are accepted; `sync` overlaps `review` in room 1 and the exclusion constraint rejects it (see the notice, SQLSTATE 23P01). `WITHOUT OVERLAPS` builds the same kind of GiST-backed rule into a primary key. The constraint\'s GiST index also serves `&&` searches.' },
+        note: 'The two touching or other-room bookings are accepted; `sync` overlaps `review` in room 1 and the exclusion constraint rejects it (see the notice, SQLSTATE 23P01). `WITHOUT OVERLAPS` builds the same kind of rule into a primary key, backed by GiST (an index type built for overlap, containment and distance searches); its violation is reported as the same 23P01, against `room_slots_pkey`. The constraint\'s GiST index also serves `&&` searches, and a range column can be indexed with `USING spgist` as well.' },
       { label: 'Network types: inet and cidr', sql: `SELECT '192.168.1.5/24'::inet         AS inet_keeps_host,
        '192.168.1.0/24'::cidr         AS cidr_is_a_network,
        host('192.168.1.5/24'::inet)    AS host,

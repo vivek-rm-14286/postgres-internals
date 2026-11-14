@@ -45,7 +45,7 @@ function TrigramViz() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={next} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">Next pair ({i + 1}/{PAIRS.length})</button>
+        <button onClick={next} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent">Next pair ({i + 1}/{PAIRS.length})</button>
         <input aria-label="First string" value={a} onChange={(e) => setA(e.target.value.slice(0, 40))} className="w-40 rounded-md border border-line bg-bg px-2 py-1 font-mono text-[13px]" />
         <input aria-label="Second string" value={b} onChange={(e) => setB(e.target.value.slice(0, 40))} className="w-40 rounded-md border border-line bg-bg px-2 py-1 font-mono text-[13px]" />
         <span className="text-xs text-muted">type anything</span>
@@ -145,7 +145,7 @@ function hnswSteps(ef: number): Step<HS>[] {
   const top3 = best.slice(0, 3)
   const exact = [...PTS].sort((a, b) => d2(a, Q) - d2(b, Q)).slice(0, 3).map((p) => p.id)
   const recall = top3.filter((x) => exact.includes(x)).length
-  steps.push({ title: 'Return the top 3 (LIMIT 3)', body: `The index returns nodes in distance order. It computed **${computed}** distances instead of ${PTS.length} for a full scan, and found **${recall} of the 3** exact nearest neighbours. HNSW is approximate: raising ef trades speed for recall.`,
+  steps.push({ title: top3.length < 3 ? `Return ${top3.length} rows for LIMIT 3` : 'Return the top 3 (LIMIT 3)', body: `The index returns nodes in distance order. It computed **${computed}** distances instead of ${PTS.length} for a full scan, and found **${recall} of the 3** exact nearest neighbours. HNSW is approximate: raising ef trades speed for recall.${top3.length < 3 ? ` With ef = ${ef} the candidate list holds only ${ef} nodes, and \`hnsw.ef_search\` caps how many rows a scan can return, so LIMIT 3 comes back short.` : ''}`,
     state: { level: 0, current: top3[0], visited: [...visited], path: [...path], frontier: best, result: top3, dist: computed } })
   return steps
 }
@@ -274,7 +274,8 @@ CREATE INDEX products_name_trgm ON products USING gin (name gin_trgm_ops);
 EXPLAIN SELECT * FROM products WHERE name ILIKE '%gres 12%';
 SELECT * FROM products WHERE name ILIKE '%gres 12%' ORDER BY id LIMIT 5;`,
         note: 'A B-tree cannot help with an unanchored pattern; the trigram GIN index can. The plan switches from a Seq Scan to a **Bitmap Index Scan on products_name_trgm**, followed by a recheck of each candidate row.' },
-      { label: 'pgvector: HNSW index', sql: `CREATE INDEX items_hnsw ON items USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
+      { label: 'pgvector: HNSW index', sql: `DROP INDEX IF EXISTS items_hnsw, items_ivf;
+CREATE INDEX items_hnsw ON items USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 SELECT pg_size_pretty(pg_relation_size('items_hnsw')) AS index_size;
 
 SET hnsw.ef_search = 40;
@@ -282,6 +283,20 @@ EXPLAIN SELECT id FROM items ORDER BY embedding <=> '[0.1,0.9,0.2]' LIMIT 5;
 SELECT id, round((embedding <=> '[0.1,0.9,0.2]')::numeric, 4) AS cosine_distance
 FROM items ORDER BY embedding <=> '[0.1,0.9,0.2]' LIMIT 5;`,
         note: '`<=>` is cosine distance (`<->` is L2, `<#>` negative inner product). The plan is an **Index Scan … Order By**: an approximate nearest-neighbour search, not a sort of all 2000 rows.' },
+      { label: 'pgvector: IVFFlat and probes', sql: `DROP INDEX IF EXISTS items_hnsw, items_ivf;
+CREATE INDEX items_ivf ON items USING ivfflat (embedding vector_cosine_ops) WITH (lists = 20);
+SELECT pg_size_pretty(pg_relation_size('items_ivf')) AS index_size;
+
+SET ivfflat.probes = 1;
+EXPLAIN (COSTS OFF) SELECT id FROM items ORDER BY embedding <=> '[0.1,0.9,0.2]' LIMIT 200;
+SELECT count(*) AS rows_with_1_probe
+FROM (SELECT id FROM items ORDER BY embedding <=> '[0.1,0.9,0.2]' LIMIT 200) s;
+
+SET ivfflat.probes = 20;
+SELECT count(*) AS rows_with_all_probes
+FROM (SELECT id FROM items ORDER BY embedding <=> '[0.1,0.9,0.2]' LIMIT 200) s;
+RESET ivfflat.probes;`,
+        note: '**IVFFlat** clusters the vectors into `lists` and scans only `ivfflat.probes` of them. It builds faster and is smaller than HNSW (176 kB against 632 kB here), but with one probe the query asks for 200 rows and gets **fewer** (somewhere between 100 and 170; the clustering is random, so the count changes with each build): only the rows of the nearest list. Probing all 20 lists returns 200, at the cost of reading the whole index.' },
       { label: 'pg_stat_statements', sql: `SELECT pg_stat_statements_reset() IS NOT NULL AS reset;
 SELECT count(*) FROM products WHERE name LIKE 'postgres%';
 SELECT count(*) FROM products WHERE name LIKE 'redis%';
@@ -342,8 +357,9 @@ ORDER BY score DESC LIMIT 10;`,
     { title: 'pg_stat_statements created but empty',
       symptom: '`CREATE EXTENSION pg_stat_statements` succeeds, but querying the view fails with "pg_stat_statements must be loaded via shared_preload_libraries".',
       cause: 'The module needs shared memory allocated at server start. CREATE EXTENSION only creates the SQL view and functions.',
-      fix: 'Add it to `shared_preload_libraries` and restart, then check that `compute_query_id` is `auto` or `on`.',
-      sql: `ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
+      fix: 'Add it to `shared_preload_libraries` (append to the existing list, do not overwrite it) and restart, then check that `compute_query_id` is `auto` or `on`.',
+      sql: `SHOW shared_preload_libraries;  -- keep what is already there
+ALTER SYSTEM SET shared_preload_libraries = 'auto_explain, pg_stat_statements';
 -- restart the server, then:
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;` },
     { title: 'Trigram search on very short patterns',
@@ -368,11 +384,11 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements;` },
 FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 10;` },
   ],
   pointers: [
-    'An extension is a **control file + versioned SQL scripts** (+ shared library). Members are tracked in `pg_depend` with deptype `e`, and pg_dump emits only `CREATE EXTENSION`.',
+    'An extension is a **control file + versioned SQL scripts** (+ shared library). Members are tracked in `pg_depend` with deptype `e`, and pg_dump emits only `CREATE EXTENSION`. PostgreSQL 18 adds `extension_control_path`, so control files and scripts can live outside the server\'s own share directory.',
     '**Trusted** extensions can be installed by non-superusers with CREATE on the database. Check with `pg_available_extension_versions`.',
-    '**pg_stat_statements** needs `shared_preload_libraries`; it groups queries by normalized text into one row per query id, user and database.',
+    '**pg_stat_statements** needs `shared_preload_libraries`; it groups queries by normalized text into one row per query id, user and database. `auto_explain` (also preloaded) logs the plans of slow statements, and `pg_buffercache` shows what sits in [shared buffers](/m1/shared-memory).',
     '**pg_trgm**: similarity = shared trigrams / union, threshold 0.3. GIN or GiST `*_trgm_ops` indexes speed up `%`, `LIKE`, `ILIKE` and regex, even unanchored.',
-    '**pgvector**: `<->` L2, `<=>` cosine, `<#>` inner product. HNSW (m=16, ef_construction=64, ef_search=40) gives approximate nearest neighbours.',
+    '**pgvector**: `<->` L2, `<=>` cosine, `<#>` negative inner product. HNSW (m=16, ef_construction=64, ef_search=40) gives approximate nearest neighbours; IVFFlat (lists, probes) builds faster and recalls less.',
   ],
   sources: ['extend-extensions.html', 'sql-createextension.html', 'pgstatstatements.html', 'pgtrgm.html', 'pgcrypto.html', 'pageinspect.html', 'contrib.html'],
 }

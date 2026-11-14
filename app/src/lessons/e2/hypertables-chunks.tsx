@@ -33,9 +33,10 @@ function fresh(mode: Mode, iv: number, parts: number): Sim {
     for (let lo = Math.floor(T0 / iv) * iv; lo < T0 + DAY; lo += iv)
       for (let p = 0; p < parts; p++) chunks.push({ key: `${lo}:${p}`, id: nextId++, lo, hi: lo + iv, part: p, rows: 0, far: false })
   }
+  const end = chunks.length ? Math.max(...chunks.map((c) => c.hi)) : T0
   return { now: T0, chunks, nextId, rejected: 0, last: { kind: 'start', text: mode === 'tsdb'
     ? 'An empty hypertable has **no chunks**. Ingest data: each row is routed to the chunk for its time slice, and a missing chunk is created on the spot.'
-    : 'Native partitioning: a scheduled job pre-created partitions for **Mar 01** only. Ingest past them and see what happens.' } }
+    : `Native partitioning: a scheduled job pre-created partitions only up to **${fmtDT(end)}**. Ingest past them and see what happens.` } }
 }
 
 function insert(s0: Sim, ts: number[], mode: Mode, iv: number, parts: number, label: string): Sim {
@@ -126,7 +127,7 @@ function HypertableViz() {
         <Stat label="rows stored" value={withRows.reduce((a, c) => a + c.rows, 0)} />
         <Stat label="rows rejected" value={sim.rejected} t={sim.rejected ? 'dead' : undefined} />
       </div>
-      <Msg id={sim.last.text}><p style={sim.last.kind === 'err' ? { color: tone('dead') } : undefined}><Md>{sim.last.text}</Md></p></Msg>
+      <Msg id={sim.last.text}><p style={sim.last.kind === 'err' ? { color: tone.text('dead') } : undefined}><Md>{sim.last.text}</Md></p></Msg>
       <label className="flex flex-wrap items-center gap-3 text-xs text-muted">
         <span className="font-mono">WHERE time &gt;= '{fmtDT(q0)}' AND time &lt; '{fmtDT(q1)}'</span>
         <input type="range" min={-72} max={168 - +qLen} step={1} value={qStart} onChange={(e) => setQStart(+e.target.value)} className="min-w-24 flex-1 accent-[var(--accent)]" aria-label="Query window start" />
@@ -209,7 +210,7 @@ function SizingPanel() {
           <input type="range" min={0.5} max={40} step={0.5} value={growth} onChange={(e) => setGrowth(+e.target.value)} className="min-w-20 flex-1 accent-[var(--accent)]" aria-label="Index growth per day" />
           <span className="font-mono tabular-nums">{growth} GB/day</span></label>
         <p><Md>{`Budget: 25% of ${ram} GB = **${budget} GB** for active chunk indexes, which allows ${maxDays >= 10 ? Math.round(maxDays) : maxDays.toFixed(1)} days. Suggested interval: **${pick[0]}**, about ${perYear.toLocaleString('en-US')} chunks a year.`}</Md></p>
-        {perYear > 1000 && <p style={{ color: tone('dead') }}><Md>{'More than 1,000 chunks in one hypertable means more planning work. Keep less history in raw form or use a larger server.'}</Md></p>}
+        {perYear > 1000 && <p style={{ color: tone.text('dead') }}><Md>{'More than 1,000 chunks in one hypertable means more planning work. Keep less history in raw form or use a larger server.'}</Md></p>}
       </div>
     </Panel>
   )
@@ -349,7 +350,7 @@ SELECT set_chunk_time_interval('metrics', INTERVAL '1 day');`,
     { title: 'Chunks that are far too small',
       symptom: 'Planning time grows with history, queries over a month open thousands of chunks, and you see `out of shared memory` with a hint to increase `max_locks_per_transaction`.',
       cause: 'Every chunk a query touches is planned and locked. A 1-hour interval on a slow table makes 8,760 chunks a year, each one tiny and hard to compress.',
-      fix: 'Size by the memory rule, not by query granularity. `set_chunk_time_interval` changes new chunks only, so fix history with a table-swap migration. Raise `max_locks_per_transaction` (restart needed) as a stopgap.',
+      fix: 'Size by the memory rule, not by query granularity. `set_chunk_time_interval` changes new chunks only, so fix history with a table-swap migration, or merge adjacent small chunks in place with `CALL merge_chunks(\'chunk_a\', \'chunk_b\')`. Raise `max_locks_per_transaction` (restart needed) as a stopgap.',
       sql: `SELECT set_chunk_time_interval('metrics', INTERVAL '7 days');` },
     { title: 'Unique key without the time column',
       symptom: '`ERROR: cannot create a unique index without the column "time" (used in partitioning)`.',
@@ -358,7 +359,7 @@ SELECT set_chunk_time_interval('metrics', INTERVAL '1 day');`,
     { title: 'A bad clock creates future chunks',
       symptom: '`timescaledb_information.chunks` lists chunks years ahead, and "latest" queries return garbage rows.',
       cause: 'A device sent a timestamp far in the future, and the INSERT created a chunk for it as designed.',
-      fix: 'Validate timestamps at ingest (for example a CHECK against `now() + interval \'1 day\'` in the application), and clean up with `drop_chunks(newer_than => …)`.',
+      fix: 'Reject timestamps later than `now() + interval \'1 day\'` at ingest (in the application or a `BEFORE INSERT` trigger), and clean up with `drop_chunks(newer_than => …)`.',
       sql: `SELECT drop_chunks('metrics', newer_than => now() + INTERVAL '3 months');` },
     { title: 'Space partitioning on one disk',
       symptom: 'After `add_dimension(…, by_hash(…))`, chunk count multiplies and planning slows, with no speed-up.',

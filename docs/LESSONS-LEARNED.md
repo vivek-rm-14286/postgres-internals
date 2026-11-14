@@ -17,6 +17,8 @@
 - **Vite HMR** re-ran `main.tsx` ("createRoot called twice"). Reuse the root. When several agents edit at once, run a
   dev server with HMR off for screenshots.
 - **JSX whitespace.** A line break after a bold element (`<b>Ecosystem</b>⏎(pgvector…`) drops the space. Add `{' '}`.
+- **Check contrast in both themes.** White text on the dark-mode accent was 2.4:1, and data colours that work as fills
+  were too faint as small text. Fills and text now use separate shades (`tone()` vs `tone.text()`, `--c-*` vs `--t-*`).
 - **Semantic colour tokens** as CSS variables, redefined for dark mode, made every visualizer theme-correct. Check that
   hues stay distinct: tuple vs accent and pointer vs ok started out identical.
 
@@ -31,6 +33,8 @@
   that could freeze the browser.
 - **Write incrementally.** Long agent runs were interrupted twice (plan mode, then a usage limit). Agents that appended
   notes as they went lost nothing.
+- **Examples must stand alone.** Readers click examples in any order and after a reset. A check that runs each one on a
+  fresh database found 22 that only worked in sequence, and reviewers found six more whose notes were only true in order.
 - **Say what can't be run.** Simulations are labelled as such, and the playground shows the closest native equivalent.
 
 ## Tooling and process

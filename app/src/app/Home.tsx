@@ -19,12 +19,12 @@ export function Home() {
         </motion.h1>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted">
           An interactive textbook in three tracks: <b className="text-ink">Fundamentals</b>, <b className="text-ink">Internals</b> and the <b className="text-ink">Ecosystem</b>{' '}
-          (pgvector, TimescaleDB, distributed PostgreSQL). Every lesson pairs a <b className="text-ink">step-through visual</b> with a <b className="text-ink">real Postgres running in your browser</b>,
+          (pgvector, TimescaleDB, distributed PostgreSQL, PostGIS). Every lesson pairs a <b className="text-ink">step-through visual</b> with a <b className="text-ink">real Postgres running in your browser</b>,
           and the Cookbook has graded exercises from beginner to expert.
         </p>
         {resume && (
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link to={lessonPath(resume)} className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-semibold text-white hover:opacity-90">
+            <Link to={lessonPath(resume)} className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-semibold text-on-accent hover:opacity-90">
               {done.size ? 'Continue' : 'Start learning'} <ArrowRight className="size-4" />
             </Link>
             <Link to="/cookbook" className="inline-flex items-center gap-2 rounded-lg border border-line px-5 py-2.5 font-semibold hover:border-accent"><FlaskConical className="size-4" /> Practise in the Cookbook</Link>

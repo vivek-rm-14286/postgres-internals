@@ -27,6 +27,8 @@ interface S {
   tag: string
   /** Rows a second connection would see changed right now. */
   othersSeeNew: boolean
+  /** Other connections cannot even read the table (TRUNCATE holds ACCESS EXCLUSIVE). */
+  blocked?: boolean
   alarm?: string
 }
 
@@ -52,7 +54,7 @@ const SCENARIOS: Record<Mode, Step<S>[]> = {
       state: { rows: base(), hi: KITCHEN, tx: 'idle', tag: 'SELECT 3', othersSeeNew: false, sql: "SELECT id, name, price\nFROM products\nWHERE category = 'kitchen';" } },
     { title: 'BEGIN a transaction', body: '`BEGIN` opens a **transaction**: nothing you change becomes permanent, or visible to anyone else, until you say `COMMIT`.',
       state: { rows: base(), hi: KITCHEN, tx: 'open', tag: 'BEGIN', othersSeeNew: false, sql: 'BEGIN;' } },
-    { title: 'UPDATE … RETURNING', body: 'The UPDATE changes the 3 kitchen prices. `SET price = price * 1.10` reads the **old** value of each row. `RETURNING` shows the new values right away.',
+    { title: 'UPDATE … RETURNING', body: 'The UPDATE changes the 3 kitchen prices. `SET price = round(price * 1.10, 2)` reads the **old** value of each row. `RETURNING` shows the new values right away.',
       state: { rows: withNext(KITCHEN), hi: KITCHEN, tx: 'open', tag: 'UPDATE 3', othersSeeNew: false, sql: UPD } },
     { title: 'Check before you commit', body: 'The tag says `UPDATE 3`, the preview said 3. The new prices look right. Other connections still see the **old** prices.',
       state: { rows: withNext(KITCHEN), hi: KITCHEN, tx: 'open', tag: 'UPDATE 3', othersSeeNew: false, sql: "SELECT name, price\nFROM products\nWHERE category = 'kitchen';" } },
@@ -60,7 +62,7 @@ const SCENARIOS: Record<Mode, Step<S>[]> = {
       state: { rows: committed(KITCHEN), hi: KITCHEN, tx: 'committed', tag: 'COMMIT', othersSeeNew: true, sql: 'COMMIT;' } },
   ],
   oops: [
-    { title: 'BEGIN first', body: 'Same task, same safety net: open a transaction before changing anything.',
+    { title: 'BEGIN first', body: 'Same task. The preview returned 3 rows; now open a transaction before changing anything.',
       state: { rows: base(), hi: [], tx: 'open', tag: 'BEGIN', othersSeeNew: false, sql: 'BEGIN;' } },
     { title: 'The WHERE is missing', body: 'Without `WHERE`, UPDATE changes **every row** in the table. Nothing warns you. The tag reads `UPDATE 9`.',
       state: { rows: withNext(ALL), hi: ALL, tx: 'open', tag: 'UPDATE 9', othersSeeNew: false, sql: UPD_OOPS, alarm: 'UPDATE 9, but only 3 kitchen products should change.' } },
@@ -78,8 +80,8 @@ const SCENARIOS: Record<Mode, Step<S>[]> = {
       state: { rows: base().map((r) => (r.id === 3 ? { ...r, gone: 'pending' } : r)), hi: [3], tx: 'open', tag: 'DELETE 1', othersSeeNew: false, sql: 'BEGIN;\nDELETE FROM products\nWHERE stock = 0\nRETURNING id, name;' } },
     { title: 'COMMIT', body: 'Now the row is gone for everyone. Without WHERE, `DELETE FROM products;` would have removed all 9.',
       state: { rows: base().filter((r) => r.id !== 3), hi: [], tx: 'committed', tag: 'COMMIT', othersSeeNew: true, sql: 'COMMIT;' } },
-    { title: 'TRUNCATE empties the whole table', body: '`TRUNCATE` removes **all** rows at once without scanning them, and frees the space immediately. It locks the table against all other use and runs no `ON DELETE` triggers.',
-      state: { rows: base().filter((r) => r.id !== 3).map((r) => ({ ...r, gone: 'pending' })), hi: [], tx: 'open', tag: 'TRUNCATE TABLE', othersSeeNew: false, sql: 'BEGIN;\nTRUNCATE products;' } },
+    { title: 'TRUNCATE empties the whole table', body: '`TRUNCATE` removes **all** rows at once without scanning them, and frees the space immediately. It locks the table against all other use and runs no `ON DELETE` triggers (code that a table runs automatically when rows change).',
+      state: { rows: base().filter((r) => r.id !== 3).map((r) => ({ ...r, gone: 'pending' })), hi: [], tx: 'open', tag: 'TRUNCATE TABLE', othersSeeNew: false, blocked: true, sql: 'BEGIN;\nTRUNCATE products;' } },
     { title: 'TRUNCATE can be rolled back too', body: 'Inside a transaction, `ROLLBACK` brings all 8 rows back. Outside one, TRUNCATE is final the moment it finishes.',
       state: { rows: base().filter((r) => r.id !== 3), hi: [], restored: ALL, tx: 'rolled back', tag: 'ROLLBACK', othersSeeNew: false, sql: 'ROLLBACK;' } },
   ],
@@ -121,7 +123,7 @@ function Rows({ s }: { s: S }) {
               <span className="text-right">
                 {pending ? (
                   <><span className="text-muted line-through">{money(r.price)}</span>{' '}
-                    <motion.b initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} style={{ color: tone('new') }}>{money(r.next!)}</motion.b></>
+                    <motion.b initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} style={{ color: tone.text('new') }}>{money(r.next!)}</motion.b></>
                 ) : (
                   <motion.span key={`${r.price}-${rest}`} initial={rest ? { y: -8, opacity: 0 } : false} animate={{ y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 14 }} style={{ fontWeight: t === 'ok' || t === 'dead' ? 700 : 400 }}>{money(r.price)}</motion.span>
@@ -137,14 +139,15 @@ function Rows({ s }: { s: S }) {
 }
 
 function Others({ s, mode }: { s: S; mode: Mode }) {
-  const changed = mode === 'delete'
+  const changed = s.blocked ? 'nothing yet' : mode === 'delete'
     ? (s.tx === 'open' ? 'every row as last committed' : `${s.rows.filter((r) => !r.gone).length} rows`)
     : s.othersSeeNew ? 'the new prices' : 'the old prices'
   return (
     <Panel title="what every other connection sees">
       <p className="text-[12.5px]">
-        <motion.span key={changed} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-semibold" style={{ color: tone(s.othersSeeNew ? 'ok' : 'muted') }}>{changed}</motion.span>
-        {s.tx === 'open' && <span className="text-muted">: your uncommitted changes are invisible to them.</span>}
+        <motion.span key={changed} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-semibold" style={{ color: tone.text(s.othersSeeNew ? 'ok' : 'muted') }}>{changed}</motion.span>
+        {s.tx === 'open' && !s.blocked && <span className="text-muted">: your uncommitted changes are invisible to them.</span>}
+        {s.blocked && <span className="text-muted">: they wait until you COMMIT or ROLLBACK, because TRUNCATE locks the whole table.</span>}
         {s.tx === 'committed' && <span className="text-muted">: the commit published everything at once.</span>}
         {s.tx === 'rolled back' && <span className="text-muted">: they never saw the change.</span>}
         {s.tx === 'autocommit' && <span className="text-muted">: the mistake is already live.</span>}
@@ -173,7 +176,7 @@ function SafeChangeViz() {
               <AnimatePresence>
                 {s.alarm && (
                   <motion.p key={s.alarm} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                    className="rounded-lg border px-3 py-2 text-[12.5px] font-semibold" style={{ borderColor: tone('dead'), background: toneBg('dead', 12), color: tone('dead') }}>{s.alarm}</motion.p>
+                    className="rounded-lg border px-3 py-2 text-[12.5px] font-semibold" style={{ borderColor: tone('dead'), background: toneBg('dead', 12), color: tone.text('dead') }}>{s.alarm}</motion.p>
                 )}
               </AnimatePresence>
             </div>
@@ -221,12 +224,12 @@ WHERE category = 'kitchen';`,
 UPDATE products
 SET price = round(price * 1.10, 2)
 WHERE category = 'kitchen'
-RETURNING id, name, price;
+RETURNING id, name, old.price AS was, new.price AS now;
 
 ROLLBACK;
 
 SELECT name, price FROM products WHERE category = 'kitchen';`,
-        note: 'RETURNING shows 10.45, 49.50 and 19.80. After ROLLBACK the last query shows the original 9.50, 45.00 and 18.00 again.' },
+        note: 'RETURNING shows 10.45, 49.50 and 19.80 next to the prices they replace: PostgreSQL 18 can return `old.` and `new.` values side by side. After ROLLBACK the last query shows the original 9.50, 45.00 and 18.00 again.' },
       { label: '3. Do it, then COMMIT', sql: `BEGIN;
 
 UPDATE products
@@ -260,12 +263,12 @@ COMMIT;
 
 SELECT count(*) AS products_left FROM products;`,
         note: 'Preview finds Chef knife; DELETE removes exactly that row and lists it. 8 products remain.' },
-      { label: '6. An error aborts the transaction', sql: `BEGIN;
+      { label: '6. Errors inside a transaction', sql: `BEGIN;
 UPDATE products SET stock = stock + 1 WHERE id = 1;
 SELECT try_sql('SELECT 1 / 0') AS failed_statement;
 SELECT try_sql('SELECT 1') AS after_error;
 ROLLBACK;`,
-        note: 'Here the helper catches the error, so the transaction survives. In psql, after a real error every later statement fails with **25P02** ("current transaction is aborted") until you run ROLLBACK.' },
+        note: 'A real error would abort the transaction. Here the helper catches it, so the transaction survives and you can see both statements. In psql, after a real error every later statement fails with **25P02** ("current transaction is aborted") until you run ROLLBACK.' },
       { label: '7. TRUNCATE inside a transaction', sql: `BEGIN;
 TRUNCATE products;
 SELECT count(*) AS during FROM products;
@@ -309,7 +312,7 @@ COMMIT;`,
     { title: 'TRUNCATE where DELETE was needed',
       symptom: 'An app freezes while a cleanup job runs, or an audit trigger never fired.',
       cause: '`TRUNCATE` takes the strongest table lock (even reads wait), runs no `ON DELETE` triggers, and cannot take a WHERE.',
-      fix: 'Use `DELETE … WHERE` to remove some rows or when triggers must run. Use `TRUNCATE` (with `RESTART IDENTITY` to reset ids) only to empty a table nobody is using.' },
+      fix: 'Use `DELETE … WHERE` to remove some rows or when triggers must run (see [Triggers](/m6/triggers)). Use `TRUNCATE` (with `RESTART IDENTITY` to reset ids) only to empty a table nobody is using.' },
   ],
   pointers: [
     '`UPDATE t SET col = expr WHERE …` and `DELETE FROM t WHERE …`. No WHERE means **every row**.',

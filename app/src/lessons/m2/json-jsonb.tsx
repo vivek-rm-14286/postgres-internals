@@ -227,6 +227,12 @@ FROM events WHERE id = 100;`,
        jsonb_path_query_array(doc, 'strict $.user.plan[0]', '{}', true)   AS strict_silent
 FROM events WHERE id = 12;
 
+SELECT JSON_EXISTS(doc, '$.user.plan')                           AS has_plan,
+       JSON_VALUE(doc, '$.user.id' RETURNING int)                AS user_id,
+       JSON_QUERY(doc, '$.tags')                                 AS tags,
+       JSON_VALUE(doc, '$.tags' DEFAULT 'not a scalar' ON ERROR) AS value_on_error
+FROM events WHERE id = 12;
+
 SELECT jt.*
 FROM events,
      JSON_TABLE(doc, '$' COLUMNS (
@@ -235,7 +241,7 @@ FROM events,
         amount     numeric PATH '$.amount',
         NESTED PATH '$.tags[*]' COLUMNS (tag text PATH '$'))) AS jt
 WHERE id BETWEEN 1 AND 3;`,
-        note: 'Lax mode (the default) treats a scalar as a one-element array, so `plan[0]` works; strict mode raises an error there, which `silent => true` turns into an empty result. JSON_TABLE turns documents into rows, one per `NESTED PATH` element.' },
+        note: 'Lax mode (the default) treats a scalar as a one-element array, so `plan[0]` works; strict mode raises an error there, which `silent => true` turns into an empty result. `JSON_EXISTS` tests a path, `JSON_VALUE` returns one scalar as an SQL type (an array is an error, handled by `ON ERROR`) and `JSON_QUERY` returns jsonb. JSON_TABLE turns documents into rows, one per `NESTED PATH` element.' },
     ],
   },
   production: {
@@ -285,7 +291,7 @@ SELECT jsonb_set_lax('{"a": 1}', '{b}', NULL);  -- {"a": 1, "b": null}` },
     '**json** = exact text, reparsed on every use, no GIN support. **jsonb** = parsed binary tree: no whitespace, keys sorted shorter-first, last duplicate wins.',
     'jsonb is not smaller: small documents are often **larger** than json. Its advantage is speed and indexing.',
     '`->` returns jsonb, `->>` returns **text** (cast before comparing numbers), `#>` / `#>>` take a path, `?` tests top-level keys, `@>` tests containment.',
-    'GIN **jsonb_ops** indexes keys and values (supports `?`); **jsonb_path_ops** hashes paths (only `@>`, `@?`, `@@`, smaller).',
+    'GIN **jsonb_ops** indexes keys and values (supports `?`); **jsonb_path_ops** hashes paths (only `@>`, `@?`, `@@`, smaller). See [GIN: inverted indexes](/m4/gin); large documents are stored through [TOAST](/m2/toast).',
     'jsonpath runs in **lax** mode by default (auto-wraps and unwraps arrays); **strict** raises structural errors.',
   ],
   sources: ['datatype-json.html', 'functions-json.html', 'gin-builtin-opclasses.html', 'indexes-expressional.html', 'storage-toast.html'],

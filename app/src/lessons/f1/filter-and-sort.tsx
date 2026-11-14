@@ -32,7 +32,7 @@ const CONDS: Cond[] = [
   { id: 'ilike', sql: "name ILIKE '%POT%'", f: (p) => p.name.toLowerCase().includes('pot'), say: '`ILIKE` ignores case, so `%POT%` finds Teapot and Plant pot.' },
   { id: 'stocklt', sql: 'stock < 10', f: (p) => cmp(p.stock, (s) => s < 10), say: 'Teapot and Pen set have **NULL** stock. `NULL < 10` is NULL, not true, so they are dropped silently.' },
   { id: 'eqnull', sql: 'stock = NULL', f: () => null, say: 'Comparing with NULL is always NULL, never true. **Zero rows**, and no error to warn you.' },
-  { id: 'isnull', sql: 'stock IS NULL', f: (p) => p.stock === null, say: '`IS NULL` is the only way to find missing values. It is always true or false, never NULL.' },
+  { id: 'isnull', sql: 'stock IS NULL', f: (p) => p.stock === null, say: '`IS NULL` is how you find missing values. It is always true or false, never NULL.' },
   { id: 'lowfix', sql: 'stock < 10 OR stock IS NULL', f: (p) => or3(cmp(p.stock, (s) => s < 10), p.stock === null), say: 'Low stock **or** unknown stock: now the uncounted items show up too.' },
   { id: 'not', sql: 'NOT (stock > 10)', f: (p) => not3(cmp(p.stock, (s) => s > 10)), say: '`NOT` flips true and false, but `NOT NULL` is still NULL. The two unknown stocks stay out whether you ask for `stock > 10` or its opposite.' },
   { id: 'notin', sql: 'stock NOT IN (0, NULL)', f: (p) => and3(cmp(p.stock, (s) => s !== 0), null), say: '`NOT IN (0, NULL)` means `<> 0 AND <> NULL`. The second part is always NULL, so **no row** can ever be true.' },
@@ -84,7 +84,7 @@ function FilterSortViz() {
   const sql = ['SELECT id, name, category, price, stock', 'FROM products', cond.sql && `WHERE ${cond.sql}`, sortSql, limSql].filter(Boolean).join('\n') + ';'
   const tieNote = limit > 0 && col !== 'none' && limit < kept.length
     ? ties ? `WITH TIES kept ${shown - limit} extra row${shown - limit === 1 ? '' : 's'} that tie the last value.` : (kept[limit - 1][col] === kept[limit]?.[col] ? ' Row ' + limit + ' ties with the next one; which one you get is not guaranteed. Add a tiebreaker such as `id`, or WITH TIES.' : '')
-    : limit > 0 && col === 'none' ? ' LIMIT without ORDER BY returns *some* rows, not the first ones.' : ''
+    : limit > 0 && col === 'none' ? ' LIMIT without ORDER BY returns *some* rows, not the first ones.' + (ties ? ' `WITH TIES` needs an `ORDER BY`: PostgreSQL rejects it otherwise, so it is left out here.' : '') : ''
 
   const nullCount = [...evals.values()].filter((v) => v === null).length
   const T: Record<typeof op, [string, B3[][]]> = {
@@ -109,7 +109,7 @@ function FilterSortViz() {
           <input type="range" min={0} max={9} value={limit} onChange={(e) => setLimit(+e.target.value)} className="w-24 accent-[var(--accent)]" aria-label="LIMIT" />
           <span className="w-10 font-mono text-ink">{limit || 'none'}</span>
         </label>
-        <label className="flex items-center gap-1 text-xs text-muted"><input type="checkbox" checked={ties} onChange={(e) => setTies(e.target.checked)} className="accent-[var(--accent)]" />WITH TIES</label>
+        <label className={`flex items-center gap-1 text-xs text-muted ${limit === 0 ? 'opacity-40' : ''}`}><input type="checkbox" checked={ties} disabled={limit === 0} onChange={(e) => setTies(e.target.checked)} className="accent-[var(--accent)]" />WITH TIES</label>
       </div>
       <Note k={`${ci}-${col}-${dir}-${nulls}-${limit}-${ties}`} t={kept.length === 0 ? 'dead' : undefined}><Md>{cond.say + (tieNote ? ' ' + tieNote : '')}</Md></Note>
       <Legend items={[['ok', 'WHERE is true: kept'], ['dead', 'false: dropped'], ['header', 'NULL: also dropped'], ['muted', 'cut by LIMIT']]} />
@@ -251,14 +251,14 @@ ORDER BY stock NULLS FIRST, name;`,
       cause: '`AND` binds tighter than `OR`: `a OR b AND c` means `a OR (b AND c)`.',
       fix: 'Put parentheses around every OR group: `(a OR b) AND c`.' },
     { title: 'NOT IN with a NULL in the list',
-      symptom: '`WHERE id NOT IN (SELECT customer_id FROM orders)` suddenly returns no rows at all.',
+      symptom: '`SELECT * FROM customers c WHERE c.id NOT IN (SELECT customer_id FROM orders)` suddenly returns no rows at all.',
       cause: 'If the list holds a NULL, `x NOT IN (…)` is never true: it means `x <> a AND x <> NULL`, and the last part is unknown.',
-      fix: 'Use `NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id)`, or filter NULLs out of the list.',
+      fix: 'Use `NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id)`, or filter NULLs out of the list. See [Subqueries](/m3/subqueries).',
       sql: 'SELECT 5 NOT IN (1, 2) AS no_null, 5 NOT IN (1, NULL) AS with_null;' },
     { title: 'LIMIT without a full ORDER BY',
       symptom: 'Page 2 of a list repeats an item from page 1, or an item is never shown.',
       cause: 'Without ORDER BY, or with ties in the sort key, the database may return tied rows in any order, and each query can choose differently.',
-      fix: 'Always sort by a unique tiebreaker last: `ORDER BY price, id LIMIT 20 OFFSET 20`.' },
+      fix: 'Always sort by a unique tiebreaker last: `ORDER BY price, id LIMIT 20 OFFSET 20`. For deep paging see [Pagination: OFFSET vs keyset](/f4/pagination).' },
   ],
   pointers: [
     '`WHERE` keeps rows whose condition is **true**. False and NULL (unknown) are both dropped.',

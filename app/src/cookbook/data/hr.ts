@@ -55,7 +55,7 @@ INSERT INTO salary_history VALUES
 export const exercises: Exercise[] = [
   // ── beginner ──────────────────────────────────────────────────────────────
   {
-    id: 'hr-hired-2022', dataset: 'hr', level: 'beginner', topic: 'dates',
+    id: 'hr-hired-2022', dataset: 'hr', level: 'beginner', topic: 'dates & time zones',
     title: 'Hired in 2022',
     task: 'Return the `name` and `hired_on` of everyone hired during calendar year 2022 (1 January to 31 December inclusive), sorted by `hired_on`.',
     hint: 'A half-open range `>= start AND < next start` never misses the last day.',
@@ -99,7 +99,7 @@ FROM employees WHERE dept_id = 2;`,
 
   // ── intermediate ─────────────────────────────────────────────────────────
   {
-    id: 'hr-emp-manager', dataset: 'hr', level: 'intermediate', topic: 'self-joins',
+    id: 'hr-emp-manager', dataset: 'hr', level: 'intermediate', topic: 'joins',
     title: 'Who reports to whom',
     task: 'Return `employee` (name) and `manager` (the manager’s name) for **every** employee. The CEO has no manager: show NULL.',
     hint: 'Join `employees` to itself under a second alias.',
@@ -109,7 +109,7 @@ LEFT JOIN employees m ON m.id = e.manager_id;`,
     explanation: 'A self-join uses two aliases for the same table. It must be a `LEFT JOIN`: an inner join drops the CEO, whose `manager_id` is NULL and matches nobody.',
   },
   {
-    id: 'hr-dept-avg', dataset: 'hr', level: 'intermediate', topic: 'GROUP BY / HAVING',
+    id: 'hr-dept-avg', dataset: 'hr', level: 'intermediate', topic: 'aggregates',
     title: 'Well-paid departments',
     task: 'Return `department` (name) and `avg_salary` (rounded to 2 decimals) for departments whose average salary is **above 124000**.',
     solution: `SELECT d.name AS department, round(avg(e.salary), 2) AS avg_salary
@@ -119,7 +119,7 @@ HAVING avg(e.salary) > 124000;`,
     explanation: '`WHERE` filters rows before grouping; a condition on an aggregate belongs in `HAVING`, which filters groups. Engineering clears the bar by a few hundred, Finance does not; a `WHERE salary > 124000` would instead average only the high earners and let every department through.',
   },
   {
-    id: 'hr-out-earn-manager', dataset: 'hr', level: 'intermediate', topic: 'self-joins',
+    id: 'hr-out-earn-manager', dataset: 'hr', level: 'intermediate', topic: 'joins',
     title: 'Earning more than the boss',
     task: 'Return `employee`, `salary`, `manager`, `manager_salary` for every employee whose salary is strictly greater than their manager’s.',
     solution: `SELECT e.name AS employee, e.salary, m.name AS manager, m.salary AS manager_salary
@@ -137,7 +137,7 @@ WHERE NOT EXISTS (SELECT 1 FROM employees e WHERE e.dept_id = d.id);`,
     explanation: 'The classic trap: `NOT IN (SELECT dept_id FROM employees)` returns **no rows**, because the list contains NULLs and `x NOT IN (…, NULL)` is NULL, never true. `NOT EXISTS` (or `LEFT JOIN … WHERE e.id IS NULL`) is NULL-safe and usually planned as an efficient anti-join.',
   },
   {
-    id: 'hr-tenure', dataset: 'hr', level: 'intermediate', topic: 'dates',
+    id: 'hr-tenure', dataset: 'hr', level: 'intermediate', topic: 'dates & time zones',
     title: 'Completed years of service',
     task: 'Return `name` and `years` = the number of **completed** years between `hired_on` and `2025-12-31` (an int; someone hired 2022-12-31 has completed exactly 3).',
     hint: '`age(later, earlier)` returns a calendar interval.',
@@ -146,6 +146,29 @@ WHERE NOT EXISTS (SELECT 1 FROM employees e WHERE e.dept_id = d.id);`,
   },
 
   // ── advanced ─────────────────────────────────────────────────────────────
+  {
+    id: 'hr-salary-percentiles', dataset: 'hr', level: 'intermediate', topic: 'aggregates',
+    title: 'Median and 90th percentile salary',
+    task: 'For each department that has employees, return `department`, `median` = the median salary and `p90` = the 90th percentile salary, both **interpolated** between neighbouring values where needed (Sales: 130000 and 173500).',
+    hint: 'Ordered-set aggregates take their input from `WITHIN GROUP (ORDER BY …)`.',
+    solution: `SELECT d.name AS department,
+       percentile_cont(0.5) WITHIN GROUP (ORDER BY e.salary) AS median,
+       percentile_cont(0.9) WITHIN GROUP (ORDER BY e.salary) AS p90
+FROM departments d JOIN employees e ON e.dept_id = d.id
+GROUP BY d.name;`,
+    explanation: '`percentile_cont` interpolates: Sales has four salaries, so its median is halfway between the two middle ones. `percentile_disc(0.5)` returns an actual input value instead (90000 for Sales), and `avg` is not a median at all: one large salary moves it. Both percentiles are computed in the same pass over each group.',
+  },
+  {
+    id: 'hr-commission-share', dataset: 'hr', level: 'intermediate', topic: 'NULL handling',
+    title: 'Share of staff on commission',
+    task: 'Return one row per department (**all five**) with `department` and `pct` = the percentage of its employees whose `commission_pct` is not NULL, as a numeric rounded to 1 decimal (Sales: 75.0). A department with no employees gets NULL, not an error.',
+    hint: 'What does `NULLIF(x, 0)` return when `x` is 0, and what is a number divided by NULL?',
+    solution: `SELECT d.name AS department,
+       round(100.0 * count(e.commission_pct) / NULLIF(count(e.id), 0), 1) AS pct
+FROM departments d LEFT JOIN employees e ON e.dept_id = d.id
+GROUP BY d.name;`,
+    explanation: 'Marketing has no employees, so both counts are 0 and `0 / 0` raises "division by zero". `NULLIF(count(e.id), 0)` turns the zero divisor into NULL, and dividing by NULL gives NULL. `count(column)` counts only non-NULL values, which is why `count(e.commission_pct)` counts the commissioned staff and `count(e.id)`, unlike `count(*)`, is 0 for the row of NULLs that the `LEFT JOIN` produces.',
+  },
   {
     id: 'hr-org-chart', dataset: 'hr', level: 'advanced', topic: 'recursive CTEs',
     title: 'The full org chart',
@@ -187,7 +210,7 @@ GROUP BY m.name;`,
     explanation: 'Diego and Hana both earn 110000, the third-lowest Engineering salary, so the right answer has four Engineering rows. `row_number()` or a `LIMIT` per group silently drops one of them; `dense_rank()` gives tied values the same number.',
   },
   {
-    id: 'hr-raises', dataset: 'hr', level: 'advanced', topic: 'lag / lead',
+    id: 'hr-raises', dataset: 'hr', level: 'advanced', topic: 'window functions',
     title: 'Every raise, and how big it was',
     task: 'From `salary_history`, return one row per raise: `name`, `effective_from`, `old_salary`, `new_salary`, and `pct` = the increase in percent rounded to 1 decimal. An employee’s first history row is not a raise.',
     solution: `SELECT name, effective_from, old_salary, salary AS new_salary,
@@ -204,7 +227,7 @@ WHERE old_salary IS NOT NULL;`,
     id: 'hr-salary-as-of', dataset: 'hr', level: 'advanced', topic: 'LATERAL',
     title: 'Salaries as of a date',
     task: 'Using `salary_history`, return `name` and `salary` = what each employee earned **on 2023-01-01** (the latest history row effective on or before that day). Leave out employees with no such row.',
-    hint: '`CROSS JOIN LATERAL (… ORDER BY effective_from DESC LIMIT 1)`.',
+    hint: 'A subquery in `FROM` may refer to the outer row if you mark it `LATERAL`.',
     solution: `SELECT e.name, h.salary
 FROM employees e
 CROSS JOIN LATERAL (
@@ -217,10 +240,10 @@ CROSS JOIN LATERAL (
 
   // ── expert ───────────────────────────────────────────────────────────────
   {
-    id: 'hr-raise-and-log', dataset: 'hr', level: 'expert', topic: 'data-modifying CTEs',
+    id: 'hr-raise-and-log', dataset: 'hr', level: 'expert', topic: 'data changes',
     title: 'Raise the lowest-paid engineers, with an audit trail',
     task: 'Give a 5% raise (rounded to a whole number) to every **Engineering** employee whose salary is below the Engineering average, and record each new salary in `salary_history` with `effective_from = \'2026-01-01\'`. Ideally in one statement. The check lists `id`, current `salary`, and the 2026 history salary for every employee.',
-    hint: '`WITH raised AS (UPDATE … RETURNING …) INSERT INTO salary_history SELECT … FROM raised`.',
+    hint: 'An `UPDATE … RETURNING` can sit inside a `WITH` and feed another statement.',
     solution: `WITH raised AS (
   UPDATE employees e SET salary = round(e.salary * 1.05)
   WHERE e.dept_id = (SELECT id FROM departments WHERE name = 'Engineering')
@@ -236,7 +259,7 @@ ORDER BY e.id;`,
     ordered: true,
   },
   {
-    id: 'hr-share-high-earners', dataset: 'hr', level: 'expert', topic: 'integer division',
+    id: 'hr-share-high-earners', dataset: 'hr', level: 'intermediate', topic: 'integer division',
     title: 'Share of six-figure earners',
     task: 'For each department that has employees, return `department` and `pct` = the percentage of its employees earning **more than 100000**, as a numeric rounded to 1 decimal (Sales: 50.0).',
     hint: 'What is `3 / 4` in PostgreSQL?',

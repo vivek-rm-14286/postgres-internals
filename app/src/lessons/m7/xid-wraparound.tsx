@@ -73,30 +73,34 @@ function XidViz() {
   const [age, setAge] = useState(20e6)
   const [frozen, setFrozen] = useState(false)
   const [mode, setMode] = useState<'pg' | 'none'>('pg')
+  const [skipped, setSkipped] = useState(false) // a plain VACUUM that could not advance relfrozenxid
   const st = stageOf(age)
   const noFreeze = mode === 'none'
   const nextStage = () => {
     const nxt = STAGES.find((s) => s.at > age)
-    setFrozen(false)
+    setFrozen(false); setSkipped(false)
     setAge(nxt ? nxt.at + 1e6 : 20e6)
     if (noFreeze && !nxt) setAge(WRAP + 5e7)
   }
   const vacuum = (aggr: boolean) => {
     if (noFreeze) return
-    if (aggr || age >= T.tableAge) { setAge(T.minAge); setFrozen(true) } // relfrozenxid advances to about now − vacuum_freeze_min_age
+    setSkipped(false)
+    if (aggr) { setAge(0); setFrozen(true) } // FREEZE uses a freeze age of 0: relfrozenxid advances to about now
+    else if (age >= T.tableAge) { setAge(T.minAge); setFrozen(true) } // aggressive: relfrozenxid advances to about now − vacuum_freeze_min_age
+    else setSkipped(true) // not aggressive: all-visible pages are skipped, so relfrozenxid may stay where it is
   }
   const left = Math.max(0, WRAP - age)
   return (
     <div className="grid gap-3 [&>*]:min-w-0">
       <div className="flex flex-wrap items-center gap-2">
-        <Segmented label="Model" value={mode} onChange={(m) => { setMode(m); setFrozen(false); setAge(20e6) }} options={[['pg', 'PostgreSQL (freezes)'], ['none', 'What if nothing froze?']]} />
+        <Segmented label="Model" value={mode} onChange={(m) => { setMode(m); setFrozen(false); setSkipped(false); setAge(20e6) }} options={[['pg', 'PostgreSQL (freezes)'], ['none', 'What if nothing froze?']]} />
         <Btn primary testid="viz-next" onClick={nextStage}>Advance to next threshold</Btn>
         <Btn onClick={() => vacuum(false)} disabled={noFreeze}>VACUUM</Btn>
         <Btn onClick={() => vacuum(true)} disabled={noFreeze}>VACUUM (FREEZE)</Btn>
       </div>
       <label className="grid grid-cols-[190px_1fr] items-center gap-2 text-xs">
         <span className="font-mono text-muted">XIDs since relfrozenxid</span>
-        <input type="range" min={0} max={2.3e9} step={1e6} value={age} onChange={(e) => { setAge(+e.target.value); setFrozen(false) }} className="accent-[var(--accent)]" aria-label="age of relfrozenxid" />
+        <input type="range" min={0} max={2.3e9} step={1e6} value={age} onChange={(e) => { setAge(+e.target.value); setFrozen(false); setSkipped(false) }} className="accent-[var(--accent)]" aria-label="age of relfrozenxid" />
       </label>
       <div className="grid items-center gap-4 sm:grid-cols-[300px_1fr]">
         <div className="mx-auto w-full max-w-[300px]"><Ring age={age} frozen={frozen} noFreeze={noFreeze} /></div>
@@ -105,12 +109,14 @@ function XidViz() {
             <Stat label="server state" value={<span className="text-sm">{noFreeze ? (age > WRAP ? 'data loss' : 'row visible') : st.label}</span>} t={noFreeze ? (age > WRAP ? 'dead' : 'ok') : st.t} />
             <Stat label="XIDs until wraparound" value={fmtNum(left)} t={left < 40e6 ? 'dead' : undefined} />
           </div>
-          <motion.div key={noFreeze && age > WRAP ? 'loss' : st.label} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+          <motion.div key={noFreeze && age > WRAP ? 'loss' : skipped ? 'skipped' : frozen ? `frozen-${age}` : st.label} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
             className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: tone(noFreeze && age > WRAP ? 'dead' : st.t), background: toneBg(noFreeze && age > WRAP ? 'dead' : st.t, 10) }}>
             <Md>{noFreeze && age > WRAP
               ? 'The row\'s xmin is now more than 2^31 behind, which modulo-2^32 arithmetic reads as **2^31 ahead**: the committed row appears to come from the future and **vanishes from every query**. Freezing exists to make this impossible.'
               : noFreeze ? 'In this imaginary server nothing freezes and nothing warns. The old row stays visible only while its xmin is less than 2^31 behind the current XID. Keep advancing.'
-              : frozen && age < T.tableAge ? 'VACUUM froze the old rows and moved `relfrozenxid` up to the oldest XID still unfrozen, so `age(relfrozenxid)` dropped to about `vacuum_freeze_min_age`. The frozen row now counts as older than every XID, forever.' : st.text}</Md>
+              : skipped ? 'Plain VACUUM below `vacuum_freeze_table_age` (150 M) is not aggressive: it skips all-visible pages, so `relfrozenxid` may not move and the age stays where it is. Advance past 150 M, or run **VACUUM (FREEZE)**.'
+              : frozen && age === 0 ? '`VACUUM (FREEZE)` froze every row it could, as if `vacuum_freeze_min_age` were 0, and moved `relfrozenxid` up to the current XID, so `age(relfrozenxid)` dropped to about 0. The frozen row now counts as older than every XID, forever.'
+              : frozen && age < T.tableAge ? 'An aggressive VACUUM froze the old rows and moved `relfrozenxid` up to the oldest XID still unfrozen, so `age(relfrozenxid)` dropped to about `vacuum_freeze_min_age`. The frozen row now counts as older than every XID, forever.' : st.text}</Md>
           </motion.div>
           <Panel title="Thresholds on age(relfrozenxid)">
             <div className="grid gap-1 font-mono text-xs">
@@ -200,7 +206,7 @@ WHERE name IN ('vacuum_freeze_min_age', 'vacuum_freeze_table_age', 'autovacuum_f
                'vacuum_failsafe_age', 'vacuum_multixact_freeze_min_age',
                'vacuum_multixact_freeze_table_age', 'autovacuum_multixact_freeze_max_age')
 ORDER BY setting::bigint;`,
-        note: '50 M, 150 M, 200 M and 1.6 B for XIDs; multixacts have their own, larger limits (5 M, 150 M, 400 M).' },
+        note: '50 M, 150 M, 200 M and 1.6 B for XIDs; multixacts have their own limits (5 M, 150 M, 400 M).' },
       { label: 'Make a MultiXact', sql: `BEGIN;
 SELECT * FROM ledger WHERE id = 1 FOR SHARE;      -- a row lock by the transaction
 SAVEPOINT s;
@@ -217,7 +223,7 @@ SELECT * FROM pg_get_multixact_members(
   production: {
     title: 'A forgotten replication slot and the wraparound countdown',
     context: 'A logistics company runs about 3,000 write transactions per second on its primary. Months ago a team created a logical replication slot for a CDC pilot and abandoned it.',
-    problem: 'Monitoring showed `age(datfrozenxid)` climbing past 1 billion although autovacuum ran constantly. The slot\'s `catalog_xmin` pinned the oldest XID that VACUUM could freeze past. At 3,000 XIDs/s, about 1.1 billion remaining XIDs is roughly 4 days until the 40 M warning zone.',
+    problem: 'Monitoring showed `age(datfrozenxid)` climbing past 1 billion although autovacuum ran constantly. The slot\'s `catalog_xmin` stopped VACUUM from freezing the system catalogs, and `datfrozenxid` is the minimum over every table, catalogs included. At 3,000 XIDs/s, about 1.1 billion remaining XIDs is roughly 4 days until the 40 M warning zone.',
     solution: 'Follow the recovery order: find what holds the horizon back (prepared transactions, long sessions, slots), remove it, then plain VACUUM the oldest tables. No single-user mode, no VACUUM FULL, no FREEZE.',
     sql: `SELECT gid, age(transaction) FROM pg_prepared_xacts ORDER BY 2 DESC;
 SELECT pid, age(backend_xid), age(backend_xmin), state FROM pg_stat_activity ORDER BY 3 DESC NULLS LAST;
@@ -226,8 +232,8 @@ SELECT slot_name, age(xmin), age(catalog_xmin), active FROM pg_replication_slots
 SELECT pg_drop_replication_slot('cdc_pilot');
 
 SELECT c.oid::regclass, age(c.relfrozenxid) FROM pg_class c
-WHERE c.relkind IN ('r','m') ORDER BY 2 DESC LIMIT 10;
-VACUUM (VERBOSE) big_table_with_oldest_xid;`,
+WHERE c.relkind IN ('r','m') ORDER BY 2 DESC LIMIT 10;   -- the oldest tables here are pg_catalog ones
+VACUUM (VERBOSE);  -- database-wide, as superuser`,
     outcome: 'Once the slot was dropped, the next aggressive vacuums advanced `relfrozenxid`, and `age(datfrozenxid)` fell back to around the 200 M `autovacuum_freeze_max_age` range. An alert on `age(datfrozenxid) > 500 M` and on inactive slots now catches this weeks earlier.',
   },
   pitfalls: [
@@ -255,7 +261,7 @@ FROM pg_stat_activity WHERE backend_xmin IS NOT NULL ORDER BY 3 DESC;` },
     'XIDs are **32-bit, compared modulo 2^32**: 2 billion in the past, 2 billion in the future.',
     '**Freezing** marks a row older than every XID; `relfrozenxid` / `datfrozenxid` track the oldest unfrozen XID.',
     'Ladder: **150 M** aggressive · **200 M** forced autovacuum · **1.6 B** failsafe · **40 M before wrap** warnings · **3 M before wrap** no new XIDs.',
-    'Recovery: end prepared/long transactions, drop stale slots, plain **VACUUM** as superuser; never single-user mode, FULL or FREEZE.',
+    'Recovery: end [prepared](/e3/distributed-transactions)/long transactions, drop stale slots, plain **VACUUM** as superuser; never single-user mode, FULL or FREEZE.',
     '**MultiXacts** (several lockers in one `xmax`) age and wrap the same way: watch `mxid_age(relminmxid)`.',
   ],
   sources: ['routine-vacuuming.html', 'runtime-config-vacuum.html', 'transaction-id.html', 'pageinspect.html', 'pgvisibility.html', 'functions-info.html'],

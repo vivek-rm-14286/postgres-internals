@@ -36,7 +36,7 @@ function RaftViz() {
   const write = () => {
     const n = structuredClone(c)
     const t = n.tablets[tab]
-    if (t.leader < 0 || !n.up[t.leader]) {
+    if (upCount(n) < 2 || t.leader < 0 || !n.up[t.leader]) {
       setFlow({ id: Date.now(), tab, ok: false, leader: -1, msg: `Tablet ${tab + 1} has no leader: only ${upCount(n)} of 3 replicas are up, and Raft needs a majority. The write is refused.` })
     } else {
       t.idx[t.leader] += 1
@@ -49,7 +49,8 @@ function RaftViz() {
     const n = structuredClone(c)
     n.up[x] = !n.up[x]
     const ledBy = n.tablets.filter((t) => t.leader === x || t.leader < 0)
-    if (!n.up[x]) n.tablets.forEach((t) => { if (t.leader === x) elect(n, t) })
+    // a leader that can no longer reach a majority steps down, whichever node it is on
+    if (!n.up[x]) n.tablets.forEach((t) => { if (upCount(n) < 2 || t.leader === x) elect(n, t) })
     else n.tablets.forEach((t) => { if (t.leader < 0) elect(n, t); if (t.leader >= 0) t.idx[x] = t.idx[t.leader] })
     setC(n)
     setFlow({ id: Date.now(), tab: -1, ok: n.up[x], leader: -1, msg: !n.up[x]
@@ -171,7 +172,7 @@ function ConflictLab() {
               <text x={320} y={160} textAnchor="middle" fontSize={10.5} fill="var(--muted)">expected if no update were lost: {op === 'inc' ? '170' : 'one of 150 or 120, the same on both'}</text>
             </svg>
           </div>
-          {s.verdict && <Panel title="Result"><p className="text-sm" style={{ color: tone(s.vt ?? 'ok') }}><Md>{s.a === s.b ? `Converged at ${s.a}.` : `Diverged: A = ${s.a}, B = ${s.b}.`}</Md></p></Panel>}
+          {s.verdict && <Panel title="Result"><p className="text-sm" style={{ color: tone.text(s.vt ?? 'ok') }}><Md>{s.a === s.b ? `Converged at ${s.a}.` : `Diverged: A = ${s.a}, B = ${s.b}.`}</Md></p></Panel>}
         </div>
       )} />
     </div>
@@ -186,8 +187,8 @@ function YsqlIsolation() {
         options={[['off', 'yb_enable_read_committed_isolation = false'], ['on', '= true']]} />
       <Panel title="What you ask for → what YSQL runs">
         <FieldTable rows={[
-          ['READ UNCOMMITTED', <motion.b key={`ru-${rc}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: tone(rc ? 'ok' : 'dead') }}>{rc ? 'Read Committed' : 'Snapshot'}</motion.b>, 'treated like READ COMMITTED'],
-          ['READ COMMITTED', <motion.b key={String(rc)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: tone(rc ? 'ok' : 'dead') }}>{rc ? 'Read Committed' : 'Snapshot'}</motion.b>, rc ? 'statement snapshot, like PostgreSQL' : 'conflicts abort with 40001: retry'],
+          ['READ UNCOMMITTED', <motion.b key={`ru-${rc}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: tone.text(rc ? 'ok' : 'dead') }}>{rc ? 'Read Committed' : 'Snapshot'}</motion.b>, 'treated like READ COMMITTED'],
+          ['READ COMMITTED', <motion.b key={String(rc)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: tone.text(rc ? 'ok' : 'dead') }}>{rc ? 'Read Committed' : 'Snapshot'}</motion.b>, rc ? 'statement snapshot, like PostgreSQL' : 'conflicts abort with 40001: retry'],
           ['REPEATABLE READ', 'Snapshot', 'no phantoms'],
           ['SERIALIZABLE', 'Serializable', 'reads also write provisional records'],
         ]} />
@@ -363,9 +364,9 @@ ALTER TABLE wallets ADD COLUMN top_ups bdr.crdt_delta_counter NOT NULL DEFAULT 0
   pointers: [
     'YugabyteDB: YSQL reuses PostgreSQL\'s query layer over **DocDB**; tables split into **tablets**, each a **Raft** group with one leader. A write commits on a majority; a lost leader is replaced within seconds (about 3 s with default heartbeat settings).',
     'Hash sharding uses a 16-bit space **0x0000–0xFFFF**, and by default only the first primary key column is hashed. Range sharding (`ASC`/`DESC`) suits range scans but risks hot spots.',
-    'Multi-master (PGD, Spock) commits locally and replicates later, so conflicts are detected on apply, for example (in PostgreSQL 18 terms) insert_exists, update_origin_differs, delete_missing.',
+    'Multi-master (PGD, Spock) commits locally and replicates later, so conflicts are detected on apply, for example (in PostgreSQL 18 terms) insert_exists, update_origin_differs, delete_missing. Stock PostgreSQL can replicate both ways with two subscriptions created `WITH (origin = none)` so changes do not loop back; it detects and logs conflicts (18) but does not resolve them, which is what PGD and Spock add.',
     'Resolution rules (`last_update_wins`, `keep_local`, `apply_remote`, `error`) trade correctness for availability; delta-apply fixes counters; global sequences fix ids. See [logical replication](/m7/logical-replication) for the building block.',
-    'Use multi-master only for simple, partitionable write patterns; use distributed SQL when you need strong consistency across regions and can pay the write latency.',
+    'Use multi-master only for simple, partitionable write patterns; use distributed SQL when you need strong consistency across regions and can pay the write latency. Paxos, Raft and their failure cases: [distributed transactions and consensus](/e5/commit-and-consensus).',
   ],
   sources: ['logical-replication-conflicts.html', 'logical-replication-publication.html', 'runtime-config-replication.html', 'runtime-config-client.html', 'functions-info.html', 'transaction-iso.html'],
 }

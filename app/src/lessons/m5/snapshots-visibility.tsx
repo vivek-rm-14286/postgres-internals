@@ -75,7 +75,7 @@ function rcrrSteps(iso: Iso): TStep<X1>[] {
       badges: { A: { snap: fmt(S1) } }, x: { snapA: S1, status: done2, vers: [v1d, v2, v3] } },
     { tick: 5, title: iso === 'rc' ? 'A reads again: new snapshot 813:813:' : 'A reads again: same snapshot', body: iso === 'rc'
       ? 'Read Committed takes a **new snapshot per statement**. Now 811 and 812 are finished and committed, so A sees **12** and the new lamp: a *non-repeatable read* and a *phantom*.'
-      : 'Repeatable Read reuses the **transaction snapshot**. 811 is still in its `xip` and 812 is still ≥ xmax, so A sees exactly what it saw before: **10**, no lamp.',
+      : 'Repeatable Read reuses the **transaction snapshot**. 811 and 812 are both still ≥ its xmax, so A sees exactly what it saw before: **10**, no lamp.',
       badges: { A: { snap: fmt(second) } }, x: { snapA: second, status: done2, vers: [v1d, v2, v3] } },
     { tick: 6, title: 'A commits', body: iso === 'rc' ? 'Two statements, two snapshots. Read Committed never shows uncommitted data, but it does show data committed *during* the transaction.' : 'One snapshot for the whole transaction: a stable view, at the cost of possible serialization errors if A had tried to update row 1.',
       x: { snapA: null, status: done2, vers: [v1d, v2, v3] } },
@@ -126,7 +126,7 @@ function Calculator() {
   const cells = Array.from({ length: Math.min(hi - lo + 1, 18) }, (_, i) => lo + i)
   const st = (x: number): Status => (x >= s.xmax || s.xip.includes(x) ? 'running' : aborted.includes(x) ? 'aborted' : 'committed')
   const cls = (x: number): [Tone, string] =>
-    x >= s.xmax ? ['muted', 'not yet started'] : s.xip.includes(x) ? ['new', 'in progress (xip)'] : aborted.includes(x) ? ['dead', 'aborted'] : ['ok', 'committed']
+    x >= s.xmax ? ['muted', 'not finished (≥ xmax)'] : s.xip.includes(x) ? ['new', 'in progress (xip)'] : aborted.includes(x) ? ['dead', 'aborted'] : ['ok', 'committed']
 
   const click = (x: number) => {
     if (mode === 'xmin') setTxmin(x)
@@ -138,7 +138,7 @@ function Calculator() {
   const maxOk = txmax !== 0 && xidVisible(txmax, s, st)
   const visible = minOk && !maxOk
   const why = (x: number, role: 'xmin' | 'xmax') => {
-    if (x >= s.xmax) return `${x} ≥ snapshot xmax ${s.xmax}: it had **not started** when the snapshot was taken, so it counts as invisible.`
+    if (x >= s.xmax) return `${x} ≥ snapshot xmax ${s.xmax}: it had **not finished** when the snapshot was taken (still running, or not even started), so it counts as invisible.`
     if (s.xip.includes(x)) return `${x} is in **xip**: still in progress at snapshot time, so its work is invisible.`
     if (aborted.includes(x)) return `${x} finished but **aborted** (pg_xact), so its work never counts.`
     return `${x} ${x < s.xmin ? `< snapshot xmin ${s.xmin}` : 'is below xmax and not in xip'}: finished and **committed** before the snapshot${role === 'xmin' ? ', so the insert counts' : ', so the delete counts'}.`
@@ -159,7 +159,7 @@ function Calculator() {
             className="rounded-md border border-line px-2 py-1 text-[11px] hover:border-accent">{p.label}</button>
         ))}
       </div>
-      {!snap && <p className="text-xs" style={{ color: tone('dead') }}>Write the snapshot as xmin:xmax:xip, for example 100:104:100,102 (xip values must lie in [xmin, xmax)).</p>}
+      {!snap && <p className="text-xs" style={{ color: tone.text('dead') }}>Write the snapshot as xmin:xmax:xip, for example 100:104:100,102 (xip values must lie in [xmin, xmax)).</p>}
       <div className="overflow-x-auto scrollbar-thin rounded-lg border border-line bg-bg p-3">
         <div className="flex min-w-[600px] gap-1">
           {cells.map((x) => {
@@ -174,7 +174,7 @@ function Calculator() {
                 <AnimatePresence>
                   {(isMin || isMax) && (
                     <motion.span initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="absolute -bottom-2 rounded px-1 text-[9.5px] font-bold text-white" style={{ background: tone(isMin ? 'tuple' : 'dead') }}>
+                      className="absolute -bottom-2 rounded px-1 text-[9.5px] font-bold text-on-accent" style={{ background: tone(isMin ? 'tuple' : 'dead') }}>
                       {isMin && isMax ? 'xmin+xmax' : isMin ? 't_xmin' : 't_xmax'}
                     </motion.span>
                   )}
@@ -184,7 +184,7 @@ function Calculator() {
           })}
         </div>
       </div>
-      <Legend items={[['ok', 'committed before snapshot'], ['dead', 'aborted'], ['new', 'in progress (xip)'], ['muted', '≥ xmax: future'], ['tuple', 'tuple xmin']]} />
+      <Legend items={[['ok', 'committed before snapshot'], ['dead', 'aborted'], ['new', 'in progress (xip)'], ['muted', '≥ xmax: not finished'], ['tuple', 'tuple xmin']]} />
       <div className="grid gap-3 md:grid-cols-[1fr_auto]">
         <Panel title="The rule, applied">
           <ol className="grid gap-1.5 text-sm">
@@ -197,7 +197,7 @@ function Calculator() {
           <motion.div key={String(visible)} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }}
             className="flex min-w-[150px] flex-col items-center justify-center rounded-lg border-2 p-4" style={{ borderColor: tone(visible ? 'ok' : 'dead'), background: toneBg(visible ? 'ok' : 'dead', 12) }}>
             <span className="text-[11px] tracking-wide text-muted uppercase">this snapshot</span>
-            <span className="text-2xl font-bold" style={{ color: tone(visible ? 'ok' : 'dead') }}>{visible ? 'sees it' : 'skips it'}</span>
+            <span className="text-2xl font-bold" style={{ color: tone.text(visible ? 'ok' : 'dead') }}>{visible ? 'sees it' : 'skips it'}</span>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -226,7 +226,7 @@ export const lesson: Lesson = {
   order: 2,
   title: 'Snapshots and tuple visibility',
   tldr: [
-    'A **snapshot** is three numbers, `xmin:xmax:xip`, that classify every xid as finished, in progress, or not yet started, and a row version is visible when its inserting xid counts and its deleting xid does not.',
+    'A **snapshot** is three numbers, `xmin:xmax:xip`, that say for every xid whether it had already finished when the snapshot was taken, and a row version is visible when its inserting xid counts and its deleting xid does not.',
     'Snapshots let readers and writers work on the same rows at once without blocking, because each reader just ignores the versions its snapshot cannot see.',
   ],
   visualizer: {
@@ -314,7 +314,7 @@ ALTER ROLE reporting SET idle_in_transaction_session_timeout = '5min';`,
   },
   pitfalls: [
     { title: 'Long snapshots block cleanup everywhere',
-      symptom: 'VACUUM VERBOSE reports "dead row versions cannot be removed yet" and tables keep growing.',
+      symptom: 'VACUUM VERBOSE reports `N are dead but not yet removable` with an old `removable cutoff`, and tables keep growing.',
       cause: 'Any open snapshot pins the xmin horizon for the whole database, including one held by a replication slot, by standby feedback, or by a driver connection with autocommit off that ran one SELECT and went idle.',
       fix: 'Monitor `age(backend_xmin)` in `pg_stat_activity` and `pg_replication_slots.xmin`; set `idle_in_transaction_session_timeout` and `transaction_timeout`.' },
     { title: 'Relying on the order rows come back in',
@@ -335,7 +335,7 @@ ALTER ROLE reporting SET idle_in_transaction_session_timeout = '5min';`,
       fix: 'Compare `xid8` values, or better use a `updated_at` column or logical decoding for change tracking.' },
   ],
   pointers: [
-    'Snapshot `xmin:xmax:xip`: below xmin = finished, at or above xmax = not started, xip = in progress.',
+    'Snapshot `xmin:xmax:xip`: below xmin = finished, at or above xmax = not finished yet (running or not started), xip = in progress in between.',
     'A version is visible if its **xmin** committed before the snapshot and its **xmax** is 0, aborted, or not yet visible.',
     '**Read Committed**: one snapshot per statement. **Repeatable Read** and Serializable: one per transaction, taken at the first statement.',
     '**Hint bits** cache commit status on the tuple, so the first reader after a write may dirty the page.',

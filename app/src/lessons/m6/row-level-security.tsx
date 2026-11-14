@@ -66,7 +66,7 @@ function RlsViz() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={next} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">Next scenario ({idx + 1}/{SCEN.length})</button>
+        <button onClick={next} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent">Next scenario ({idx + 1}/{SCEN.length})</button>
         <Chip on={cfg.enabled} onClick={() => edit((c) => ({ ...c, enabled: !c.enabled }))}>ENABLE ROW LEVEL SECURITY</Chip>
       </div>
       <div className="min-h-[52px] rounded-lg border border-line bg-surface-2 px-4 py-2.5 text-sm" aria-live="polite">
@@ -284,7 +284,7 @@ COMMIT;`,
   pitfalls: [
     { title: 'Testing as a superuser or the table owner',
       symptom: 'Policies "work in staging" but every row is visible in production, or the reverse.',
-      cause: 'Superusers and BYPASSRLS roles **always** bypass RLS, and the table owner bypasses it unless FORCE is set. Tests that connect as the owner never exercise the policies.',
+      cause: 'Superusers and BYPASSRLS roles **always** bypass RLS, and the table owner bypasses it unless FORCE is set. Tests that connect as the owner never exercise the policies. A view owned by the table owner bypasses them too unless it is `security_invoker`: see [Views and materialized views](/m6/views-matviews).',
       fix: 'Run the application and its tests as a dedicated non-owner role, and use `ALTER TABLE … FORCE ROW LEVEL SECURITY` when the owner role also serves traffic.' },
     { title: 'A missing setting breaks every query',
       symptom: '`ERROR: unrecognized configuration parameter "app.tenant_id"` on connections that did not set it.',

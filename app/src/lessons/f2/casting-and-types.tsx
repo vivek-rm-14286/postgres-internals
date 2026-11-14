@@ -141,7 +141,7 @@ function CastMatrix() {
     : TOUR_NUM.find(([i, s, t]) => i === input && s === src && t === type)?.[3]
   const sql = mode === 'text' ? `SELECT ${qt(input)}::${type};` : `SELECT ${input.startsWith('-') ? `(${input})` : input}::${src}::${type};`
   const generic = kind === 'error'
-    ? `The cast fails with SQLSTATE \`${cell.c}\`. ${cell.c === '22003' ? 'The value is valid but **out of range** for the target type.' : cell.c === '22008' ? 'The date is well formed but **does not exist**.' : 'The text is **not valid input** for this type.'} In a real query this error stops the whole statement.`
+    ? `The cast fails with SQLSTATE \`${cell.c}\`. ${cell.c === '22003' ? 'The value is valid but **out of range** for the target type.' : cell.c === '22008' ? 'A date/time field is **out of range**.' : 'The text is **not valid input** for this type.'} In a real query this error stops the whole statement.`
     : kind === 'changed' ? `The cast succeeds but the value **changes form**: \`${input}\` becomes \`${cell.v}\`.`
       : 'The cast succeeds and the value is unchanged.'
 
@@ -227,8 +227,10 @@ CREATE TABLE orders_clean (
        '10' < '9' AS text_compare,
        10 < 9     AS number_compare;
 
-SELECT x FROM (VALUES ('1'), ('10'), ('2'), ('9')) AS v(x) ORDER BY x;`,
-        note: 'A quoted literal starts as type `unknown` and takes whatever type its neighbour needs. Two texts compare character by character, so `\'10\' < \'9\'` is true and text numbers sort 1, 10, 2, 9.' },
+SELECT x FROM (VALUES ('1'), ('10'), ('2'), ('9')) AS v(x) ORDER BY x;
+
+SELECT 42 + 4.2 AS int_widens_to_numeric, length(42::text) AS needs_explicit_cast;`,
+        note: 'A quoted literal starts as type `unknown` and takes whatever type its neighbour needs. Two texts compare character by character, so `\'10\' < \'9\'` is true and text numbers sort 1, 10, 2, 9. Typed values convert on their own (an **implicit** cast) only where nothing is lost, such as integer to numeric. Integer to text is not automatic: `length(42)` fails with "function length(integer) does not exist" until you write the **explicit** cast `42::text`.' },
       { label: 'What would fail?', sql: `SELECT line,
        raw_qty,   pg_input_is_valid(raw_qty,   'smallint') AS qty_ok,
        raw_price, pg_input_is_valid(raw_price, 'numeric')  AS price_ok,
@@ -253,7 +255,7 @@ WHERE e.message IS NOT NULL ORDER BY s.line;`,
        to_char(42, '000')                                  AS zero_padded,
        to_char(12345, '999')                               AS too_narrow,
        to_char(date '2026-11-14', 'FMDay, FMDD FMMonth YYYY') AS long_date,
-       to_char(timestamptz '2026-11-14 15:42+00', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS iso_8601;
+       to_char(timestamptz '2026-11-14 15:42+00' AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS iso_8601;
 
 SELECT to_number('$1,299.00', 'L9G999D99')  AS parsed_price,
        to_date('14/11/2026', 'DD/MM/YYYY')   AS parsed_date;`,
@@ -287,7 +289,7 @@ SELECT '{"qty": "3"}'::jsonb ->> 'qty'              AS json_text,
     title: 'Importing a messy CSV without losing the good rows',
     context: 'A wholesale team uploads order spreadsheets every morning. A job copies them into a text-only staging table and then into typed tables.',
     problem: 'The first version ran `INSERT … SELECT raw_qty::smallint, …`. One cell with `four` raised `invalid input syntax for type smallint` and the **whole statement** rolled back: no orders loaded until someone found the bad row.',
-    solution: 'Test every value with `pg_input_is_valid` first. Load the rows that pass, and copy the rest, with the exact message from `pg_input_error_info`, into a quarantine table that the team reviews.',
+    solution: 'Test every value with `pg_input_is_valid` first. Load the rows that pass, and copy the rest, with the exact message from `pg_input_error_info`, into a quarantine table that the team reviews. `UNION ALL` stacks the three result sets, and `FROM staging_orders s, pg_input_error_info(…) AS e` calls the function once per staging row ([LATERAL joins](/m3/lateral)).',
     sql: `CREATE TABLE import_errors AS
 SELECT s.line, 'raw_qty' AS field, s.raw_qty AS value, e.message
 FROM staging_orders s, pg_input_error_info(trim(s.raw_qty), 'smallint') AS e
@@ -328,7 +330,7 @@ SELECT * FROM import_errors ORDER BY line, field;`,
     'Text → number accepts spaces but not decimal points (for integers), commas or empty strings. Out of range is an error, never a wrap.',
     'Number → integer **rounds**: ties away from zero from numeric, to even from double precision. Be explicit with `trunc`/`round`.',
     'Check input with `pg_input_is_valid` and `pg_input_error_info` before casting; use `to_char`/`to_number`/`to_date` for custom formats.',
-    'Going deeper: the Internals lesson [JSON vs JSONB](/m2/json-jsonb) shows how JSON values are stored and why `->>` hands you text.',
+    'Going deeper: the Internals lesson [JSON vs JSONB](/m2/json-jsonb) shows how JSON values are stored and why `->>` hands you text, [Arrays](/m2/arrays) does the same for `int[]`, and [Working with JSON](/f2/working-with-json) is the practical guide.',
   ],
   sources: ['sql-expressions.html', 'typeconv-overview.html', 'typeconv-func.html', 'functions-formatting.html', 'functions-info.html', 'datatype-character.html'],
 }

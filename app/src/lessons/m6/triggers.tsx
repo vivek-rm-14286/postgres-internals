@@ -104,7 +104,7 @@ function Timeline({ s, total }: { s: S; total: number }) {
                     title={`${e.trg}: ${e.text}`}
                     className="grid h-full place-items-center rounded font-mono text-[10px] font-bold"
                     style={{ background: toneBg(e.t, i === s.ev.length - 1 ? 40 : 20), border: `1px solid ${tone(e.t)}`, color: 'var(--text)' }}>
-                    {i + 1}
+                    {lane === 'heap' || lane === 'queue' ? '·' : s.ev.slice(0, i + 1).filter((x) => x.lane !== 'heap' && x.lane !== 'queue').length}
                   </motion.div>
                 )}
               </div>
@@ -138,7 +138,7 @@ function TriggersViz() {
           <div className="grid max-h-56 gap-0.5 overflow-y-auto rounded-lg border border-line bg-bg px-2 py-1.5 font-mono text-[11.5px] scrollbar-thin">
             {s.ev.filter((e) => e.lane !== 'heap' && e.lane !== 'queue').map((e, i, arr) => (
               <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="flex gap-2" style={{ fontWeight: i === arr.length - 1 ? 700 : 400 }}>
-                <span className="w-5 text-right text-muted">{i + 1}</span><span className="w-28 shrink-0" style={{ color: tone(e.t === 'muted' ? 'ok' : e.t) }}>{e.trg}</span><span>{e.text}</span>
+                <span className="w-5 text-right text-muted">{i + 1}</span><span className="w-28 shrink-0" style={{ color: tone.text(e.t === 'muted' ? 'ok' : e.t) }}>{e.trg}</span><span>{e.text}</span>
               </motion.div>
             ))}
           </div>
@@ -321,6 +321,34 @@ SELECT event_object_table, trigger_name, event_manipulation
 FROM information_schema.triggers
 WHERE event_object_table = 'products';`,
         note: 'The `stock_moves.sku` foreign key is enforced by four internal **RI_ConstraintTrigger** rows (`tgisinternal = true`), two on each table. `ALTER TABLE … DISABLE TRIGGER ALL` switches those off too; `DISABLE TRIGGER USER` leaves them on. `information_schema.triggers` has one row per event and does not list TRUNCATE triggers at all.' },
+      { label: 'Deferred constraint trigger', sql: `DROP TABLE IF EXISTS vault;
+CREATE TABLE vault (name text PRIMARY KEY, coins int NOT NULL);
+INSERT INTO vault VALUES ('left', 10), ('right', 10);
+
+CREATE OR REPLACE FUNCTION vault_total() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF (SELECT sum(coins) FROM vault) <> 20 THEN RAISE EXCEPTION 'vault total must stay 20'; END IF;
+  RETURN NULL;
+END $$;
+CREATE CONSTRAINT TRIGGER vault_total AFTER UPDATE ON vault
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION vault_total();
+
+-- 1. Deferred: the rule is broken between the two UPDATEs and checked only at COMMIT.
+BEGIN;
+UPDATE vault SET coins = coins - 3 WHERE name = 'left';
+UPDATE vault SET coins = coins + 3 WHERE name = 'right';
+COMMIT;
+SELECT * FROM vault ORDER BY name;
+
+-- 2. Immediate: the same trigger now fires at the end of each statement.
+BEGIN;
+SET CONSTRAINTS vault_total IMMEDIATE;
+SELECT try_sql($q$UPDATE vault SET coins = coins - 1 WHERE name = 'left'$q$) AS checked_per_statement;
+ROLLBACK;
+
+SELECT tgname, tgconstraint <> 0 AS is_constraint, tgdeferrable, tginitdeferred
+FROM pg_trigger WHERE tgname = 'vault_total';`,
+        note: 'A **constraint trigger** is an AFTER ROW trigger whose firing can be postponed to COMMIT. Deferred, the transfer commits (7 and 13) although the total was 17 in between. Switched to IMMEDIATE with `SET CONSTRAINTS`, the first unbalanced UPDATE fails at once. Foreign keys are enforced by internal triggers of this kind, which is why `DEFERRABLE` works on them.' },
       { label: 'Event trigger on DDL', sql: `CREATE TABLE ddl_log (at timestamptz DEFAULT now(), tag text, object text);
 CREATE FUNCTION log_ddl() RETURNS event_trigger LANGUAGE plpgsql AS $$
 DECLARE r record;
@@ -365,12 +393,12 @@ CREATE TRIGGER audit_prices AFTER UPDATE ON products
   WHEN (pg_trigger_depth() = 0) EXECUTE FUNCTION touch();` },
     { title: 'A BEFORE trigger that forgets to return NEW',
       symptom: 'Inserts report `INSERT 0 0` and rows silently vanish, with no error anywhere.',
-      cause: 'A row-level BEFORE trigger that falls off the end, or returns NULL, **skips the operation** for that row. In PL/pgSQL a missing RETURN is an error, but an early `RETURN NULL` in a branch is not.',
+      cause: 'A row-level BEFORE trigger that returns NULL **skips the operation** for that row. Falling off the end is an error in PL/pgSQL (`control reached end of trigger procedure without RETURN`), but an early `RETURN NULL` in one branch is accepted silently.',
       fix: 'Return NEW for INSERT/UPDATE and OLD for DELETE on every path. Reserve `RETURN NULL` for rows you really mean to drop, and log when you do.' },
     { title: 'Relying on creation order',
       symptom: 'After a migration recreates triggers, a validation trigger starts running before the trigger that normalises data, and valid rows are rejected.',
       cause: 'Triggers for the same event on the same table fire in **alphabetical order by name**, not creation order (the SQL standard says creation order).',
-      fix: 'Encode the order in the names, for example `10_normalize`, `20_validate`, `90_audit`.' },
+      fix: 'Encode the order in the names, for example `t10_normalize`, `t20_validate`, `t90_audit` (an unquoted name cannot start with a digit).' },
     { title: 'Row triggers on bulk loads',
       symptom: 'A `COPY` or `INSERT … SELECT` of millions of rows runs many times slower than expected.',
       cause: 'Each row fires the function. AFTER ROW events are also held in memory until the end of the statement, and without WHEN each one re-fetches its row.',

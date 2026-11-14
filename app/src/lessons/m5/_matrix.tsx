@@ -71,10 +71,10 @@ export function LockMatrix({ modes, conflicts, initial = [0, modes.length - 1], 
         <AnimatePresence mode="wait">
           <motion.div key={`${req}-${held}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="rounded-lg border p-3 text-sm" style={{ borderColor: tone(x ? 'dead' : 'ok'), background: toneBg(x ? 'dead' : 'ok', 8) }}>
-            <p className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: tone(x ? 'dead' : 'ok') }}>{x ? 'Conflict: B waits' : 'Compatible: both granted'}</p>
-            <p className="mt-1.5"><span className="font-mono font-semibold" style={{ color: tone('pointer') }}>A holds {modes[held].name}</span></p>
+            <p className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: tone.text(x ? 'dead' : 'ok') }}>{x ? 'Conflict: B waits' : 'Compatible: both granted'}</p>
+            <p className="mt-1.5"><span className="font-mono font-semibold" style={{ color: tone.text('pointer') }}>A holds {modes[held].name}</span></p>
             <p className="text-xs text-muted"><Md>{modes[held].takenBy}</Md></p>
-            <p className="mt-1.5"><span className="font-mono font-semibold" style={{ color: tone('accent') }}>B requests {modes[req].name}</span></p>
+            <p className="mt-1.5"><span className="font-mono font-semibold" style={{ color: tone.text('accent') }}>B requests {modes[req].name}</span></p>
             <p className="text-xs text-muted"><Md>{modes[req].takenBy}</Md></p>
             <p className="mt-2 text-xs"><Md>{x
               ? `B sleeps in the lock queue until A's transaction ends${kind === 'table' ? ' (or `lock_timeout` fires)' : ' (or fails at once with `NOWAIT`, or skips the row with `SKIP LOCKED`)'}.`

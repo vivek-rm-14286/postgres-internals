@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { Link, Route, Routes, useParams } from 'react-router-dom'
 import CodeMirror from '@uiw/react-codemirror'
 import { sql as sqlLang, PostgreSQL } from '@codemirror/lang-sql'
 import { EditorView, keymap } from '@codemirror/view'
@@ -18,6 +18,7 @@ import { useTheme } from '../app/theme'
 const LEVEL_STYLE: Record<Level, string> = {
   beginner: 'bg-ok/15 text-ok', intermediate: 'bg-tuple/15 text-tuple', advanced: 'bg-new/15 text-new', expert: 'bg-dead/15 text-dead',
 }
+const EDITOR_LABEL = EditorView.contentAttributes.of({ 'aria-label': 'Your SQL answer' })
 const solvedKey = (id: string) => `cb:${id}`
 
 export function Cookbook() {
@@ -90,7 +91,6 @@ function ExerciseView() {
   const { id = '' } = useParams()
   const ex = exerciseById(id)
   const ds = ex ? datasetById(ex.dataset) : undefined
-  const nav = useNavigate()
   const done = useProgress()
   const { dark } = useTheme()
   const [code, setCode] = useState(ex?.starter ?? '')
@@ -144,12 +144,12 @@ function ExerciseView() {
 
       <div className="mt-5 overflow-hidden rounded-xl border border-line bg-surface">
         <CodeMirror value={code} onChange={setCode} theme={dark ? 'dark' : 'light'} placeholder="Write your SQL here…" basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: false }}
-          extensions={[sqlLang({ dialect: PostgreSQL }), EditorView.lineWrapping, runKey]} minHeight="120px" maxHeight="360px" aria-label="Your SQL" />
+          extensions={[sqlLang({ dialect: PostgreSQL }), EditorView.lineWrapping, runKey, EDITOR_LABEL]} minHeight="120px" maxHeight="360px" />
         <div className="flex flex-wrap items-center gap-2 border-t border-line bg-surface-2 px-3 py-2">
           <button onClick={run} disabled={!!busy} className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-3 py-1.5 text-xs font-semibold disabled:opacity-60">
             {busy === 'run' ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />} Run
           </button>
-          <button onClick={check} disabled={!!busy} data-testid="check" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">
+          <button onClick={check} disabled={!!busy} data-testid="check" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-60">
             {busy === 'check' ? <Loader2 className="size-3.5 animate-spin" /> : <CircleCheck className="size-3.5" />} Check answer
           </button>
           <span className="ml-auto flex gap-1.5">
@@ -166,10 +166,19 @@ function ExerciseView() {
         </AnimatePresence>
         {verdict?.error && <ErrorBox {...verdict.error} />}
         {verdict && !verdict.ok && verdict.expected && (
-          <div className="border-t border-line"><p className="px-4 pt-2 text-xs font-semibold text-muted">Expected (first rows)</p><ResultTable fields={verdict.expected.fields} rows={verdict.expected.rows.slice(0, 10)} /></div>
+          <div className="grid border-t border-line lg:grid-cols-2">
+            {verdict.mine && (
+              <div className="min-w-0 overflow-x-auto border-b border-line lg:border-r lg:border-b-0" tabIndex={0} role="region" aria-label="Your result">
+                <p className="px-4 pt-2 text-xs font-semibold text-muted">Your result (first rows)</p><ResultTable fields={verdict.mine.fields} rows={verdict.mine.rows.slice(0, 10)} />
+              </div>
+            )}
+            <div className="min-w-0 overflow-x-auto" tabIndex={0} role="region" aria-label="Expected result">
+              <p className="px-4 pt-2 text-xs font-semibold text-muted">Expected (first rows)</p><ResultTable fields={verdict.expected.fields} rows={verdict.expected.rows.slice(0, 10)} />
+            </div>
+          </div>
         )}
         {out && !verdict && (
-          <div className="max-h-[420px] overflow-auto border-t border-line scrollbar-thin">
+          <div className="max-h-[420px] overflow-auto border-t border-line scrollbar-thin" tabIndex={0} role="region" aria-label="Query results">
             {out.notices.length > 0 && <pre className="bg-code px-4 py-2 text-[12px] text-muted">{out.notices.join('\n')}</pre>}
             {shown.map((r, k) => <ResultTable key={k} fields={r.fields} rows={r.rows} />)}
             {out.error && <ErrorBox {...out.error} />}
@@ -188,8 +197,8 @@ function ExerciseView() {
       )}
 
       <nav className="mt-8 grid gap-3 sm:grid-cols-2" aria-label="Exercise navigation">
-        {prev ? <button onClick={() => nav(`/cookbook/${prev.id}`)} className="rounded-xl border border-line bg-surface px-4 py-3 text-left hover:border-accent"><span className="flex items-center gap-1 text-xs text-muted"><ArrowLeft className="size-3" /> Previous</span><span className="font-semibold"><Md>{prev.title}</Md></span></button> : <span />}
-        {next && <button onClick={() => nav(`/cookbook/${next.id}`)} className="rounded-xl border border-line bg-surface px-4 py-3 text-right hover:border-accent sm:col-start-2"><span className="flex items-center justify-end gap-1 text-xs text-muted">Next <ArrowRight className="size-3" /></span><span className="font-semibold"><Md>{next.title}</Md></span></button>}
+        {prev ? <Link to={`/cookbook/${prev.id}`} className="rounded-xl border border-line bg-surface px-4 py-3 text-left hover:border-accent"><span className="flex items-center gap-1 text-xs text-muted"><ArrowLeft className="size-3" /> Previous</span><span className="block font-semibold"><Md>{prev.title}</Md></span></Link> : <span />}
+        {next && <Link to={`/cookbook/${next.id}`} className="rounded-xl border border-line bg-surface px-4 py-3 text-right hover:border-accent sm:col-start-2"><span className="flex items-center justify-end gap-1 text-xs text-muted">Next <ArrowRight className="size-3" /></span><span className="block font-semibold"><Md>{next.title}</Md></span></Link>}
       </nav>
     </div>
   )

@@ -54,7 +54,7 @@ const steps: Step<S>[] = [
     state: { tables: [{ name: 'order_sheet', cols: [C('order_id', 'key'), C('order_date', 'order'), C('customer_email', 'order'), C('customer_name', 'customer'), C('customer_city', 'customer'), C('items', 'line')], rows: SHEET_ROWS, hl: { rows: [0, 1, 2], col: 'items', t: 'dead' } }], fds: [] } },
   { title: '1NF: one atomic value per cell', body: 'Split the list into **one row per order line**. Every cell now holds one value, and the row is identified by the composite key **(order_id, sku)**.',
     state: { tables: [{ name: 'order_lines', cols: LINE_COLS, rows: LINES }], fds: [] } },
-  { title: 'Update anomaly: Ana moves to Porto', body: 'Her city is stored on **3 rows**. An UPDATE that misses one leaves the table saying she lives in two cities at once.',
+  { title: 'Update anomaly: Ana moves to Porto', body: 'Her city is stored on **4 rows**. An UPDATE that misses one leaves the table saying she lives in two cities at once.',
     state: { tables: [{ name: 'order_lines', cols: LINE_COLS, rows: LINES.map((r, k) => (k === 0 || k === 1 ? [...r.slice(0, 4), 'Porto', ...r.slice(5)] : r)), hl: { rows: [0, 1, 3, 4], col: 'customer_city', t: 'dead' } }], fds: [] } },
   { title: 'Insert and delete anomalies', body: 'A new product **CB-03 Cable** cannot be stored until someone orders it: the key needs an `order_id`. Deleting order 1002 erases the only record that **Raj** exists.',
     state: { tables: [{ name: 'order_lines', cols: LINE_COLS, rows: LINES, hl: { rows: [2], t: 'dead' }, ghost: { row: ['NULL', '', '', '', '', 'CB-03', 'Cable', '', ''], why: 'rejected: key column order_id is NULL' } }], fds: [] } },
@@ -119,13 +119,13 @@ function TableCard({ t }: { t: Table }) {
             })}
             {t.ghost && (
               <motion.tr initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="border-t border-dashed" style={{ borderColor: tone('dead'), background: toneBg('dead', 10) }}>
-                {t.ghost.row.map((v, j) => <td key={j} className="px-2 py-0.5 whitespace-nowrap line-through decoration-1" style={{ color: tone('dead') }}>{v}</td>)}
+                {t.ghost.row.map((v, j) => <td key={j} className="px-2 py-0.5 whitespace-nowrap line-through decoration-1" style={{ color: tone.text('dead') }}>{v}</td>)}
               </motion.tr>
             )}
           </tbody>
         </table>
       </div>
-      {t.ghost && <p className="px-2 py-1 font-mono text-[11px]" style={{ color: tone('dead') }}>{t.ghost.why}</p>}
+      {t.ghost && <p className="px-2 py-1 font-mono text-[11px]" style={{ color: tone.text('dead') }}>{t.ghost.why}</p>}
     </motion.div>
   )
 }
@@ -319,8 +319,14 @@ INSERT INTO product_prices VALUES
   ('KB-01', '[2026-01-01, 2026-03-04)', 49.00),
   ('KB-01', '[2026-03-04,)', 45.00);
 SELECT try($$INSERT INTO product_prices VALUES ('KB-01', '[2026-03-01, 2026-03-10)', 47.00)$$) AS overlapping_price;
-SELECT price FROM product_prices WHERE sku = 'KB-01' AND valid_during @> date '2026-03-02';`,
-        note: '`attgenerated = v`: **virtual**, the default in 18, recomputed on every read and stored nowhere, so it cannot be written or indexed (**0A000**). The temporal key accepts back-to-back periods (`[)` bounds) and rejects an overlap with **23P01**, enforced by a GiST index.' },
+SELECT price FROM product_prices WHERE sku = 'KB-01' AND valid_during @> date '2026-03-02';
+
+-- the general form: an EXCLUDE constraint (same room AND overlapping dates is forbidden)
+CREATE TABLE IF NOT EXISTS bookings (room int, during daterange,
+  EXCLUDE USING gist (room WITH =, during WITH &&));
+SELECT try($$INSERT INTO bookings VALUES (1, '[2026-03-01,2026-03-05)')$$) AS first_booking,
+       try($$INSERT INTO bookings VALUES (1, '[2026-03-04,2026-03-06)')$$) AS double_booking;`,
+        note: '`attgenerated = v`: **virtual**, the default in 18, recomputed on every read and stored nowhere, so it cannot be written (**428C9**) or indexed (**0A000**). The temporal key accepts back-to-back periods (`[)` bounds) and rejects an overlap with **23P01**, enforced by a GiST index. `WITHOUT OVERLAPS` is shorthand for an **EXCLUDE** constraint like the one on `bookings`: no two rows may be equal on `room` and overlap on `during` ([GiST](/m4/gist-spgist)).' },
       { label: 'Adding rules to live data: NOT VALID', sql: `CREATE TABLE users (id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY, username text NOT NULL, email text);
 INSERT INTO users (username, email) VALUES
   ('alice', 'alice@example.com'), ('bob', NULL), ('charlie', 'charlie@example.com'), ('diana', NULL);
@@ -369,7 +375,7 @@ CREATE INDEX CONCURRENTLY orders_customer_id_idx ON orders (customer_id);`,
     { title: 'Foreign keys without an index on the referencing side',
       symptom: 'Deleting one customer, or updating a product key, takes seconds and locks many rows.',
       cause: 'A common claim is that declaring a foreign key creates an index for it. It does not: PostgreSQL indexes only the **referenced** key (through its PRIMARY KEY or UNIQUE constraint). Each parent DELETE must scan the child table to check or cascade.',
-      fix: 'Index foreign key columns that are not already the leading column of an index. Find candidates in the catalog.',
+      fix: 'Index foreign key columns that are not already the leading column of an index ([index design](/m4/index-design)). Find candidates in the catalog.',
       sql: `SELECT c.conrelid::regclass AS child, a.attname AS fk_column
 FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
 WHERE c.contype = 'f'

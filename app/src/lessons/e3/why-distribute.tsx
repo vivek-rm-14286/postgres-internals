@@ -217,7 +217,7 @@ function ArchitectureViz() {
       <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr] [&>*]:min-w-0">
         <Panel title={a.name}><FieldTable rows={a.facts.map(([k, v]) => [k, v] as [string, string])} /></Panel>
         <Panel title="Under a network partition">
-          <p className="font-mono text-sm font-bold" style={{ color: tone(a.capT) }}>{a.cap}</p>
+          <p className="font-mono text-sm font-bold" style={{ color: tone.text(a.capT) }}>{a.cap}</p>
           <p className="mt-1 text-xs text-muted"><Md>{'**CAP**: when the network splits, a system either refuses some requests (consistent) or keeps answering with possibly diverging data (available). **PACELC** adds the everyday case: even with no failure, waiting for other copies buys consistency with latency.'}</Md></p>
         </Panel>
       </div>
@@ -250,7 +250,7 @@ CREATE TABLE orders (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, tenant_
 INSERT INTO orders (tenant_id, amount)
 SELECT 1 + g % 20, round((10 + random() * 90)::numeric, 2) FROM generate_series(1, 2000) g;`,
     presets: [
-      { label: 'One node, one WAL stream', sql: `SELECT version();
+      { label: 'One node, one WAL stream', sql: `SHOW server_version;
 SELECT set_config('lab.before', pg_current_wal_insert_lsn()::text, false);
 INSERT INTO orders (tenant_id, amount) VALUES (7, 42.00);
 SELECT pg_current_wal_insert_lsn() - current_setting('lab.before')::pg_lsn AS wal_bytes_for_one_insert,
@@ -271,7 +271,7 @@ COMMIT;`,
       { label: 'A slot for a replica', sql: `SELECT pg_create_physical_replication_slot('replica_1', true);
 SELECT slot_name, slot_type, active, restart_lsn, wal_status FROM pg_replication_slots;
 SELECT pg_drop_replication_slot('replica_1');`,
-        note: 'A replica connects through a slot, so the primary keeps the WAL the replica still needs. `active = false`: no replica is connected to this single node.' },
+        note: 'A replica that connects through a slot makes the primary keep the WAL it still needs (without a slot, only `wal_keep_size` or the archive protects it). `active = false`: no replica is connected to this single node.' },
       { label: 'Distribution on one machine', sql: `CREATE TABLE orders_sharded (LIKE orders INCLUDING DEFAULTS) PARTITION BY HASH (tenant_id);
 CREATE TABLE orders_shard_0 PARTITION OF orders_sharded FOR VALUES WITH (MODULUS 4, REMAINDER 0);
 CREATE TABLE orders_shard_1 PARTITION OF orders_sharded FOR VALUES WITH (MODULUS 4, REMAINDER 1);
@@ -341,7 +341,7 @@ SELECT pg_reload_conf();` },
     'A transaction costs **round trips × latency**: 20 ms per transaction caps one session at 50 transactions per second.',
     'Replicas scale reads but are stale; shared storage gives durable quorum writes with one writer; sharding splits data by a key; distributed SQL runs Raft per tablet; multi-master accepts writes everywhere and resolves conflicts later.',
     '**CAP**: under a partition choose consistency or availability. **PACELC**: otherwise choose latency or consistency, which `synchronous_commit` lets you pick per transaction.',
-    'Most workloads fit one large node plus [streaming replicas](/m7/streaming-replication) and an HA manager. Distribute when a measured limit says so.',
+    'Most workloads fit one large node plus [streaming replicas](/m7/streaming-replication) and an HA manager. Distribute when a measured limit says so. The models behind these choices: [architectures and classification](/e5/architectures).',
   ],
   sources: ['high-availability.html', 'different-replication-solutions.html', 'warm-standby.html', 'warm-standby-failover.html', 'runtime-config-replication.html', 'logical-replication.html', 'ddl-partitioning.html', 'pgwalinspect.html'],
 }

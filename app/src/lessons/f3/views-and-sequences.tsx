@@ -86,7 +86,7 @@ function SequenceLab() {
         <div className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 p-3" style={{ borderColor: tone('header'), background: toneBg('header', 10) }}>
           <span className="font-mono text-[11px] text-muted">orders_id_seq</span>
           <span className="text-[11px] text-muted">last value handed out</span>
-          <motion.span key={last} initial={{ scale: 1.4, color: tone('new') }} animate={{ scale: 1, color: tone('header') }} className="font-mono text-3xl font-bold">{last || '—'}</motion.span>
+          <motion.span key={last} initial={{ scale: 1.4, color: tone.text('new') }} animate={{ scale: 1, color: tone.text('header') }} className="font-mono text-3xl font-bold">{last || '—'}</motion.span>
           <span className="text-center text-[11px] text-muted">next nextval() → {last + 1}</span>
         </div>
         <div className="grid content-start gap-2">
@@ -95,7 +95,7 @@ function SequenceLab() {
             <AnimatePresence>
               {tickets.map((t, i) => (
                 <motion.span key={`${t.n}-${i}`} layout initial={{ opacity: 0, y: -10, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className="rounded-md border px-2 py-0.5 font-mono text-[12px] font-semibold" style={{ borderColor: tone(tTone(t.state)), background: toneBg(tTone(t.state), 16), color: tone(tTone(t.state)) }}>
+                  className="rounded-md border px-2 py-0.5 font-mono text-[12px] font-semibold" style={{ borderColor: tone(tTone(t.state)), background: toneBg(tTone(t.state), 16), color: tone.text(tTone(t.state)) }}>
                   {t.n}{t.state === 'lost' ? ' ✗' : t.state === 'manual' ? ' ✎' : ''}
                 </motion.span>
               ))}
@@ -106,7 +106,7 @@ function SequenceLab() {
           <p className="text-xs text-muted">{gaps ? `${gaps} gap${gaps > 1 ? 's' : ''} so far. Gaps are normal; never rely on ids being consecutive.` : 'No gaps yet.'}</p>
         </div>
       </div>
-      {out && <p className="font-mono text-[12px] break-words" style={{ color: tone('accent') }}>{out.sql}</p>}
+      {out && <p className="font-mono text-[12px] break-words" style={{ color: tone.text('accent') }}>{out.sql}</p>}
       <OutcomeBox o={out?.o ?? null} k={out?.n ?? 0} />
       <TableCard name="orders" cols={['id', 'item', 'qty']} keyCols={[0]}
         hl={ghost ? { [`g${ghost.id}`]: 'dead' } : rows.length ? { [String(rows[rows.length - 1].id)]: 'new' } : undefined}
@@ -177,7 +177,7 @@ function ViewLab() {
         <Btn onClick={refresh}>REFRESH snapshot</Btn>
         <Btn onClick={reset}>Reset</Btn>
       </div>
-      {out && <p className="font-mono text-[12px] break-words" style={{ color: tone('accent') }}>{out.sql}</p>}
+      {out && <p className="font-mono text-[12px] break-words" style={{ color: tone.text('accent') }}>{out.sql}</p>}
       <OutcomeBox o={out?.o ?? null} k={out?.n ?? 0} />
       <div className="grid gap-2 md:grid-cols-3">
         <TableCard name="products" note="the table" cols={['id', 'name', 'price']} keyCols={[0]} hl={hl(rows, inView)} rows={rows.map(card)} />
@@ -185,7 +185,7 @@ function ViewLab() {
         <div className="grid content-start gap-1">
           <TableCard name="budget_snapshot" note="materialized view" cols={['id', 'name', 'price']} rows={snap.map(card)} />
           <AnimatePresence>{stale && (
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded px-2 py-1 text-[12px] font-semibold" style={{ background: toneBg('dead', 14), color: tone('dead') }}>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded px-2 py-1 text-[12px] font-semibold" style={{ background: toneBg('dead', 14), color: tone.text('dead') }}>
               Stale: the table changed since the last refresh.
             </motion.p>)}
           </AnimatePresence>
@@ -241,27 +241,27 @@ CREATE TABLE legacy_orders (
   item text NOT NULL
 );`,
     presets: [
-      { label: 'Identity: RETURNING the new id', sql: `INSERT INTO products (name, price) VALUES ('Chair', 80.00)
+      { label: '1. Identity: RETURNING the new id', sql: `INSERT INTO products (name, price) VALUES ('Chair', 80.00)
 RETURNING id, name;
 
 SELECT pg_get_serial_sequence('products', 'id') AS sequence_name;
 SELECT last_value FROM products_id_seq;`,
-        note: 'The new row gets **id 5**. `RETURNING` gives it back without a second query. The identity column is filled from a sequence named `products_id_seq`.' },
-      { label: 'Gaps: rollbacks and failures', sql: `BEGIN;
+        note: 'The new row gets the next id (**5** on a fresh database). `RETURNING` gives it back without a second query. The identity column is filled from a sequence named `products_id_seq`.' },
+      { label: '2. Gaps: rollbacks and failures', sql: `BEGIN;
 INSERT INTO products (name, price) VALUES ('Shelf', 55.00) RETURNING id;
 ROLLBACK;
 
 SELECT try($$INSERT INTO products (name, price) VALUES ('Free gift', 0)$$) AS failed_insert;
 
 INSERT INTO products (name, price) VALUES ('Rug', 40.00) RETURNING id;`,
-        note: 'The rolled-back insert used **6** and the failed one used **7**, so Rug gets **8**. Sequence values are never handed back.' },
-      { label: 'serial vs GENERATED ALWAYS', sql: `SELECT try($$INSERT INTO products (id, name, price) VALUES (100, 'Manual', 1)$$) AS identity_always;
+        note: 'The rolled-back insert used one id and the failed one used the next, so Rug lands **two above** Shelf (6, 7, then 8 if you ran preset 1 first). Sequence values are never handed back.' },
+      { label: '3. serial vs GENERATED ALWAYS', sql: `SELECT try($$INSERT INTO products (id, name, price) VALUES (100, 'Manual', 1)$$) AS identity_always;
 
 INSERT INTO legacy_orders (id, item) VALUES (1, 'typed by hand');
 SELECT try($$INSERT INTO legacy_orders (item) VALUES ('from the sequence')$$) AS serial_collision;
 INSERT INTO legacy_orders (item) VALUES ('second try') RETURNING id;`,
         note: 'Identity ALWAYS refuses a hand-typed id (**428C9**). `serial` accepts it, then the sequence later hands out the same 1 and collides (**23505**). The retry gets 2.' },
-      { label: 'A view is a saved query', sql: `CREATE VIEW budget_products AS
+      { label: '4. A view is a saved query', sql: `CREATE OR REPLACE VIEW budget_products AS
   SELECT id, name, price FROM products WHERE price < 50 AND active;
 
 SELECT * FROM budget_products ORDER BY price;
@@ -269,21 +269,24 @@ SELECT * FROM budget_products ORDER BY price;
 UPDATE budget_products SET price = 12.00 WHERE name = 'Mug';
 SELECT name, price FROM products WHERE name = 'Mug';`,
         note: 'The view has no data of its own. The UPDATE through it changed the row in `products`, because a view over one table with plain columns is **automatically updatable**.' },
-      { label: 'WITH CHECK OPTION', sql: `INSERT INTO budget_products (name, price) VALUES ('Sofa', 900.00);
+      { label: '5. WITH CHECK OPTION', sql: `CREATE OR REPLACE VIEW budget_products AS
+  SELECT id, name, price FROM products WHERE price < 50 AND active;
+
+INSERT INTO budget_products (name, price) VALUES ('Sofa', 900.00);
 SELECT count(*) AS sofa_visible_in_view FROM budget_products WHERE name = 'Sofa';
 
-CREATE VIEW budget_products_checked AS
+CREATE OR REPLACE VIEW budget_products_checked AS
   SELECT id, name, price FROM products WHERE price < 50 AND active
   WITH CHECK OPTION;
 SELECT try($$INSERT INTO budget_products_checked (name, price) VALUES ('Sofa 2', 900.00)$$) AS checked;`,
         note: 'The first Sofa was stored in `products` but the view cannot show it (count 0). The checked view refuses it with **44000**.' },
-      { label: 'Not every view is updatable', sql: `CREATE VIEW product_stats AS
+      { label: '6. Not every view is updatable', sql: `CREATE OR REPLACE VIEW product_stats AS
   SELECT count(*) AS n, round(avg(price), 2) AS avg_price FROM products;
 
 SELECT * FROM product_stats;
 SELECT try($$UPDATE product_stats SET n = 0$$) AS update_attempt;`,
         note: 'Aggregates, `DISTINCT`, `GROUP BY`, joins and `LIMIT` make a view read-only (**55000**). It is still perfectly good for reading.' },
-      { label: 'Materialized view: a stored copy', sql: `CREATE MATERIALIZED VIEW price_report AS
+      { label: '7. Materialized view: a stored copy', sql: `CREATE MATERIALIZED VIEW price_report AS
   SELECT count(*) AS products, max(price) AS top_price FROM products;
 
 INSERT INTO products (name, price) VALUES ('Piano', 3000.00);
@@ -331,7 +334,7 @@ CREATE TABLE events (
       fix: 'Refresh on a schedule that matches how fresh the data must be. Add a unique index so you can use `REFRESH MATERIALIZED VIEW CONCURRENTLY`, which does not block readers.' },
   ],
   pointers: [
-    'New tables: `id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY`. `serial` is the older shorthand and lets manual ids collide with the sequence.',
+    'New tables: `id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY`. `serial` is the older shorthand and lets manual ids collide with the sequence, and so does `GENERATED BY DEFAULT AS IDENTITY`.',
     '`nextval()` is **never rolled back**, so ids have gaps. Use `INSERT … RETURNING id` to get the new id in one round trip.',
     'A **view** stores a query, not data. Simple single-table views are **updatable**; add `WITH CHECK OPTION` to reject rows the view could not show.',
     'A **materialized view** stores the result and needs `REFRESH MATERIALIZED VIEW` to catch up.',

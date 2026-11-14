@@ -131,14 +131,18 @@ function BitExplorer() {
 /* ---- leaf locality simulation ----------------------------------------------------------------- */
 
 const CAP = 20
-interface Sim { leaves: number[][]; touched: number[]; n: number; splits: number; seq: number }
-const emptySim = (): Sim => ({ leaves: [[]], touched: [], n: 0, splits: 0, seq: 0 })
+/** `ids` gives every leaf a stable id, so `touched` still names the right page after later splits shift the array. */
+interface Sim { leaves: number[][]; ids: number[]; nextId: number; touched: number[]; n: number; splits: number; seq: number }
+const emptySim = (): Sim => ({ leaves: [[]], ids: [0], nextId: 1, touched: [], n: 0, splits: 0, seq: 0 })
 
 function simInsert(s: Sim, key: number): Sim {
   const leaves = s.leaves.map((l) => [...l])
   let i = leaves.findIndex((_, j) => j === leaves.length - 1 || key < leaves[j + 1][0])
   if (i < 0) i = 0
   const leaf = leaves[i]
+  const ids = [...s.ids]
+  const hitId = ids[i]
+  let nextId = s.nextId
   leaf.push(key); leaf.sort((a, b) => a - b)
   let splits = s.splits
   if (leaf.length > CAP) {
@@ -146,8 +150,9 @@ function simInsert(s: Sim, key: number): Sim {
     const appended = i === leaves.length - 1 && leaf[leaf.length - 1] === key
     const keep = appended ? Math.round(CAP * 0.9) : Math.ceil(leaf.length / 2)
     leaves.splice(i + 1, 0, leaf.splice(keep))
+    ids.splice(i + 1, 0, nextId++)
   }
-  return { leaves, touched: [...s.touched, i].slice(-40), n: s.n + 1, splits, seq: s.seq + 1 }
+  return { leaves, ids, nextId, touched: [...s.touched, hitId].slice(-40), n: s.n + 1, splits, seq: s.seq + 1 }
 }
 
 function LocalitySim() {
@@ -157,7 +162,7 @@ function LocalitySim() {
   const rand = () => ((seed.current = (seed.current * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff)
   const add = (k: number) => { let s = sim; for (let j = 0; j < k; j++) s = simInsert(s, mode === 'v7' ? s.seq + 1 : rand()); setSim(s) }
   const fill = sim.n ? sim.n / (sim.leaves.length * CAP) : 0
-  const distinct = new Set(sim.touched).size
+  const distinct = new Set(sim.touched.slice(-10)).size
   const heat = useMemo(() => { const m = new Map<number, number>(); sim.touched.forEach((i, k) => m.set(i, k)); return m }, [sim.touched])
   return (
     <div className="grid gap-3">
@@ -167,13 +172,13 @@ function LocalitySim() {
         <Btn onClick={() => add(200)}>Insert 200</Btn>
         <Btn onClick={() => setSim(emptySim())}>Reset</Btn>
       </div>
-      <Stats items={[['Keys', String(sim.n)], ['Leaf pages', String(sim.leaves.length)], ['Avg leaf fill', `${Math.round(fill * 100)}%`, fill > 0.8 ? 'ok' : sim.n ? 'dead' : undefined], ['Leaves hit by last 40 inserts', String(distinct), distinct > 3 ? 'dead' : 'ok']]} />
+      <Stats items={[['Keys', String(sim.n)], ['Leaf pages', String(sim.leaves.length)], ['Avg leaf fill', `${Math.round(fill * 100)}%`, fill > 0.8 ? 'ok' : sim.n ? 'dead' : undefined], ['Leaves hit by last 10 inserts', String(distinct), distinct > 2 ? 'dead' : 'ok']]} />
       <div className="flex flex-wrap gap-1" aria-label="Leaf pages">
         {sim.leaves.map((l, i) => {
-          const age = heat.get(i)
+          const age = heat.get(sim.ids[i])
           const hot = age !== undefined ? 0.25 + 0.75 * ((age + 1) / sim.touched.length) : 0
           return (
-            <motion.div key={i} layout title={`leaf ${i}: ${l.length}/${CAP} keys`} className="relative h-10 w-5 overflow-hidden rounded-sm border"
+            <motion.div key={sim.ids[i]} layout title={`leaf ${i}: ${l.length}/${CAP} keys`} className="relative h-10 w-5 overflow-hidden rounded-sm border"
               style={{ borderColor: hot ? tone('new') : 'var(--border)', background: hot ? toneBg('new', Math.round(hot * 40)) : undefined }}>
               <motion.div className="absolute inset-x-0 bottom-0" animate={{ height: `${(l.length / CAP) * 100}%` }} style={{ background: toneBg('tuple', 45) }} />
             </motion.div>
@@ -232,7 +237,7 @@ FROM (VALUES (uuidv7()), (uuidv4()), (gen_random_uuid())) AS t(u);`,
 SELECT count(*) AS out_of_order_neighbours
 FROM (SELECT id < lag(id) OVER (ORDER BY n) AS backwards FROM k_v7) s
 WHERE backwards;`,
-        note: 'Within one millisecond the 4th group counts up (`7000`, `7001`, …): the sub-millisecond field keeps values increasing. Zero of 50,000 neighbours are out of order.' },
+        note: 'Within one millisecond the 3rd group counts up (`7000`, `7001`, …): the sub-millisecond field keeps values increasing. Zero of 50,000 neighbours are out of order.' },
       { label: 'Storage size & input forms', sql: `SELECT pg_column_size(uuidv7())          AS uuid_bytes,
        pg_column_size(uuidv7()::text)    AS as_text_bytes,
        pg_column_size(1::bigint)         AS bigint_bytes;
@@ -311,7 +316,7 @@ SELECT uuid_extract_timestamp(id) FROM orders ORDER BY id DESC LIMIT 1;`,
     '`gen_random_uuid()` = `uuidv4()` (random); `uuidv7([shift])` puts a **48-bit Unix-ms timestamp** first.',
     'Decode with `uuid_extract_version()` and `uuid_extract_timestamp()` (v1 and v7 only).',
     'Random keys scatter writes (more dirty pages, more full-page images in WAL) and leave B-tree leaves about **2/3 full**; v7 keys append at the right edge and fill leaves to **90%**.',
-    'v7 still takes **twice the space of bigint** per key: choose UUIDs for distributed id generation, not by default.',
+    'v7 still takes **twice the space of bigint** per key: choose UUIDs for distributed id generation, not by default. See [B-Tree internals](/m4/btree) and [Checkpoints and full page writes](/m7/checkpoints-fpw).',
   ],
   sources: ['datatype-uuid.html', 'functions-uuid.html', 'btree-implementation.html', 'pageinspect.html', 'sql-createtable.html'],
 }

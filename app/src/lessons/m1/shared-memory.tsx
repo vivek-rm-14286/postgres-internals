@@ -54,7 +54,7 @@ function sweep(p: Pool, notes: string[]): number {
     if (b.usage > 0) { b.usage--; p.dec.push(id); continue }
     return id
   }
-  throw new Error('every buffer is pinned')
+  return -1 // every buffer is pinned
 }
 
 function load(p0: Pool, rel: Rel, blk: number, opts: { dirty?: boolean; ring?: boolean }): { p: Pool; text: string } {
@@ -86,6 +86,10 @@ function load(p0: Pool, rel: Rel, blk: number, opts: { dirty?: boolean; ring?: b
   }
   // 3. clock sweep
   if (id < 0) { id = sweep(p, notes); how = `clock sweep chose buffer ${id}${p.dec.length ? ` after ${p.dec.length} decrement${p.dec.length > 1 ? 's' : ''}` : ''}` }
+  if (id < 0) {
+    p.stats.reads--; p.path = [p.hand]
+    return { p, text: `**ERROR:** no unpinned buffers available. \`${tag}\` is not cached and every buffer is pinned, so nothing can be evicted.` }
+  }
   if (opts.ring) {
     if (p.ring.length < RING) p.ring.push(id)
     else p.ring[p.ringPos % RING] = id
@@ -173,8 +177,7 @@ function Ring({ p, sel, onSel }: { p: Pool; sel: number | null; onSel: (k: numbe
               strokeWidth={sel === k ? 3 : b.dirty || victim ? 2 : 1} strokeDasharray={b.rel ? undefined : '4 3'} />
             {isRing && <rect x={x - 3} y={y - 3} width={BW + 6} height={BH + 6} rx={8} fill="none" stroke={tone('header')} strokeDasharray="2 3" />}
             <T x={x + 5} y={y + 13} size={9.5} fill="var(--muted)">{k}</T>
-            {b.dirty && <T x={x + BW - 5} y={y + 13} size={9.5} w={700} fill={tone('dead')} anchor="end">dirty</T>}
-            {b.pins > 0 && <T x={x + BW - 5} y={y + 13} size={9.5} w={700} fill={tone('new')} anchor="end">{b.dirty ? '' : `pin ${b.pins}`}</T>}
+            {(b.dirty || b.pins > 0) && <T x={x + BW - 5} y={y + 13} size={9.5} w={700} fill={tone(b.dirty ? 'dead' : 'new')} anchor="end">{[b.dirty && 'dirty', b.pins > 0 && 'pin'].filter(Boolean).join(' · ')}</T>}
             <T x={x + BW / 2} y={y + 28} size={10.5} w={700} anchor="middle" fill={b.rel ? 'var(--text)' : 'var(--muted)'}>{label(b)}</T>
             {b.rel && [...Array(MAXU).keys()].map((u) => (
               <motion.rect key={u} x={x + 7 + u * 11.5} y={y + 33} width={9} height={6} rx={1.5} initial={false}
@@ -355,10 +358,15 @@ FROM pg_stat_io WHERE object = 'relation' AND hits + reads > 0 ORDER BY reads DE
       { label: 'Shared memory map', sql: `SELECT coalesce(name, '(unused)') AS name, pg_size_pretty(allocated_size) AS size
 FROM pg_shmem_allocations ORDER BY allocated_size DESC LIMIT 8;
 
+SELECT name AS slru_cache, pg_size_pretty(allocated_size) AS size
+FROM pg_shmem_allocations
+WHERE name IN ('transaction', 'subtransaction', 'multixact_offset', 'multixact_member', 'commit_timestamp', 'notify', 'serializable')
+ORDER BY allocated_size DESC;
+
 SELECT name, setting, unit FROM pg_settings
 WHERE name IN ('shared_buffers', 'wal_buffers', 'transaction_buffers', 'work_mem', 'maintenance_work_mem', 'temp_buffers', 'huge_pages')
 ORDER BY name;`,
-        note: '`Buffer Blocks` is the page pool. `XLOG Ctl` holds the 4 MB of WAL buffers (auto = 1/32 of shared_buffers). `transaction` is the pg_xact commit-log cache.' },
+        note: '`Buffer Blocks` is the page pool. `XLOG Ctl` holds the 4 MB of WAL buffers (auto = 1/32 of shared_buffers). The second list shows the SLRU caches: `transaction` (517 kB) is the pg_xact commit-log cache.' },
     ],
   },
   production: {
@@ -389,11 +397,11 @@ SELECT pg_prewarm('orders'), pg_prewarm('customers');`,
       fix: 'Keep the global value modest and raise it for the one query that needs it: `SET LOCAL work_mem = \'256MB\'` inside its transaction.' },
     { title: 'Trusting one global hit ratio',
       symptom: 'A dashboard shows a 99% buffer hit ratio while one important query is slow from disk reads.',
-      cause: 'A global ratio averages many cheap hits on hot pages with the few expensive misses that matter. A hit in shared buffers can also be a miss that the OS cache served cheaply, so the ratio does not equal disk I/O.',
+      cause: 'A global ratio averages many cheap hits on hot pages with the few expensive misses that matter. A **read** (a miss in shared buffers) may still be served cheaply from the OS page cache, so the ratio does not equal disk I/O.',
       fix: 'Look per query with `EXPLAIN (ANALYZE, BUFFERS)`, per backend type in `pg_stat_io`, and per statement in `pg_stat_statements` (`shared_blks_read`).' },
     { title: 'A hit-ratio query that lies',
       symptom: 'A monitoring query reports a hit ratio of exactly 0 (or 100) for every table, or fails with `division by zero` right after a restart or a stats reset.',
-      cause: '`pg_statio_*` and `pg_stat_io` counters are bigint, so `hits * 100 / (hits + reads)` is integer division and truncates. A fresh instance has `hits + reads = 0`. Home-grown formulas such as `(hit - read) / hit` are not a ratio at all.',
+      cause: '`pg_statio_*` and `pg_stat_io` counters are bigint, so `hits / (hits + reads)` is integer division and truncates to 0 (or 1), and `100 * (hits / (hits + reads))` to 0 or 100. A fresh instance has `hits + reads = 0`. Home-grown formulas such as `(hit - read) / hit` are not a ratio at all.',
       fix: 'Use `round(100.0 * hit / nullif(hit + read, 0), 1)`, and read it per table or per backend type rather than as one global number.' },
     { title: 'Transparent huge pages',
       symptom: 'Random latency stalls on Linux with a large `shared_buffers`.',
@@ -403,9 +411,9 @@ SELECT pg_prewarm('orders'), pg_prewarm('customers');`,
   pointers: [
     '`shared_buffers` (default 128MB) is a pool of 8 kB pages shared by all processes. Start at **25% of RAM**.',
     'Each buffer has a descriptor: **tag, refcount (pins), usage_count 0–5, dirty flag**.',
-    '**Clock sweep**: skip pinned buffers, decrement usage counts, evict the first unpinned buffer at 0. A dirty victim must be written first.',
+    '**Clock sweep**: skip pinned buffers, decrement usage counts, evict the first unpinned buffer at 0. A dirty victim must be written first, which [the background crew](/m1/background-processes) tries to prevent.',
     'Large scans, VACUUM and COPY use a small **buffer access strategy ring** so they cannot flush the cache.',
-    'Also in shared memory: **WAL buffers** (1/32 of shared_buffers, max 16 MB) and **SLRU caches** such as `pg_xact`. `work_mem` is per backend, not shared.',
+    'Also in shared memory: **WAL buffers** (1/32 of shared_buffers, max 16 MB) and **SLRU caches** such as `pg_xact`, the commit log: 2 bits per transaction (in progress, committed, aborted, sub-committed), read by visibility checks that find no hint bit. `work_mem` is per backend, not shared.',
   ],
   sources: ['runtime-config-resource.html', 'runtime-config-wal.html', 'pgbuffercache.html', 'view-pg-shmem-allocations.html', 'glossary.html', 'monitoring-stats.html', 'kernel-resources.html', 'storage-file-layout.html'],
 }

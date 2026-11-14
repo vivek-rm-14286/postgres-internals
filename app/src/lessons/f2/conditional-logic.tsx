@@ -119,7 +119,7 @@ function RowWalker() {
         <Panel title="orders">
           <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full border-collapse font-mono text-[12px]">
-              <thead><tr className="text-left text-muted">{cols.map((c) => <th key={c} className="py-1 pr-3 font-semibold">{c}</th>)}{m && <th className="py-1 font-semibold" style={{ color: tone('pointer') }}>{m.out}</th>}</tr></thead>
+              <thead><tr className="text-left text-muted">{cols.map((c) => <th key={c} className="py-1 pr-3 font-semibold">{c}</th>)}{m && <th className="py-1 font-semibold" style={{ color: tone.text('pointer') }}>{m.out}</th>}</tr></thead>
               <tbody>
                 {ORDERS.map((r, i) => {
                   const done = i < row, cur = i === row
@@ -128,7 +128,7 @@ function RowWalker() {
                     <motion.tr key={r.id} layout className="border-t border-line" animate={{ backgroundColor: cur ? toneBg('accent', 16) : 'rgba(0,0,0,0)' }}>
                       {cols.map((c) => <td key={c} className="py-1.5 pr-3" style={{ color: r[c] === null ? tone('new') : undefined, fontWeight: !m && c === 'status' && passes && (cur || done) ? 700 : undefined }}>{cellText(r, c)}</td>)}
                       {m && (
-                        <td className="py-1.5 font-bold" style={{ color: tone('pointer') }}>
+                        <td className="py-1.5 font-bold" style={{ color: tone.text('pointer') }}>
                           <AnimatePresence>{(done || cur) && <motion.span key={`${mode}${r.id}`} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: cur ? 0.5 : 0 }}>{m.run(r).result}</motion.span>}</AnimatePresence>
                         </td>
                       )}
@@ -146,11 +146,11 @@ function RowWalker() {
                 <motion.div key={`${mode}${row}${i}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: l.v === 'skip' ? 0.5 : 1, x: 0 }} transition={{ delay: i * 0.14 }}
                   className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-2 py-1" style={{ borderColor: tone(vTone[l.v]), background: toneBg(vTone[l.v], l.v === 'skip' ? 4 : 12) }}>
                   <code className="font-mono text-[12px]">{l.code}</code>
-                  <span className="rounded px-1.5 py-0.5 font-mono text-[11px] font-bold" style={{ color: tone(vTone[l.v]), background: toneBg(vTone[l.v], 18) }}>{vText(l)}</span>
+                  <span className="rounded px-1.5 py-0.5 font-mono text-[11px] font-bold" style={{ color: tone.text(vTone[l.v]), background: toneBg(vTone[l.v], 18) }}>{vText(l)}</span>
                 </motion.div>
               ))}
               <motion.p key={`r${mode}${row}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: ev.lines.length * 0.14 }} className="mt-1 font-mono text-sm">
-                → <b style={{ color: tone('pointer') }}>{ev.result}</b>
+                → <b style={{ color: tone.text('pointer') }}>{ev.result}</b>
               </motion.p>
             </div>
           </Panel>
@@ -172,7 +172,7 @@ function RowWalker() {
         )}
       </div>
       <Note>{ev ? ev.note : o.total === null && o.status === 'paid'
-        ? 'Row 3 is paid, so both paid counters move, but its total is NULL: `sum` ignores NULLs and the revenue stays the same. One more counter catches the missing value.'
+        ? 'Row 3 is paid, so the paid count goes up, but its total is NULL: `sum` ignores NULLs and the revenue stays the same. The last counter catches the missing value.'
         : 'Each aggregate sees only the rows that pass its own **FILTER**. One pass over the table produces every metric.'}</Note>
       <Legend items={[['ok', 'condition TRUE'], ['muted', 'FALSE / not evaluated'], ['new', 'NULL (unknown)'], ['pointer', 'value returned']]} />
     </div>
@@ -233,7 +233,7 @@ SELECT CASE NULL WHEN NULL THEN 'matched' ELSE 'not matched' END AS simple_case_
        GREATEST(coupon, promo)    AS best_offer,
        LEAST(total, 100)          AS capped_total
 FROM orders ORDER BY id;`,
-        note: 'COALESCE returns the first non-NULL argument. GREATEST and LEAST **ignore NULLs**, so Ann\'s best offer is 5.00, and they return NULL only when every argument is NULL.' },
+        note: 'COALESCE returns the first non-NULL argument. GREATEST and LEAST **ignore NULLs**, so Ann\'s best offer is 5.00, and they return NULL only when every argument is NULL. For the same reason Cy\'s `capped_total` is 100, not NULL. If unknown must stay unknown, write `CASE WHEN total IS NOT NULL THEN LEAST(total, 100) END`.' },
       { label: 'Safe division with NULLIF', sql: `SELECT id, total, qty,
        round(total / NULLIF(qty, 0), 2)                AS per_item,
        COALESCE(round(total / NULLIF(qty, 0), 2), 0)  AS per_item_or_zero
@@ -295,13 +295,14 @@ WHERE status <> 'cancelled';      -- on an empty result: 0, 0, 0 instead of an e
     { title: 'A constant error inside an unused CASE branch',
       symptom: 'A query fails with division by zero even though the CASE branch with `1/0` can never be chosen.',
       cause: 'CASE skips branches at run time, but the planner simplifies constant expressions first, and `1/0` fails during planning.',
-      fix: 'Do not rely on CASE to hide constant errors; compute guarded values with NULLIF instead.' },
+      fix: 'Do not rely on CASE to hide constant errors; compute guarded values with NULLIF instead.',
+      sql: 'SELECT CASE WHEN x > 0 THEN x ELSE 1/0 END FROM (VALUES (1), (2)) AS v(x);' },
   ],
   pointers: [
     'Searched **CASE** returns the first **true** branch. NULL is not true. No ELSE means NULL.',
     '**COALESCE** picks the first non-NULL argument and stops there. **NULLIF(a, b)** turns a chosen value into NULL.',
     '`x / NULLIF(y, 0)` is the standard guard against division by zero.',
-    '`count(*) FILTER (WHERE …)` computes many conditional metrics in one pass. Sums over no rows are NULL.',
+    '`count(*) FILTER (WHERE …)` computes many conditional metrics in one pass. Sums over no rows are NULL. More on FILTER: [Aggregates, FILTER and GROUPING SETS](/m3/aggregates-grouping) and [Pivots and reports](/f4/pivot-reporting).',
     'Going deeper: the Internals lesson [From SQL text to rows](/m4/query-pipeline) follows a query through parsing, rewriting and planning, the stages that run before the executor evaluates CASE row by row.',
   ],
   sources: ['functions-conditional.html', 'sql-expressions.html', 'functions-aggregate.html', 'functions-comparison.html', 'typeconv-union-case.html'],

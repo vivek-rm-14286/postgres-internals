@@ -1,6 +1,6 @@
 # pg-internals MCP server
 
-PostgreSQL 18 for AI agents: the 111 lessons (Fundamentals, Internals, Ecosystem) and 91 graded exercises from
+PostgreSQL 18 for AI agents: the 111 lessons (Fundamentals, Internals, Ecosystem) and 97 graded exercises from
 [Postgres, Visualized](https://vivek-rm-14286.github.io/postgres-internals/), complete reference tables,
 distilled docs notes, and a **live PostgreSQL 18 sandbox** (PGlite, in-memory) to verify behaviour instead of guessing.
 

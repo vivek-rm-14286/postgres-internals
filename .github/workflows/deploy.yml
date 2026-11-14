@@ -34,6 +34,7 @@ jobs:
       # Template completeness + every playground query executed against real PGlite (PostgreSQL 18)
       - run: npm run check:lessons
       - run: npm run check:cookbook
+      - run: npm run check:standalone
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

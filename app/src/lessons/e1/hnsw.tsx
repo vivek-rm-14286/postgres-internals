@@ -165,7 +165,7 @@ function IndexRules() {
   const opOk = (opclass === 'l2' && op === '<->') || (opclass === 'cos' && op === '<=>')
   const used = opOk && form === 'asc' && limit
   const orderBy = form === 'asc' ? `embedding ${op} $1` : form === 'desc' ? `embedding ${op} $1 DESC` : `1 - (embedding ${op} $1) DESC`
-  const sortKey = form === 'expr' ? `('1'::double precision - (embedding ${op} $1)) DESC` : `(embedding ${op} $1)${form === 'desc' ? ' DESC' : ''}`
+  const sortKey = form === 'expr' ? `(('1'::double precision - (embedding ${op} $1))) DESC` : `((embedding ${op} $1))${form === 'desc' ? ' DESC' : ''}`
   const plan = used
     ? ['Limit', '  ->  Index Scan using items_hnsw on items', `        Order By: (embedding ${op} $1)`]
     : [...(limit ? ['Limit', '  ->  Sort'] : ['Sort']), `${limit ? '        ' : '  '}Sort Key: ${sortKey}`, `${limit ? '        ->  ' : '  ->  '}Seq Scan on items`]
@@ -191,7 +191,7 @@ function IndexRules() {
       <pre className="overflow-x-auto rounded-lg border border-line bg-code px-3 py-2 font-mono text-[11.5px] leading-[18px] scrollbar-thin">{`CREATE INDEX items_hnsw ON items USING hnsw (embedding vector_${opclass}_ops);\n\nSELECT id FROM items ORDER BY ${orderBy}${limit ? ' LIMIT 10' : ''};`}</pre>
       <motion.div key={plan.join('|')} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg border px-3 py-2"
         style={{ borderColor: tone(used ? 'ok' : 'dead'), background: toneBg(used ? 'ok' : 'dead', 8) }}>
-        <p className="mb-1 text-sm font-semibold" style={{ color: tone(used ? 'ok' : 'dead') }}>{used ? 'Approximate: index scan' : 'Exact: sequential scan + sort'}</p>
+        <p className="mb-1 text-sm font-semibold" style={{ color: tone.text(used ? 'ok' : 'dead') }}>{used ? 'Approximate: index scan' : 'Exact: sequential scan + sort'}</p>
         <pre className="overflow-x-auto font-mono text-[11.5px] leading-[18px]">{plan.join('\n')}</pre>
         <p className="mt-1 text-xs text-muted"><Md>{why}</Md></p>
       </motion.div>
@@ -222,6 +222,8 @@ function HnswViz() {
 /* ------------------------------------------------------------------------------------------------ */
 
 const Q1 = '(SELECT v FROM queries WHERE qid = 1)'
+// every example builds the default index if it is missing, so each one runs on its own
+const HNSW_IDX = 'CREATE INDEX IF NOT EXISTS items_hnsw ON items USING hnsw (embedding vector_l2_ops);'
 
 export const lesson: Lesson = {
   slug: 'hnsw',
@@ -241,7 +243,7 @@ export const lesson: Lesson = {
     extensions: ['vector'],
     setup: ITEMS_SETUP,
     presets: [
-      { label: 'Build the index', sql: `CREATE INDEX items_hnsw ON items USING hnsw (embedding vector_l2_ops);
+      { label: 'Build the index', sql: `${HNSW_IDX}
 
 SELECT pg_size_pretty(pg_relation_size('items'))      AS heap,
        pg_size_pretty(pg_relation_size('items_hnsw')) AS hnsw_index;
@@ -249,14 +251,18 @@ SELECT pg_size_pretty(pg_relation_size('items'))      AS heap,
 EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT id FROM items ORDER BY embedding <-> ${Q1} LIMIT 10;`,
         note: 'The build takes a second or two here (m = 16, ef_construction = 64). The plan is now an **Index Scan … Order By**, under a millisecond, versus about 6 ms for the exact scan. The index is larger than the table: it stores every vector plus its links.' },
-      { label: 'Recall vs ef_search', sql: `SET hnsw.ef_search = 5;   SELECT 5   AS ef_search, * FROM recall;
+      { label: 'Recall vs ef_search', sql: `${HNSW_IDX}
+
+SET hnsw.ef_search = 5;  SELECT 5   AS ef_search, * FROM recall;
 SET hnsw.ef_search = 10;  SELECT 10  AS ef_search, * FROM recall;
 SET hnsw.ef_search = 20;  SELECT 20  AS ef_search, * FROM recall;
 SET hnsw.ef_search = 40;  SELECT 40  AS ef_search, * FROM recall;
 SET hnsw.ef_search = 100; SELECT 100 AS ef_search, * FROM recall;
 RESET hnsw.ef_search;`,
         note: 'The `recall` view runs 20 queries with `LIMIT 10` and compares each with the exact answers stored in `truth`. At ef_search 5 you get only 5 rows, so recall is at most 0.5. At 10 it is about 0.98 and from 20 up it reaches 1.0 on this clustered data. The graph is built with random levels, so the third decimal varies between builds.' },
-      { label: 'ef_search caps LIMIT', sql: `SELECT count(*) AS rows_returned
+      { label: 'ef_search caps LIMIT', sql: `${HNSW_IDX}
+
+SELECT count(*) AS rows_returned
 FROM (SELECT id FROM items ORDER BY embedding <-> ${Q1} LIMIT 100) a;
 
 BEGIN;
@@ -265,7 +271,7 @@ SELECT count(*) AS rows_returned
 FROM (SELECT id FROM items ORDER BY embedding <-> ${Q1} LIMIT 100) a;
 COMMIT;`,
         note: '`LIMIT 100` returns only **40 rows** at the default ef_search of 40, with no error or warning. `SET LOCAL` inside a transaction raises it for one query: now all 100 rows arrive.' },
-      { label: 'A thinner graph: m = 4', sql: `DROP INDEX items_hnsw;
+      { label: 'A thinner graph: m = 4', sql: `DROP INDEX IF EXISTS items_hnsw;
 CREATE INDEX items_hnsw ON items USING hnsw (embedding vector_l2_ops) WITH (m = 4, ef_construction = 8);
 SELECT pg_size_pretty(pg_relation_size('items_hnsw')) AS size_m4;
 
@@ -277,8 +283,10 @@ RESET hnsw.ef_search;
 -- back to the defaults for the next presets
 DROP INDEX items_hnsw;
 CREATE INDEX items_hnsw ON items USING hnsw (embedding vector_l2_ops);`,
-        note: 'Fewer links and a narrow build beam make a smaller, faster-to-build index, but recall drops to about 0.4–0.5 at ef_search 10 and stays near 0.6 even at 100: a larger ef_search cannot fix it. The links are fixed at build time; ef_search only widens the walk over them.' },
-      { label: 'When the index is NOT used', sql: `EXPLAIN (COSTS OFF) SELECT id FROM items ORDER BY embedding <-> ${Q1} DESC LIMIT 5;
+        note: 'Fewer links and a narrow build beam make a smaller, faster-to-build index, but recall drops to about 0.3–0.45 at ef_search 10 and stays around 0.45–0.65 even at 100 (it varies by build): a larger ef_search cannot fix it. The links are fixed at build time; ef_search only widens the walk over them.' },
+      { label: 'When the index is NOT used', sql: `${HNSW_IDX}
+
+EXPLAIN (COSTS OFF) SELECT id FROM items ORDER BY embedding <-> ${Q1} DESC LIMIT 5;
 EXPLAIN (COSTS OFF) SELECT id FROM items ORDER BY 1 - (embedding <-> ${Q1}) DESC LIMIT 5;
 EXPLAIN (COSTS OFF) SELECT id FROM items ORDER BY embedding <-> ${Q1};
 EXPLAIN (COSTS OFF) SELECT id FROM items ORDER BY embedding <=> ${Q1} LIMIT 5;

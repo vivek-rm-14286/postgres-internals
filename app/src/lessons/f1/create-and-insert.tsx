@@ -108,7 +108,7 @@ RETURNING id, name;`, returning: { fields: ['id', 'name'], rows: [[6, "Seán O'B
 ]
 
 function Chip({ children, t }: { children: string; t: Tone }) {
-  return <span className="inline-block rounded px-1 py-px font-mono text-[9.5px] font-semibold whitespace-nowrap" style={{ background: toneBg(t, 18), color: tone(t) }}>{children}</span>
+  return <span className="inline-block rounded px-1 py-px font-mono text-[9.5px] font-semibold whitespace-nowrap" style={{ background: toneBg(t, 18), color: tone.text(t) }}>{children}</span>
 }
 const chipTone = (s: string): Tone => (s.startsWith('DEFAULT') ? 'new' : s === 'IDENTITY' ? 'new' : s === 'PRIMARY KEY' ? 'header' : 'pointer')
 
@@ -154,7 +154,7 @@ function TableView({ s }: { s: S }) {
                   const v = s.ghost!.row[col.k]
                   const bad = s.ghost!.bad === col.k
                   return (
-                    <td key={col.k} className="px-2 py-1 whitespace-nowrap line-through decoration-1" style={bad ? { color: tone('dead'), fontWeight: 700, textDecoration: 'none', outline: `1.5px solid ${tone('dead')}`, outlineOffset: -2 } : undefined}>
+                    <td key={col.k} className="px-2 py-1 whitespace-nowrap line-through decoration-1" style={bad ? { color: tone.text('dead'), fontWeight: 700, textDecoration: 'none', outline: `1.5px solid ${tone('dead')}`, outlineOffset: -2 } : undefined}>
                       {v === TODAY ? <span className="text-muted italic">today</span> : <Val v={v as Cell} />}
                     </td>
                   )
@@ -180,7 +180,7 @@ function IdCounter({ s }: { s: S }) {
           return (
             <motion.span key={n} layout initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               className={`inline-flex size-6 items-center justify-center rounded-full font-mono text-[11px] font-bold ${burned ? 'line-through' : ''}`}
-              style={{ background: toneBg(burned ? 'dead' : 'ok', 22), color: tone(burned ? 'dead' : 'ok') }}
+              style={{ background: toneBg(burned ? 'dead' : 'ok', 22), color: tone.text(burned ? 'dead' : 'ok') }}
               title={burned ? 'taken by a failed insert, never reused' : 'used by a row'}>{n}</motion.span>
           )
         })}
@@ -210,7 +210,7 @@ function CreateInsertViz() {
           {s.error ? (
             <motion.div key={s.error.code} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="rounded-lg border px-3 py-2 font-mono text-[12px]" style={{ borderColor: tone('dead'), background: toneBg('dead', 10) }}>
-              <p><span className="font-bold" style={{ color: tone('dead') }}>ERROR:</span> {s.error.msg}</p>
+              <p><span className="font-bold" style={{ color: tone.text('dead') }}>ERROR:</span> {s.error.msg}</p>
               {s.error.detail && <p className="text-muted">DETAIL: {s.error.detail}</p>}
               <p className="mt-1"><Tag t="dead">SQLSTATE {s.error.code}</Tag></p>
             </motion.div>
@@ -243,7 +243,7 @@ export const lesson: Lesson = {
   ],
   visualizer: {
     title: 'Build a table, one statement at a time',
-    caption: 'Step through CREATE TABLE and six INSERTs. Watch defaults fill in, bad rows bounce off the constraints, and the identity counter skip a number.',
+    caption: 'Step through CREATE TABLE and seven INSERTs. Watch defaults fill in, bad rows bounce off the constraints, and the identity counter skip a number.',
     Component: CreateInsertViz,
   },
   playground: {
@@ -252,11 +252,23 @@ CREATE FUNCTION try_sql(q text) RETURNS text LANGUAGE plpgsql AS $$
 BEGIN EXECUTE q; RETURN 'ok';
 EXCEPTION WHEN OTHERS THEN RETURN SQLSTATE || ': ' || SQLERRM;
 END $$;
+-- The table the examples use. "Create the table" builds it again from scratch.
+CREATE TABLE customers (
+  id        bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  email     text    NOT NULL,
+  name      text    NOT NULL,
+  vip       boolean NOT NULL DEFAULT false,
+  credit    numeric(10,2) NOT NULL DEFAULT 0,
+  joined_on date    NOT NULL DEFAULT current_date,
+  joined_at timestamptz NOT NULL DEFAULT now()
+);
 CREATE TABLE signups (email text, name text, source text);
 INSERT INTO signups VALUES
   ('gus@example.com', 'Gus', 'ads'), ('hana@example.com', 'Hana', 'friend'), ('ivo@example.com', 'Ivo', 'ads');`,
     presets: [
-      { label: 'Create the table', sql: `CREATE TABLE customers (
+      { label: 'Create the table', sql: `DROP TABLE IF EXISTS customers;   -- start clean (DROP TABLE is the last example)
+
+CREATE TABLE customers (
   id        bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   email     text    NOT NULL,
   name      text    NOT NULL,
@@ -270,7 +282,7 @@ SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns
 WHERE table_name = 'customers'
 ORDER BY ordinal_position;`,
-        note: 'The second query reads the table definition back. `id` shows no default: identity columns are generated, not defaulted.' },
+        note: 'The first line removes the copy this lesson starts with, so the ids begin at 1 again. The last query reads the table definition back. `id` shows no default: identity columns are generated, not defaulted.' },
       { label: 'Insert one, RETURNING', sql: `INSERT INTO customers (email, name)
 VALUES ('ana@example.com', 'Ana')
 RETURNING id, vip, credit, joined_on;`,
@@ -287,7 +299,7 @@ SELECT try_sql($$ INSERT INTO customers (email, name) VALUES ("eve@example.com",
 
 INSERT INTO customers (email, name) VALUES ('eve@example.com', 'Eve')
 RETURNING id;`,
-        note: 'Four different errors: **23502** NOT NULL, **428C9** identity, **22P02** bad input for a boolean, **42703** unknown column. Eve then gets id **5**: the first failed insert used up 4.' },
+        note: 'Four different errors: **23502** NOT NULL, **428C9** identity, **22P02** bad input for a boolean, **42703** unknown column. Eve then gets the next id after a gap (**5** if you ran the examples in order, once each): the first failed insert used up a number.' },
       { label: 'INSERT … SELECT', sql: `INSERT INTO customers (email, name, vip)
 SELECT email, name, source = 'friend'
 FROM signups
@@ -323,12 +335,12 @@ RETURNING id, joined_at;`,
   pitfalls: [
     { title: 'Expecting ids without gaps',
       symptom: 'Ids go 1, 2, 3, 5, and someone files a bug about the missing 4.',
-      cause: 'An identity number is taken before the row is checked. A failed or rolled-back insert does not give it back.',
+      cause: 'An identity number is taken before the row is checked. A failed insert, or one that is later undone (see [Updating and deleting safely](/f1/change-data-safely)), does not give it back.',
       fix: 'Treat ids as unique labels, not counters. If you need a gapless sequence (invoice numbers), build it separately; to count rows, use `count(*)`.' },
     { title: 'Typing ids by hand into an identity column',
       symptom: '`ERROR: cannot insert a non-DEFAULT value into column "id"` while loading old data.',
       cause: '`GENERATED ALWAYS` refuses user-supplied values.',
-      fix: 'For a one-off load, write `OVERRIDING SYSTEM VALUE` after the column list, then move the counter past the highest id. Otherwise omit the column.',
+      fix: 'For a one-off load, write `OVERRIDING SYSTEM VALUE` after the column list, then move the counter past the highest id (the counter is a *sequence*; `setval` sets it, see [Views, sequences and identity](/f3/views-and-sequences)). Otherwise omit the column.',
       sql: `INSERT INTO customers (id, email, name) OVERRIDING SYSTEM VALUE
 VALUES (100, 'old@example.com', 'Old');
 SELECT setval(pg_get_serial_sequence('customers', 'id'), (SELECT max(id) FROM customers));` },
@@ -347,7 +359,7 @@ SELECT setval(pg_get_serial_sequence('customers', 'id'), (SELECT max(id) FROM cu
     '`PRIMARY KEY` = unique + not null. `NOT NULL` forbids missing values. `DEFAULT` fills omitted columns.',
     '`bigint GENERATED ALWAYS AS IDENTITY` numbers rows for you; numbers are unique but can have **gaps**.',
     "`'single quotes'` are values, `\"double quotes\"` are names. `RETURNING` sends the inserted row back.",
-    '**Going deeper:** [Primitive types, alignment and padding](/m2/primitive-types) shows how each type is laid out in bytes on disk.',
+    '**Next:** [Constraints and defaults](/f3/constraints-defaults) adds `UNIQUE` and `CHECK`, and [Keys and relationships](/f3/keys-and-relationships) links tables with foreign keys. **Going deeper:** [Primitive types, alignment and padding](/m2/primitive-types) shows how each type is laid out in bytes on disk.',
   ],
   sources: ['ddl-basics.html', 'ddl-constraints.html', 'ddl-default.html', 'ddl-identity-columns.html', 'sql-createtable.html', 'dml-insert.html', 'dml-returning.html', 'sql-insert.html', 'sql-droptable.html', 'sql-syntax-lexical.html', 'datatype-numeric.html', 'functions-sequence.html'],
 }

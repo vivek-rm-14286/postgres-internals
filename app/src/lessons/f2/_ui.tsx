@@ -17,7 +17,7 @@ export function Btn({ children, onClick, primary, testid, active, disabled }: {
   children: ReactNode; onClick: () => void; primary?: boolean; testid?: string; active?: boolean; disabled?: boolean
 }) {
   const cls = primary
-    ? 'bg-accent text-white'
+    ? 'bg-accent text-on-accent'
     : active ? 'border border-accent text-ink bg-accent-soft' : 'border border-line text-muted hover:text-ink hover:border-accent'
   return (
     <button type="button" onClick={onClick} data-testid={testid} disabled={disabled}
@@ -31,7 +31,7 @@ export function SqlLine({ sql, result, error }: { sql: string; result?: string; 
     <div className="rounded-lg border border-line bg-bg px-3 py-2 font-mono text-[12.5px] leading-relaxed [font-variant-ligatures:none]">
       <p className="whitespace-pre-wrap break-all text-ink"><span className="text-muted select-none">=&gt; </span>{sql}</p>
       <motion.p key={(result ?? '') + (error ?? '')} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }}
-        className="whitespace-pre-wrap break-all" style={{ color: error ? 'var(--c-dead)' : 'var(--c-ok)' }}>
+        className="whitespace-pre-wrap break-all" style={{ color: error ? 'var(--t-dead)' : 'var(--t-ok)' }}>
         {error ? `ERROR:  ${error}` : result}
       </motion.p>
     </div>

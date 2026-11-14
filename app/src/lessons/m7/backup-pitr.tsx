@@ -11,14 +11,17 @@ import { FieldTable, Legend, Panel, tone, toneBg } from '../../viz/kit'
  * LOCATION 0/2000080) are from pg_backup_start/pg_backup_stop in the playground.
  * ---------------------------------------------------------------------------------------------- */
 
-interface S { at: number; archived: number; incident: boolean; restored: boolean; replayTo?: number; tl2: boolean; conf: [string, string, string?][] }
-const BACKUP = 1, BACKUP_END = 1.33, INCIDENT = 14.08
+interface S { at: number; archived: number; incident: boolean; restored: boolean; replayTo?: number; failed?: boolean; tl2: boolean; conf: [string, string, string?][] }
+const BACKUP = 1, BACKUP_END = 1.33, INCIDENT = 14.08, WAL_END = 16 // the server was stopped at 16:00: no WAL exists after it
 const hh = (h: number) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`
 const seg = (n: number, tl = 1) => `${String(tl).padStart(8, '0')}0000000000000${(n + 2).toString(16).toUpperCase().padStart(3, '0')}`
 
 function build(target: number): Step<S>[] {
   const tooEarly = target < BACKUP_END
-  const afterDrop = target >= INCIDENT
+  const beyond = target > WAL_END
+  const afterDrop = target >= INCIDENT && !beyond
+  const failed = tooEarly || beyond
+  const replayTo = tooEarly ? BACKUP_END : beyond ? WAL_END : target
   const conf = (extra: [string, string, string?][] = []): [string, string, string?][] => [
     ['wal_level', 'replica'], ['archive_mode', 'on'], ['archive_command', "'cp %p /archive/%f'"], ...extra]
   const rec: [string, string, string?][] = [
@@ -38,13 +41,14 @@ function build(target: number): Step<S>[] {
       state: { at: 16, archived: 15, incident: true, restored: false, tl2: false, conf: conf() } },
     { title: 'Restore the base backup, set a target', body: `Stop the server, move the data directory aside, restore the 01:00 backup, empty \`pg_wal\`, set \`restore_command\` and \`recovery_target_time\` = **${hh(target)}**, create \`recovery.signal\`, start.`,
       state: { at: 16, archived: 15, incident: true, restored: true, tl2: false, conf: rec } },
-    { title: tooEarly ? 'Replay fails: target before the end of the backup' : `Replay archived WAL up to ${hh(target)}`, body: tooEarly
+    { title: tooEarly ? 'Replay fails: target before the end of the backup' : beyond ? 'Replay fails: target after the end of WAL' : `Replay archived WAL up to ${hh(target)}`, body: tooEarly
       ? 'A backup is only consistent from its **end** (01:20). A target inside the backup window is rejected; pick a later target or an older backup.'
+      : beyond ? `The WAL ends at ${hh(WAL_END)}, when the server was stopped. Recovery replays all of it, never finds ${hh(target)}, and stops with **FATAL: recovery ended before configured recovery target was reached**. A server cannot replay WAL that was never written.`
       : afterDrop ? `Replay stops at ${hh(target)}, but that is **after** 14:05, so the DROP was replayed too. Move the target before the incident and recover again.`
       : `The startup process fetches each segment with \`restore_command\` and replays it, stopping at the first commit after ${hh(target)}. The 14:05 DROP is never applied.`,
-      state: { at: 16, archived: 15, incident: true, restored: true, replayTo: tooEarly ? BACKUP_END : target, tl2: false, conf: rec } },
-    { title: 'Promote: a new timeline begins', body: tooEarly ? 'No promotion: recovery did not reach a consistent state.' : 'After checking the data, `pg_wal_replay_resume()` (or `recovery_target_action = promote`) ends recovery. The server starts **timeline 2**: new WAL files begin `00000002…` and `00000002.history` records where it branched.',
-      state: { at: 16, archived: 15, incident: true, restored: true, replayTo: tooEarly ? BACKUP_END : target, tl2: !tooEarly, conf: tooEarly ? rec : [['timeline', '2'], ['00000002.history', `1  …  before ${hh(target)}`], ['invoices', afterDrop ? 'missing (target after the DROP)' : 'present']] } },
+      state: { at: WAL_END, archived: 15, incident: true, restored: true, replayTo, failed, tl2: false, conf: rec } },
+    { title: failed ? 'No promotion' : 'Promote: a new timeline begins', body: tooEarly ? 'No promotion: recovery did not reach a consistent state.' : beyond ? 'No promotion: the server shut down instead of opening at a point you did not ask for. Pick a target inside the WAL you have, or remove the target to recover to the end of WAL.' : 'After checking the data, `pg_wal_replay_resume()` (or `recovery_target_action = promote`) ends recovery. The server starts **timeline 2**: new WAL files begin `00000002…` and `00000002.history` records where it branched.',
+      state: { at: WAL_END, archived: 15, incident: true, restored: true, replayTo, failed, tl2: !failed, conf: failed ? rec : [['timeline', '2'], ['00000002.history', `1  …  before ${hh(target)}`], ['invoices', afterDrop ? 'missing (target after the DROP)' : 'present']] } },
   ]
 }
 
@@ -85,7 +89,7 @@ function Timeline({ s }: { s: S }) {
       {s.restored && s.replayTo !== undefined && (
         <>
           <motion.line x1={xh(BACKUP)} y1={168} y2={168} initial={{ x2: xh(BACKUP) }} animate={{ x2: xh(s.replayTo) }} transition={{ duration: 1.1 }} stroke={tone('accent')} strokeWidth={4} strokeLinecap="round" />
-          <text x={xh(BACKUP)} y={186} fontSize={10.5} fill={tone('accent')}>replay from 0/2000028 → target {hh(s.replayTo)}</text>
+          <text x={xh(BACKUP)} y={186} fontSize={10.5} fill={tone(s.failed ? 'dead' : 'accent')}>replay from 0/2000028 → {s.failed ? 'failed at' : 'target'} {hh(s.replayTo)}</text>
         </>
       )}
       {s.restored && s.replayTo === undefined && <text x={xh(BACKUP)} y={172} fontSize={10.5} fill={tone('accent')}>restored base backup (01:00), waiting to replay</text>}
@@ -124,7 +128,7 @@ export const lesson: Lesson = {
   ],
   visualizer: {
     title: 'Recover to one minute before the mistake',
-    caption: 'Step through a day with a base backup, archived WAL and a bad DROP, then recovery. Drag `recovery_target_time` to before 01:20, before 14:05, or after it and step again.',
+    caption: 'Step through a day with a base backup, archived WAL and a bad DROP, then recovery. Drag `recovery_target_time` to before 01:20, before 14:05, after it, or past the end of WAL at 16:00, and step again.',
     Component: PitrViz,
   },
   playground: {
@@ -169,7 +173,7 @@ WHERE record_type IN ('RESTORE_POINT', 'COMMIT') OR start_lsn = current_setting(
 recovery_target_time = %L
 recovery_target_inclusive = off
 recovery_target_action = 'pause'
--- then: touch $PGDATA/recovery.signal and start the server$f$,
+# then: touch $PGDATA/recovery.signal and start the server$f$,
   now() - interval '1 minute') AS postgresql_conf_lines;
 
 SELECT now() AS time, pg_current_wal_lsn() AS lsn, pg_current_xact_id() AS xid;`,
@@ -212,7 +216,7 @@ recovery_target_action = 'pause'
     { title: 'pg_restore refuses the dump file',
       symptom: '`pg_restore: error: input file appears to be a text format dump. Please use psql.`',
       cause: 'Plain format (the `pg_dump` default) and all `pg_dumpall` output are SQL scripts for `psql`. Only the custom, directory and tar archives are read by `pg_restore`, which is also what enables `-j` parallel restore and `-l` / `-L` to restore selected objects.',
-      fix: 'Dump with `-Fc` or `-Fd` for anything you may restore selectively. Repeat `-t` / `-n` once per object (they do not take comma lists), use `-O` (`--no-owner`) when roles differ, and dump roles and tablespaces separately with `pg_dumpall --globals-only`, because `pg_dump` never includes them.',
+      fix: 'Dump with `-Fc` or `-Fd` for anything you may restore selectively. Repeat `-t` / `-n` once per object (they do not take comma lists), use `-O` (`--no-owner`) when roles differ, and dump roles and tablespaces separately with `pg_dumpall --globals-only`, because `pg_dump` never includes them. In 18, add `--statistics` to carry planner statistics in the dump; without it, run `ANALYZE` after restoring.',
       sql: `pg_dump -Fd -j 4 -t invoices -t customers -f /backups/billing.dir billing
 pg_dumpall --globals-only > /backups/globals.sql
 psql -f /backups/globals.sql postgres
@@ -224,7 +228,7 @@ pg_restore -j 4 -O -d billing_copy /backups/billing.dir` },
   ],
   pointers: [
     '**pg_dump**: one database in one snapshot; plain SQL goes to **psql**, custom/directory archives to **pg_restore** (`-j`, `-L`); roles need **pg_dumpall --globals-only**.',
-    '**Base backup + archived WAL** = PITR; replay must start at the backup\'s `START WAL LOCATION`.',
+    '**Base backup + archived WAL** = PITR; replay of the [WAL](/m7/wal-lsn) must start at the backup\'s `START WAL LOCATION`.',
     '`restore_command` + `recovery.signal` + one **recovery_target_*** (time, name, lsn, xid, immediate).',
     'Ending recovery starts a **new timeline**; `.history` files record branch points.',
     'Incremental backups (17+) need **`summarize_wal`** and are rebuilt with **`pg_combinebackup`**.',

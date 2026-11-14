@@ -47,9 +47,9 @@ GROUP BY c.name;` } },
   { title: 'Reduce: drop fragments that contradict the selection', body: '`region = EU` contradicts the defining predicates of C_US and C_APAC, so they cannot contribute. The planner removes them without reading them.',
     state: { tree: { label: 'γ name; sum(total)', t: 'accent', kids: [{ label: 'σ total>100', t: 'header', kids: [{ label: '⋈', t: 'new', kids: [U([frag('C_EU', 'EU'), frag('C_US', 'US', true), frag('C_APAC', 'APAC', true)]), U([frag('O_EU', 'EU'), frag('O_US', 'US'), frag('O_APAC', 'APAC')])] }] }] },
       shipped: COUNTS.custEU + COUNTS.orders, shippedLabel: 'EU customers + all orders' } },
-  { title: 'Reduce the join: only matching fragment pairs', body: 'Distribute the join over the union: C_EU ⋈ O_US and C_EU ⋈ O_APAC are empty, because the foreign key places every order with its customer. One co-located pair is left.',
+  { title: 'Reduce the join: only matching fragment pairs', body: 'Distribute the join over the union: C_EU ⋈ O_US and C_EU ⋈ O_APAC are empty, because the foreign key places every order with its customer. One co-located pair is left, so the join runs at site EU and only its result leaves the site.',
     state: { tree: { label: 'γ name; sum(total)', t: 'accent', kids: [{ label: 'σ total>100', t: 'header', kids: [{ label: '⋈ at site EU', t: 'new', kids: [frag('C_EU', 'EU'), frag('O_EU', 'EU')] }] }] },
-      shipped: COUNTS.custEU + COUNTS.ordEU, shippedLabel: 'EU customers + EU orders' } },
+      shipped: COUNTS.ordEU, shippedLabel: 'join result: each EU order with its customer' } },
   { title: 'Push down the filter and the aggregate', body: 'The selection runs at the site that stores O_EU, and so does the GROUP BY: only finished groups cross the network.',
     state: { tree: { label: 'gather results', t: 'ok', kids: [{ label: 'γ name; sum at site EU', t: 'accent', site: 'EU', kids: [{ label: '⋈', t: 'new', kids: [frag('C_EU', 'EU'), { label: 'σ total>100', t: 'header', kids: [frag('O_EU', 'EU')] }] }] }] },
       shipped: COUNTS.groups, shippedLabel: 'one row per EU customer with a large order' } },
@@ -155,7 +155,7 @@ function Joins() {
   const [big, setBig] = useState(488)
   const [small, setSmall] = useState(148)
   const [st, setSt] = useState<Strat>('bcast')
-  const [groups, setGroups] = useState(3000)
+  const [groups, setGroups] = useState(3)
   const [agg, setAgg] = useState(false)
   const kb = 1000
   const moved = st === 'colo' ? 0 : st === 'bcast' ? small * kb * (n - 1) : (big + small) * kb * (n - 1) / n
@@ -371,7 +371,7 @@ GROUP BY r.name;`,
   ],
   pointers: [
     '**Decomposition** (normalize, analyze, eliminate redundancy, rewrite) produces an algebra tree on global relations, without using distribution information.',
-    '**Localization** replaces each relation by the union (horizontal) or join (vertical) of its fragments, then **reduces**: fragments contradicting a selection go, and joins shrink to matching fragment pairs. In PostgreSQL this is [partition pruning](/m7/partitioning) and partitionwise join.',
+    '**Localization** replaces each relation by the union (horizontal) or join (vertical) of its [fragments](/e5/fragmentation-replication), then **reduces**: fragments contradicting a selection go, and joins shrink to matching fragment pairs. In PostgreSQL this is [partition pruning](/m7/partitioning) and partitionwise join.',
     'A **semijoin** pays iff size(π_A S) + size(R ⋉ S) < size(R). A bit-array filter shrinks the key list at the cost of false positives.',
     'Join strategies by bytes moved: **co-located** 0, **broadcast** small × (N − 1), **repartition** (big + small) × (N − 1) / N. Push filters and partial aggregates to the data. See [distributed queries in Citus](/e3/distributed-queries).',
   ],

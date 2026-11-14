@@ -159,7 +159,7 @@ function IvfViz() {
               {curve.map((c, i) => <circle key={i} cx={cx(i)} cy={cy(c.recall)} r={i + 1 === p ? 5 : 2.5} fill={i + 1 === p ? 'var(--c-new)' : 'var(--c-ok)'} />)}
               <text x={(CW + 16) / 2} y={CH - 4} textAnchor="middle" fontSize={9.5} fill="var(--muted)" fontFamily="var(--font-mono)">probes 1 → {lists}</text>
             </svg>
-            <p className="text-xs text-muted"><span style={{ color: tone('ok') }}>━ recall@{K}</span> · <span style={{ color: tone('tuple') }}>┅ fraction of rows scanned</span> · at probes = {p}: {curve[p - 1].recall.toFixed(2)} recall, {Math.round(100 * curve[p - 1].scanned)}% scanned</p>
+            <p className="text-xs text-muted"><span style={{ color: tone.text('ok') }}>━ recall@{K}</span> · <span style={{ color: tone.text('tuple') }}>┅ fraction of rows scanned</span> · at probes = {p}: {curve[p - 1].recall.toFixed(2)} recall, {Math.round(100 * curve[p - 1].scanned)}% scanned</p>
           </Panel>
           <Panel title="List sizes">
             <div className="flex h-10 items-end gap-0.5">
@@ -180,6 +180,8 @@ function IvfViz() {
 /* ------------------------------------------------------------------------------------------------ */
 
 const Q1 = '(SELECT v FROM queries WHERE qid = 1)'
+// every example builds the index if it is missing, so each one runs on its own
+const IVF_IDX = 'CREATE INDEX IF NOT EXISTS items_ivf ON items USING ivfflat (embedding vector_l2_ops) WITH (lists = 100);'
 
 export const lesson: Lesson = {
   slug: 'ivfflat',
@@ -199,32 +201,39 @@ export const lesson: Lesson = {
     extensions: ['vector'],
     setup: ITEMS_SETUP,
     presets: [
-      { label: 'Build with 100 lists', sql: `CREATE INDEX items_ivf ON items USING ivfflat (embedding vector_l2_ops) WITH (lists = 100);
+      { label: 'Build with 100 lists', sql: `${IVF_IDX}
 
 SELECT pg_size_pretty(pg_relation_size('items_ivf')) AS ivfflat_size;
 
 EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT id FROM items ORDER BY embedding <-> ${Q1} LIMIT 10;`,
         note: 'The build is roughly five to ten times faster than HNSW on the same table, and the index is about the size of the table. With the default `ivfflat.probes = 1` the scan touches about 15 buffers instead of the 224 of a sequential scan.' },
-      { label: 'Recall vs probes', sql: `SET ivfflat.probes = 1;  SELECT 1  AS probes, * FROM recall;
+      { label: 'Recall vs probes', sql: `${IVF_IDX}
+
+SET ivfflat.probes = 1;  SELECT 1  AS probes, * FROM recall;
 SET ivfflat.probes = 2;  SELECT 2  AS probes, * FROM recall;
 SET ivfflat.probes = 3;  SELECT 3  AS probes, * FROM recall;
 SET ivfflat.probes = 10; SELECT 10 AS probes, * FROM recall;
 RESET ivfflat.probes;`,
         note: 'probes = 1 misses neighbours that sit in an adjacent list (recall 0.6–0.7; k-means starts from a random sample, so it varies by build). Three probes bring it near 0.98. A starting point is **probes ≈ √lists** (10 here).' },
-      { label: 'Cost of more probes', sql: `SET ivfflat.probes = 1;
+      { label: 'Cost of more probes', sql: `${IVF_IDX}
+
+SET ivfflat.probes = 1;
 EXPLAIN (ANALYZE, BUFFERS, COSTS OFF) SELECT id FROM items ORDER BY embedding <-> ${Q1} LIMIT 10;
 SET ivfflat.probes = 10;
 EXPLAIN (ANALYZE, BUFFERS, COSTS OFF) SELECT id FROM items ORDER BY embedding <-> ${Q1} LIMIT 10;
 RESET ivfflat.probes;`,
         note: 'Each probe reads one more list. Compare `Buffers: shared hit` between the two plans: about 15 at probes = 1 and about 40 at probes = 10. Every probed list adds its rows to the distance computations, so the work grows with probes.' },
-      { label: 'probes = lists', sql: `SET ivfflat.probes = 100;
+      { label: 'probes = lists', sql: `${IVF_IDX}
+
+SET ivfflat.probes = 100;
 EXPLAIN (COSTS OFF) SELECT id FROM items ORDER BY embedding <-> ${Q1} LIMIT 10;
 SET ivfflat.probes = 50;
 EXPLAIN (COSTS OFF) SELECT id FROM items ORDER BY embedding <-> ${Q1} LIMIT 10;
 RESET ivfflat.probes;`,
         note: 'Probing every list would read the whole index, so the planner prefers an exact **Seq Scan + Sort**. At 50 probes it still uses the index.' },
-      { label: 'Built too early', sql: `CREATE TABLE early (id int PRIMARY KEY, embedding vector(32));
+      { label: 'Built too early', sql: `DROP TABLE IF EXISTS early;
+CREATE TABLE early (id int PRIMARY KEY, embedding vector(32));
 -- the index is created while only 4 of 40 topics exist
 INSERT INTO early SELECT id, embedding FROM items WHERE topic < 4;
 CREATE INDEX early_ivf ON early USING ivfflat (embedding vector_l2_ops) WITH (lists = 10);
@@ -242,7 +251,8 @@ SELECT 'after REINDEX' AS state, round(avg(hit) / 10.0, 3) AS recall_at_10
 FROM queries q, LATERAL (SELECT count(*) FILTER (WHERE id IN (SELECT id FROM truth t WHERE t.qid = q.qid)) AS hit
   FROM (SELECT id FROM early ORDER BY embedding <-> q.v LIMIT 10) a) x;`,
         note: 'Centroids trained on 4 topics cannot separate the other 36, so recall drops to about 0.6–0.7. `REINDEX` re-runs k-means on all rows and recall returns to about 0.99–1.0 (k-means starts from a random sample, so the exact figures vary by build).' },
-      { label: 'Empty table warning', sql: `CREATE TABLE fresh (id int, embedding vector(32));
+      { label: 'Empty table warning', sql: `DROP TABLE IF EXISTS fresh;
+CREATE TABLE fresh (id int, embedding vector(32));
 CREATE INDEX ON fresh USING ivfflat (embedding vector_l2_ops) WITH (lists = 100);
 
 DO $$ BEGIN
@@ -281,7 +291,7 @@ REINDEX INDEX CONCURRENTLY products_ivf;`,
     { title: 'probes left at 1',
       symptom: 'Recall is noticeably worse than with exact search, especially for queries near cluster borders.',
       cause: 'The default `ivfflat.probes` is 1: only the single nearest list is scanned.',
-      fix: 'Start at probes ≈ √lists and measure. Set it per query with `SET LOCAL`, or per database.',
+      fix: 'Start at probes ≈ √lists and measure. Set it per query with `SET LOCAL`, or per database. `ALTER DATABASE … SET` only works once pgvector is loaded in your session (run any vector query first); otherwise a non-superuser gets `permission denied to set parameter "ivfflat.probes"`.',
       sql: `ALTER DATABASE app SET ivfflat.probes = 10;` },
     { title: 'Expecting IVFFlat to track new data',
       symptom: 'Recall slowly degrades as the catalogue grows or shifts to new topics.',
@@ -292,7 +302,7 @@ REINDEX INDEX CONCURRENTLY products_ivf;`,
     'Build: k-means picks `lists` centroids (default 100); each row goes to its nearest list.',
     'Sizing: lists ≈ rows/1000 up to 1M rows, √rows above; probes ≈ √lists to start.',
     '`ivfflat.probes` (default 1) trades speed for recall; probes = lists makes the planner fall back to exact search.',
-    'Versus HNSW: faster, smaller build; worse speed/recall trade-off; needs data first; goes stale.',
+    'Versus [HNSW](/e1/hnsw): faster, smaller build; worse speed/recall trade-off; needs data first; goes stale.',
     'IVFFlat supports L2, inner product, cosine and Hamming, for `vector`, `halfvec` and `bit` (no `sparsevec`, no L1).',
   ],
   sources: ['indexes-types.html', 'sql-createindex.html', 'sql-reindex.html', 'runtime-config-resource.html', 'using-explain.html'],

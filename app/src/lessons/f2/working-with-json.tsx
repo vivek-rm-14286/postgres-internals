@@ -238,9 +238,9 @@ const TOUR: [string, string][] = [
 
 function cellOf(v: string | null, row: number) {
   if (v === null) return <span className="text-muted">NULL</span>
-  if (v.startsWith('!')) return <span style={{ color: tone('dead') }}>ERROR: {v.slice(1)}</span>
-  if (row === 7) return <span style={{ color: tone('ok') }}>{v} row{v === '1' ? '' : 's'}</span>
-  return <span style={{ color: tone('ok') }}>{v}</span>
+  if (v.startsWith('!')) return <span style={{ color: tone.text('dead') }}>ERROR: {v.slice(1)}</span>
+  if (row === 7) return <span style={{ color: tone.text('ok') }}>{v} row{v === '1' ? '' : 's'}</span>
+  return <span style={{ color: tone.text('ok') }}>{v}</span>
 }
 
 function PathView() {
@@ -343,7 +343,7 @@ function IndexView() {
                 className="flex items-center justify-between gap-2 rounded-md border px-2 py-1 text-left font-mono text-[11px]"
                 style={{ borderColor: k === i ? tone(x.t) : 'var(--line)', background: k === i ? toneBg(x.t, 14) : 'transparent' }}>
                 <span className="[overflow-wrap:anywhere]">{x.q}</span>
-                <span className="shrink-0 rounded px-1 font-sans text-[10px] font-semibold" style={{ color: tone(x.t) }}>{x.verdict}</span>
+                <span className="shrink-0 rounded px-1 font-sans text-[10px] font-semibold" style={{ color: tone.text(x.t) }}>{x.verdict}</span>
               </button>
             ))}
           </div>
@@ -460,6 +460,14 @@ SELECT jsonb_object_agg(name, city)        AS keeps_null_values,
        jsonb_object_agg_strict(name, city) AS drops_null_values
 FROM customers;`,
         note: 'Dara has no orders. Plain `jsonb_agg` gives `[null]`, `FILTER` gives SQL NULL, and `COALESCE(…, \'[]\')` gives an empty array. `jsonb_agg_strict` skips NULL values but not an object full of nulls. A NULL **key** in `jsonb_object_agg` is an error; a NULL value is kept unless you use the `_strict` form.' },
+      { label: 'Operators: reach into a document', sql: `SELECT id,
+       body -> 'items' -> 0 ->> 'sku' AS arrow,
+       body #>> '{items,0,sku}'       AS path_text,
+       body['items'][0]['sku']        AS subscript,
+       body @> '{"gift": true}'       AS contains,
+       body ? 'gift'                  AS has_key
+FROM inbox ORDER BY id;`,
+        note: '`->` returns jsonb, `->>` and `#>>` return text, and a subscript returns jsonb (`"mug"` keeps its quotes). `@>` tests containment and `?` tests for a top-level key. Row 2 has no items, so its first three columns are NULL.' },
       { label: 'SQL/JSON standard functions', sql: `SELECT JSON_OBJECT('order': o.id, 'status': o.status,
          'items': JSON_ARRAYAGG(JSON_OBJECT('sku': i.sku, 'qty': i.qty) ORDER BY i.sku RETURNING jsonb)
          RETURNING jsonb) AS doc
@@ -483,6 +491,14 @@ FROM inbox ORDER BY id;`,
       { label: 'Shred JSON into rows and load it', sql: `SELECT b.id AS inbox_id, x.*
 FROM inbox b, jsonb_to_recordset(b.body -> 'items') AS x(sku text, qty int, price numeric);
 
+SELECT b.id AS inbox_id, jt.*
+FROM inbox b,
+     JSON_TABLE(b.body, '$.items[*]' COLUMNS (
+       line_no FOR ORDINALITY,
+       sku   text    PATH '$.sku',
+       qty   int     PATH '$.qty' DEFAULT 1 ON EMPTY,
+       price numeric PATH '$.price')) AS jt;
+
 SELECT b.id AS inbox_id, e.n AS line_no, e.item ->> 'sku' AS sku, e.item
 FROM inbox b
 LEFT JOIN LATERAL jsonb_array_elements(b.body -> 'items') WITH ORDINALITY AS e(item, n) ON true
@@ -494,20 +510,21 @@ SELECT (b.body ->> 'order')::int, x.sku, COALESCE(x.qty, 1), x.price
 FROM inbox b, jsonb_to_recordset(b.body -> 'items') AS x(sku text, qty int, price numeric)
 WHERE b.id = 1;
 SELECT * FROM order_items WHERE order_id = 201 ORDER BY sku;`,
-        note: '`jsonb_to_recordset` maps each array element to a typed row: the string `"3"` becomes the integer 3 and a missing `qty` becomes NULL. `WITH ORDINALITY` numbers the elements from 1. The `LEFT JOIN LATERAL … ON true` keeps inbox row 2, whose array is empty.' },
+        note: '`jsonb_to_recordset` maps each array element to a typed row: the string `"3"` becomes the integer 3 and a missing `qty` becomes NULL. `JSON_TABLE` is the SQL-standard form: one path for the rows, one per column, and `DEFAULT … ON EMPTY` for missing keys. `WITH ORDINALITY` numbers the elements from 1. The `LEFT JOIN LATERAL … ON true` keeps inbox row 2, whose array is empty.' },
       { label: 'Update toolkit', sql: `SELECT d || '{"status": "paid"}'                        AS add_or_replace_key,
        d - 'gift'                                       AS remove_key,
        d #- '{items,0}'                                 AS remove_at_path,
        jsonb_insert(d, '{items,0}', '"gift-wrap"')       AS insert_before_first,
        jsonb_insert(d, '{items,-1}', '"card"', true)     AS insert_after_last,
        jsonb_set(d, '{meta,source}', '"web"')            AS set_missing_parent,
-       jsonb_set(d, '{meta}', COALESCE(d -> 'meta', '{}') || '{"source": "web"}') AS set_parent_first
+       jsonb_set(d, '{meta}', COALESCE(d -> 'meta', '{}') || '{"source": "web"}') AS set_parent_first,
+       jsonb_set(d, '{order}', NULL)                     AS null_wipes_document
 FROM (SELECT '{"order": 202, "gift": true, "items": ["mug", "tea"]}'::jsonb AS d) s;
 
 UPDATE inbox SET body = (body || '{"status": "received"}') - 'gift'
 WHERE id = 2
 RETURNING body;`,
-        note: '`||` adds or replaces top-level keys, `-` removes a key, `#-` removes whatever sits at a path. `jsonb_insert` inserts into arrays (and refuses to overwrite an existing object key). `jsonb_set` with a missing **parent** returns the document unchanged, with no error. Mind the parentheses: `-` binds tighter than `||`.' },
+        note: '`||` adds or replaces top-level keys, `-` removes a key, `#-` removes whatever sits at a path. `jsonb_insert` inserts into arrays (and refuses to overwrite an existing object key). `jsonb_set` with a missing **parent** returns the document unchanged, with no error. A SQL NULL as the new value makes the whole result NULL; pass `\'null\'::jsonb` or use `jsonb_set_lax`. Mind the parentheses: `-` binds tighter than `||`.' },
       { label: 'Validate documents', sql: `SELECT v,
        v IS JSON                   AS is_json,
        v IS JSON OBJECT            AS is_object,
@@ -563,7 +580,7 @@ CREATE INDEX products_brand ON products (brand);
 ANALYZE products;
 EXPLAIN SELECT id FROM products WHERE attrs ->> 'brand' = 'brand007';
 EXPLAIN SELECT id FROM products WHERE brand = 'brand007';`,
-        note: 'Containment and `?` use the GIN indexes; `->>` equality, the numeric range and top-N need the B-tree expression indexes; the jsonpath range stays a Seq Scan. In the last two plans compare the `rows=` estimate: a guess of 100 for `->>` against 50 (the true count) for the promoted column.' },
+        note: 'A GIN index is built with an operator class (opclass) that decides which operators it serves. Containment and `?` use the GIN indexes; `->>` equality, the numeric range and top-N need the B-tree expression indexes; the jsonpath range stays a Seq Scan. In the last two plans compare the `rows=` estimate: a guess of 100 for `->>` against 50 (the true count) for the promoted column.' },
     ],
   },
   production: {
@@ -611,7 +628,7 @@ FROM customers c LEFT JOIN orders o ON o.customer_id = c.id GROUP BY c.id, c.nam
     'Query: `JSON_VALUE` for one scalar (`RETURNING` a type), `JSON_QUERY` for objects, arrays or several items (`WITH WRAPPER`), `JSON_EXISTS` for a yes/no. `JSON_VALUE` and `JSON_QUERY` return NULL on error and `JSON_EXISTS` returns false, unless told otherwise.',
     'Shred with `jsonb_to_recordset` or `jsonb_array_elements … WITH ORDINALITY`; update with `||`, `-`, `#-`, `jsonb_insert`, `jsonb_set`; validate with `IS JSON` and CHECK constraints.',
     'Index guide: GIN for `@>`, `?` and jsonpath equality; B-tree on the expression for `->>`, ranges and sorting; a stored generated column for keys you filter, join or group on all the time.',
-    'Going deeper: [JSON vs JSONB](/m2/json-jsonb) shows how jsonb is stored and the `jsonb_set` NULL trap, and [GIN indexes](/m4/gin) shows what the GIN opclasses actually store.',
+    'Going deeper: [JSON vs JSONB](/m2/json-jsonb) shows how jsonb is stored and the `jsonb_set` NULL trap, and [GIN indexes](/m4/gin) shows what the GIN opclasses actually store. Background: [Joins, visualized](/m3/joins), [LATERAL joins](/m3/lateral), [Indexes for beginners](/f3/indexes-101), [Reading EXPLAIN](/m4/explain-analyze).',
   ],
   sources: ['functions-json.html', 'functions-aggregate.html', 'datatype-json.html', 'sql-expressions.html', 'ddl-generated-columns.html', 'ddl-constraints.html', 'indexes-expressional.html', 'gin-builtin-opclasses.html'],
 }

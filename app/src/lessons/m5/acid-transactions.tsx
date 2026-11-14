@@ -52,7 +52,7 @@ const base: Step<AcidState>[] = [
       versions: [{ ...A1, xmax: '755', status: 'dead', note: 'deleted by 755' }, { ...B1, xmax: '756', status: 'live', note: 'xmax aborted → still live' }, { id: 'a2', ctid: '(0,3)', label: 'alice 90', xmin: '755', xmax: '0', status: 'new', note: 'cmin 0' }, { id: 'b2', ctid: '(0,4)', label: 'bob 60', xmin: '756', xmax: '0', status: 'dead', note: 'xmin aborted → never visible' }] } },
 ]
 
-const commitStep: Step<AcidState> = { title: 'COMMIT: one 2-bit flip makes it durable', body: '**Atomicity** is one status change: 755 becomes **committed** in `pg_xact` (after the commit WAL record is flushed). Every row stamped 755 becomes visible to new snapshots at once. All locks are released.',
+const commitStep: Step<AcidState> = { title: 'COMMIT: one 2-bit flip makes it atomic', body: '**Atomicity** is one status change: 755 becomes **committed** in `pg_xact` (after the commit WAL record is flushed). Every row stamped 755 becomes visible to new snapshots at once. All locks are released.',
   state: { sql: 'COMMIT;', vxid: null, xid: null, subxid: null, cid: '—', clog: [['754', 'committed'], ['755', 'committed'], ['756', 'aborted']], locks: [],
     versions: [{ ...A1, xmax: '755', status: 'dead', note: 'dead: deleter committed' }, { ...B1, xmax: '756', status: 'live' }, { id: 'a2', ctid: '(0,3)', label: 'alice 90', xmin: '755', xmax: '0', status: 'live' }, { id: 'b2', ctid: '(0,4)', label: 'bob 60', xmin: '756', xmax: '0', status: 'dead', note: 'garbage for VACUUM' }] } }
 const crashStep: Step<AcidState> = { title: 'Crash before COMMIT', body: 'No commit record reached the WAL, so 755 is never marked committed: its bits stay `00`. After restart no backend owns 755, so readers treat it as **aborted**: alice is 100 again, with no undo work at all.',
@@ -76,7 +76,7 @@ function ClogStrip({ clog }: { clog: AcidState['clog'] }) {
         <motion.div key={x} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
           className="min-w-[92px] rounded-md border px-2 py-1 font-mono text-[11.5px]" style={{ borderColor: tone(clogTone[st]), background: toneBg(clogTone[st], 16) }}>
           <div className="font-semibold">xid {x}</div>
-          <motion.div key={st} initial={{ opacity: 0.2 }} animate={{ opacity: 1 }} className="text-[11px]" style={{ color: tone(clogTone[st]) }}>{clogBits[st]} {st === 'orphaned' ? 'never committed = aborted' : st}</motion.div>
+          <motion.div key={st} initial={{ opacity: 0.2 }} animate={{ opacity: 1 }} className="text-[11px]" style={{ color: tone.text(clogTone[st]) }}>{clogBits[st]} {st === 'orphaned' ? 'never committed = aborted' : st}</motion.div>
         </motion.div>
       ))}
     </div>
@@ -191,11 +191,9 @@ SELECT * FROM acct ORDER BY id;
 SELECT try_sql('CALL transfer(1, 2, -500)') AS negative_amount;
 SELECT * FROM acct ORDER BY id;
 
--- the same CALL inside an open transaction block
-BEGIN;
-SELECT try_sql('CALL transfer(2, 1, 5)') AS call_inside_block;
-ROLLBACK;`,
-        note: 'The first CALL commits inside the procedure: alice **70**, bob **80**. The negative transfer fails on the credit (**23514**) and alice\'s debit vanishes with it. Inside a transaction block the procedure may not COMMIT, so CALL fails with **2D000** `invalid transaction termination`.' },
+-- the same CALL reached through a function: it is no longer the top-level statement
+SELECT try_sql('CALL transfer(2, 1, 5)') AS call_inside_function;`,
+        note: 'The first CALL commits inside the procedure: alice **70**, bob **80**. The negative transfer fails on the credit (**23514**) and alice\'s debit vanishes with it. A procedure may COMMIT only when CALL is the top-level statement of its own transaction: reached through a function (as `try_sql` does here) or inside an explicit `BEGIN` block, it fails with **2D000** `invalid transaction termination`.' },
       { label: 'Transactional DDL', sql: `SELECT try_sql($m$
   ALTER TABLE acct ADD COLUMN email text;
   ALTER TABLE acct ADD COLUMN phone text;
@@ -206,11 +204,16 @@ SELECT count(*) AS new_columns
 FROM pg_attribute
 WHERE attrelid = 'acct'::regclass AND attname IN ('email', 'phone', 'postal_code');`,
         note: 'The third ALTER fails (**23502**: existing rows have no postal code), and the first two columns are rolled back with it: `new_columns = 0`. Schema changes are ordinary transactional writes to the catalogs.' },
-      { label: 'Read the commit log', sql: `SELECT lp, t_ctid, t_xmin, t_xmax,
+      { label: 'Read the commit log', sql: `BEGIN;
+UPDATE acct SET balance = balance - 1 WHERE id = 1;
+INSERT INTO acct VALUES (9, 'ghost', 1);
+ROLLBACK;
+
+SELECT lp, t_ctid, t_xmin, t_xmax,
        pg_xact_status(t_xmin::text::xid8) AS xmin_status,
        CASE WHEN t_xmax::text <> '0' THEN pg_xact_status(t_xmax::text::xid8) END AS xmax_status
 FROM heap_page_items(get_raw_page('acct', 0));`,
-        note: 'Every version ever written is still on the page. `pg_xact_status` reads `pg_xact`: versions whose xmin is **aborted** are invisible forever, and an aborted xmax deletes nothing.' },
+        note: 'The rolled-back transaction left its work on the page: every version ever written is still there. `pg_xact_status` reads `pg_xact`: versions whose xmin is **aborted** are invisible forever, and an aborted xmax deletes nothing.' },
       { label: 'Sequences ignore ROLLBACK', sql: `BEGIN;
 SELECT nextval('invoice_no') AS a, nextval('invoice_no') AS b;
 ROLLBACK;
@@ -232,7 +235,7 @@ END $$;
 SELECT pg_current_xact_id() AS after_loop;
 UPDATE ledger SET n = n + 1;
 SELECT pg_current_xact_id() AS after_set_based;`,
-        note: 'Each `BEGIN … EXCEPTION` block is a subtransaction, and each one that writes burns a **subxid**: the 500-row loop advances the counter by about 500. The set-based UPDATE uses one xid.' },
+        note: 'Each `BEGIN … EXCEPTION` block is a subtransaction, and each one that writes burns a **subxid**: the 500-row loop advances the counter by about 500. The set-based UPDATE uses one xid. Each `pg_current_xact_id()` probe also takes one.' },
       { label: 'Implicit transactions & 2PC', sql: `SELECT pg_current_xact_id_if_assigned() AS read_only;
 SELECT txid_current() AS stmt_1;
 SELECT txid_current() AS stmt_2;
@@ -252,12 +255,12 @@ SELECT id, 'no billing address' FROM accounts WHERE billing_address IS NULL;
 
 UPDATE accounts SET balance = balance - fee
 WHERE due_date < current_date AND billing_address IS NOT NULL;`,
-    outcome: 'On 500 rows the per-row exception loop advances the xid counter by **502**, the set-based UPDATE by **1**. The subxid cache can no longer overflow, and xid consumption drops by the row count.',
+    outcome: 'On 500 rows the per-row exception loop consumes **501** xids (one for the transaction, one subxid per row), the set-based UPDATE **1**. The subxid cache can no longer overflow, and xid consumption drops by the row count.',
   },
   pitfalls: [
     { title: 'Idle in transaction',
       symptom: '`pg_stat_activity` shows sessions in state `idle in transaction` for minutes; table bloat grows and DDL queues behind them.',
-      cause: 'An open transaction keeps its locks until it ends and holds back the xmin horizon, so VACUUM cannot remove rows that died after it started. Drivers with autocommit off send BEGIN before the first statement, so one SELECT on a pooled connection that never commits is enough.',
+      cause: 'An open transaction keeps its locks until it ends and holds back the xmin horizon, so VACUUM cannot remove rows that died after it started. Drivers with autocommit off send BEGIN before the first statement, so one SELECT on a pooled connection that never commits is enough. See [Snapshots and tuple visibility](/m5/snapshots-visibility) for the xmin horizon and [Heavyweight locks](/m5/table-locks) for the DDL queue.',
       fix: 'Commit or roll back after every unit of work (reads included), and set a server-side guard.',
       sql: `ALTER ROLE app SET idle_in_transaction_session_timeout = '30s';` },
     { title: 'Subtransaction overflow',

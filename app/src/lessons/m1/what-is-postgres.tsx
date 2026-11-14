@@ -23,10 +23,11 @@ interface Msg { dir: 'F' | 'B'; type: string | null; name: string; fields: Field
 
 const f = (label: string, bytes: number[], value: string): Field => ({ label, bytes, value })
 const SQL = 'SELECT city, temp_lo FROM weather WHERE temp_lo < 45;'
-const NONCE = 'fyko+d2lbbFgONRv9qkxdawL'
+const NONCE = 'rOprNGfwEbeRWgbNEkqO'
+const SNONCE = '%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0'
 const CF = `n,,n=,r=${NONCE}`
-const SF = `r=${NONCE}3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096`
-const CFIN = `c=biws,r=${NONCE}3rfcNHYJY1ZVvWVs7j,p=dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ=`
+const SF = `r=${NONCE}${SNONCE},s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096`
+const CFIN = `c=biws,r=${NONCE}${SNONCE},p=dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ=`
 const SFIN = 'v=6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4='
 const PARAMS: [string, string][] = [
   ['application_name', 'psql'], ['client_encoding', 'UTF8'], ['DateStyle', 'ISO, MDY'], ['default_transaction_read_only', 'off'],
@@ -48,7 +49,7 @@ const MSGS: Msg[] = [
       f('application_name', [...cstr('application_name'), ...cstr('psql')], 'psql'), f('client_encoding', [...cstr('client_encoding'), ...cstr('UTF8')], 'UTF8'), f('terminator', [0], '\\0')] },
   { dir: 'B', type: 'R', name: 'AuthenticationSASL', note: 'pg_hba.conf chose scram-sha-256, so the server lists the SASL mechanisms it accepts.',
     fields: [f('auth code', i32(10), '10 = SASL'), f('mechanism', cstr('SCRAM-SHA-256'), 'SCRAM-SHA-256'), f('list end', [0], '\\0')] },
-  { dir: 'F', type: 'p', name: 'SASLInitialResponse', note: 'Client nonce. The password itself never crosses the wire. (SCRAM values are the RFC 7677 example.)',
+  { dir: 'F', type: 'p', name: 'SASLInitialResponse', note: 'Client nonce. The password itself never crosses the wire. (Nonce, salt and proofs are the RFC 7677 test vector.)',
     fields: [f('mechanism', cstr('SCRAM-SHA-256'), 'SCRAM-SHA-256'), f('data length', i32(CF.length), String(CF.length)), f('client-first', raw(CF), CF)] },
   { dir: 'B', type: 'R', name: 'AuthenticationSASLContinue', note: 'Server nonce, salt and iteration count (scram_iterations = 4096).',
     fields: [f('auth code', i32(11), '11 = SASL continue'), f('server-first', raw(SF), SF)] },
@@ -245,11 +246,11 @@ function WireLog({ shown, sel, onSel }: { shown: number; sel: number; onSel: (i:
         <tbody>
           <AnimatePresence initial={false}>
             {items.map((it) => (
-              <motion.tr key={it.i} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} onClick={() => onSel(it.i)}
+              <motion.tr key={it.i} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} onClick={() => onSel(it.count > 1 && sel >= it.i && sel < it.i + it.count - 1 ? sel + 1 : it.i)}
                 className="cursor-pointer border-t border-line" style={sel === it.i || (it.count > 1 && sel > it.i && sel < it.i + it.count) ? { background: toneBg('new', 16) } : undefined}>
                 <td className="px-2 py-0.5" style={{ color: it.dir === 'F' ? tone('accent') : tone('tuple') }}>{it.dir === 'F' ? 'C→S' : 'S→C'}</td>
                 <td className="px-2 py-0.5 font-bold">{it.type}</td>
-                <td className="px-2 py-0.5">{it.label}{it.count > 1 ? ` × ${it.count}` : ''}</td>
+                <td className="px-2 py-0.5">{it.label}{it.count > 1 ? ` × ${it.count} (click to cycle)` : ''}</td>
                 <td className="px-2 py-0.5 text-right tabular-nums">{it.len}</td>
               </motion.tr>
             ))}
@@ -378,7 +379,7 @@ ORDER BY name;`,
   production: {
     title: 'The migration that ran against the wrong database',
     context: 'A team runs schema migrations from CI with a connection string built from environment variables. Staging and production share one cluster with two databases.',
-    problem: 'A migration created its tables in database `postgres` instead of `app_staging`. The connection string had no database name, and libpq defaults the database to the user name. A later run then failed with `relation does not exist` in the right database.',
+    problem: 'A migration created its tables in database `postgres` instead of `app_staging`. The connection string had no database name, and libpq defaults the database to the user name: the CI job connected as `postgres`, so it landed in database `postgres`. A later run then failed with `relation does not exist` in the right database.',
     solution: 'Make every migration assert where it is before it changes anything. A connection names exactly one database, and there are no cross-database queries, so check `current_database()` and fail fast. Also set `application_name` so the session is easy to spot in `pg_stat_activity`.',
     sql: `-- first statement of every migration
 DO $$
@@ -398,7 +399,7 @@ SET application_name = 'migrate-2024-06-01';`,
     { title: 'Leaving trust authentication after initdb',
       symptom: 'Any local OS user can connect as the superuser without a password.',
       cause: 'A fresh cluster can allow `trust` for local connections. `pg_hba.conf` uses the first matching line, so a broad `trust` line at the top wins.',
-      fix: 'Initialize with `initdb -A scram-sha-256 -W`, or edit `pg_hba.conf` before the first start and reload. Check the result in `pg_hba_file_rules`.',
+      fix: 'Initialize with `initdb -A scram-sha-256 -W`, or edit `pg_hba.conf` before the first start (on a running server, edit and reload). Check the result in `pg_hba_file_rules`.',
       sql: `SELECT rule_number, type, database, user_name, address, auth_method
 FROM pg_hba_file_rules ORDER BY rule_number;` },
     { title: 'Remote clients cannot connect',

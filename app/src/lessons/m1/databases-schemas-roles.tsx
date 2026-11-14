@@ -82,7 +82,7 @@ function PathMode() {
       </div>
       <div className="flex flex-wrap items-center gap-2 font-mono text-[12px]">
         <span className="rounded border border-line bg-bg px-2 py-1">SET search_path = {PATHS[pi][0]};</span>
-        <span className="rounded border border-line bg-bg px-2 py-1">SELECT … FROM <b style={{ color: tone('accent') }}>{name}</b></span>
+        <span className="rounded border border-line bg-bg px-2 py-1">SELECT … FROM <b style={{ color: tone.text('accent') }}>{name}</b></span>
       </div>
       <div className="grid gap-2 md:grid-cols-5">
         {SCHEMAS.map((sc) => {
@@ -93,7 +93,7 @@ function PathMode() {
             <motion.div key={sc.name} layout className="rounded-lg border p-2" style={{ borderColor: v ? tone(t) : 'var(--border)', background: v ? toneBg(t, v.hit ? 20 : 8) : 'transparent', opacity: v ? 1 : 0.45 }}>
               <div className="flex items-center justify-between font-mono text-[12px] font-bold">
                 <span>{sc.name}</span>
-                {order >= 0 && <motion.span key={key} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: order * 0.25 }} className="rounded-full px-1.5 text-[11px] text-white" style={{ background: tone(t) }}>{order + 1}</motion.span>}
+                {order >= 0 && <motion.span key={key} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: order * 0.25 }} className="rounded-full px-1.5 text-[11px] text-on-accent" style={{ background: tone(t) }}>{order + 1}</motion.span>}
               </div>
               <p className="text-[11px] text-muted">owner {sc.owner}{sc.implicit ? ' · implicit' : ''}</p>
               <ul className="mt-1 space-y-0.5 font-mono text-[11.5px]">
@@ -383,7 +383,7 @@ SELECT d.datname, s.setconfig AS session_defaults
 FROM pg_db_role_setting s JOIN pg_database d ON d.oid = s.setdatabase;
 
 DROP DATABASE shop;`,
-        note: '`CREATE DATABASE` is a file-level copy of `template1` unless told otherwise; `template0` stays pristine and refuses connections. `ALTER DATABASE … SET` stores a default that every **new** session in `shop` picks up. A connection cannot see into `shop` from here.' },
+        note: '`CREATE DATABASE` physically copies `template1` unless told otherwise (block by block through WAL by default since 15; `STRATEGY = file_copy` copies the directories instead); `template0` stays pristine and refuses connections. `ALTER DATABASE … SET` stores a default that every **new** session in `shop` picks up. A connection cannot see into `shop` from here.' },
       { label: 'search_path as alice', sql: `SET ROLE alice;
 SELECT current_user, current_schemas(true) AS effective_path, current_schema() AS creates_in;
 
@@ -411,7 +411,8 @@ RESET ROLE;
 CREATE TEMP TABLE orders (id int);
 SELECT current_schemas(true) AS effective_path,
        (SELECT count(*) FROM orders) AS rows_seen, (SELECT count(*) FROM sales.orders) AS rows_in_sales;
-DROP TABLE pg_temp.orders;`,
+DROP TABLE pg_temp.orders;
+SET search_path = "$user", public;   -- back to the default for the other presets`,
         note: 'alice has no USAGE on `sales`, so it is **silently dropped** from her path and `orders` means `public.orders` (2 rows). bob inherits USAGE from `sales_team` and gets `sales.orders` (5 rows). The temp schema is searched first for relations, so `orders` then hits the empty temp table.' },
       { label: 'The permission ladder: schema, table, sequence', sql: `SET ROLE simon;
 SELECT public.try('SELECT count(*) FROM accounting.invoices') AS step_1;
@@ -496,15 +497,15 @@ WHERE nspname IN ('public', 'sales', 'alice', 'accounting');`,
     title: 'A read-only reporting role that stays read-only',
     context: 'An analytics team needs to query a shared production database. Today they log in as the application role, which can write everything.',
     problem: 'One mistaken `UPDATE` from a notebook changed live data. The application role also owns the tables, so per-table GRANTs drifted every time a migration created a new table.',
-    solution: 'Create a NOLOGIN group with `pg_read_all_data`, give each analyst a LOGIN role that inherits it, pin their search_path, and route them through a dedicated `pg_hba.conf` line that requires SSL.',
+    solution: 'Create a NOLOGIN group with `pg_read_all_data`, give each analyst a LOGIN role that inherits it, pin their search_path, and route them through a dedicated `pg_hba.conf` line that requires SSL. `default_transaction_read_only` is a guard rail the user can switch off; the real protection is that `analysts` holds no write privilege.',
     sql: `CREATE ROLE analysts NOLOGIN;
 GRANT pg_read_all_data TO analysts;
-CREATE ROLE dana LOGIN PASSWORD 'change-me' IN ROLE analysts;
+CREATE ROLE dana LOGIN IN ROLE analysts;   -- then in psql: \\password dana
 ALTER ROLE dana SET search_path = sales, public;
 ALTER ROLE dana SET default_transaction_read_only = on;
 -- pg_hba.conf, above any broader host line:
 -- hostssl  all  +analysts  10.0.0.0/8  scram-sha-256`,
-    outcome: 'New tables are readable without any GRANT, writes fail with SQLSTATE 25006 (read-only transaction) or 42501, and the reload-time `pg_hba_file_rules` check showed the `+analysts` line matched before the catch-all reject.',
+    outcome: 'New tables are readable without any GRANT, writes fail with SQLSTATE 25006 (read-only transaction) or 42501, and `pg_hba_file_rules` showed the `+analysts` line parsed without error and sitting above the catch-all reject.',
   },
   pitfalls: [
     { title: 'CREATE on public in an upgraded database',
@@ -515,7 +516,7 @@ ALTER ROLE dana SET default_transaction_read_only = on;
     { title: 'search_path in SECURITY DEFINER functions',
       symptom: 'A privileged function runs a different `lower()` or table than intended when called by an untrusted user.',
       cause: 'The function resolves unqualified names with the caller\'s `search_path`, which the caller controls. Any schema in that path with CREATE for others can shadow names.',
-      fix: 'Pin the path on the function and schema-qualify names: `ALTER FUNCTION f() SET search_path = pg_catalog, app;`.' },
+      fix: 'Pin the path on the function, with `pg_temp` **last** so a temp table cannot shadow a real one, and schema-qualify names: `ALTER FUNCTION f() SET search_path = pg_catalog, app, pg_temp;`.' },
     { title: 'pg_hba.conf lines in the wrong order',
       symptom: 'A new `hostssl … scram-sha-256` line has no effect, or a broad line lets clients in without a password.',
       cause: 'Lines are tested top to bottom and the **first** match wins, with no fall-through on failure. A broad line above a narrow one hides it. A common belief is that hba edits need a server restart; a reload re-reads the file, and a restart just adds downtime.',
@@ -537,10 +538,10 @@ ALTER ROLE dana SET default_transaction_read_only = on;
   ],
   pointers: [
     'Cluster → **databases** (isolated, one per connection) → **schemas** (namespaces) → objects. **Roles** are cluster-wide.',
-    '`CREATE DATABASE` is a file copy of **template1** (no other session may be connected to the source); use **template0** for a new encoding or locale.',
+    '`CREATE DATABASE` is a physical copy of **template1** (`WAL_LOG` strategy by default; no other session may be connected to the source); use **template0** for a new encoding or locale.',
     '`search_path` default `"$user", public`. `pg_temp` (relations only) and `pg_catalog` are searched implicitly first; schemas without USAGE are **silently skipped**.',
     'Since 15, PUBLIC has **no CREATE on public**. Membership has **INHERIT**, **SET** and **ADMIN** options; LOGIN, SUPERUSER, CREATEDB, CREATEROLE are never inherited.',
-    '`pg_hba.conf`: **first matching line wins**, no fall-through, no match = rejected; a reload applies edits. Gates for a query: CONNECT on the database, **USAGE** on the schema, then the object privilege.',
+    '`pg_hba.conf`: **first matching line wins**, no fall-through, no match = rejected; a reload applies edits. Gates for a query: CONNECT on the database, **USAGE** on the schema, then the object privilege; per-row rules come from [row-level security](/m6/row-level-security).',
   ],
   sources: ['manage-ag-templatedbs.html', 'manage-ag-createdb.html', 'ddl-schemas.html', 'ddl-priv.html', 'runtime-config-client.html', 'database-roles.html', 'role-membership.html', 'predefined-roles.html', 'auth-pg-hba-conf.html', 'view-pg-hba-file-rules.html'],
 }

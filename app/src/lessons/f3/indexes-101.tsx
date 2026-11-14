@@ -52,8 +52,8 @@ const steps: Step<S>[] = [
     state: { sql: "SELECT * FROM customers WHERE lower(email) = 'user4242@example.com';", plan: 'Seq Scan', cost: '2435.00', rows: '1', removed: '99,999', pages: '935', lit: 'all', sweep: true, tree: 'none' } },
   { title: 'Two columns: order matters', body: 'An index on `(country, city)` is sorted like a phone book: by country first, then city. **country + city** is one short stretch of entries. With **city alone**, PostgreSQL cannot know which countries hold that city, so it has to look inside every country\'s stretch, and the index is much less useful.',
     state: { sql: 'CREATE INDEX ON customers (country, city);', plan: 'Bitmap Heap Scan', cost: '≈ 112', rows: '250', removed: '0', pages: '252 (2 index + 250 table)', lit: 'none', tree: 'none', multi: 'both' } },
-  { title: 'Every index costs writes', body: 'Each INSERT, and each UPDATE that changes an indexed column, must also update **every index**. Loading 50,000 rows took about **3×** as long with four extra indexes, and the indexes grew to 1.5× the size of the table.',
-    state: { sql: 'INSERT INTO … SELECT … FROM generate_series(1, 50000);', plan: '—', cost: '—', rows: '50,000 inserted', removed: '—', pages: '—', lit: 'none', tree: 'none', write: true } },
+  { title: 'Every index costs writes', body: 'Each INSERT, and each UPDATE that changes an indexed column, must also update **every index**. Loading the same 100,000 rows took about **3×** as long with four extra indexes, and the indexes grew to 1.5× the size of the table.',
+    state: { sql: 'INSERT INTO … SELECT … FROM generate_series(1, 100000);', plan: '—', cost: '—', rows: '100,000 inserted', removed: '—', pages: '—', lit: 'none', tree: 'none', write: true } },
 ]
 
 /* ---------- drawings ---------- */
@@ -163,7 +163,7 @@ function WriteBars() {
 function render(s: S, i: number) {
   return (
     <div className="grid gap-3">
-      <p className="rounded-md bg-surface-2 px-3 py-1.5 font-mono text-[12px] break-words" style={{ color: tone('accent') }}>{s.sql}</p>
+      <p className="rounded-md bg-surface-2 px-3 py-1.5 font-mono text-[12px] break-words" style={{ color: tone.text('accent') }}>{s.sql}</p>
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
         <Stat label="Plan" value={s.plan} t={s.plan === 'Seq Scan' ? 'tuple' : s.plan === '—' ? undefined : 'accent'} />
         <Stat label="Est. cost" value={s.cost} />
@@ -182,7 +182,7 @@ function render(s: S, i: number) {
           {s.tree !== 'none' && <div className="rounded-lg border border-line bg-bg p-2"><MiniTree mode={s.tree} /></div>}
         </div>
       )}
-      <Legend items={s.write ? [['header', 'size of all indexes'], ['dead', 'time to insert 50,000 rows']]
+      <Legend items={s.write ? [['header', 'size of all indexes'], ['dead', 'time to insert 100,000 rows']]
         : s.multi ? [['header', 'index entries for one country, sorted by city'], ['new', 'where the index is searched for city-8']]
         : [['muted', 'table page'], ['tuple', 'page read by a scan'], ['new', 'page holding a matching row'], ['accent', 'index pages visited']]} />
     </div>
@@ -260,6 +260,12 @@ FROM pg_class
 WHERE relname LIKE 'customers%' AND relkind IN ('r', 'i')
 ORDER BY pg_relation_size(oid) DESC;`,
         note: 'The five indexes together are bigger than the table itself. Every one of them must be updated on each INSERT, so add indexes for the queries you actually run.' },
+      { label: '7. Where is an index missing?', sql: `SELECT pg_stat_force_next_flush();
+
+SELECT relname AS table_name, seq_scan, seq_tup_read, idx_scan
+FROM pg_stat_user_tables
+ORDER BY seq_tup_read DESC;`,
+        note: '`seq_scan` counts full reads of the table and `seq_tup_read` the rows those reads went through. A large table where both keep climbing is being read end to end again and again: find the query and check whether an index would serve it.' },
     ],
   },
   production: {
@@ -286,7 +292,7 @@ FROM pg_stat_user_indexes ORDER BY idx_scan, pg_relation_size(indexrelid) DESC;`
     { title: 'A function or cast on the indexed column',
       symptom: '`WHERE lower(email) = …` or `WHERE created_at::date = …` does a Seq Scan even though the column is indexed.',
       cause: 'A plain index stores the raw column value. An expression of that column is a different value the index does not contain.',
-      fix: 'Rewrite the condition to leave the column bare (`created_at >= $1 AND created_at < $1 + 1`) or create an index on the exact expression.' },
+      fix: 'Rewrite the condition to leave the column bare (`created_at >= $1::date AND created_at < $1::date + 1`) or create an index on the exact expression.' },
     { title: 'Expecting the index to always be used',
       symptom: 'You added an index and EXPLAIN still shows a Seq Scan.',
       cause: 'When a query matches a large share of the table, or the table is tiny, reading it straight through is cheaper. The planner chooses by estimated cost.',

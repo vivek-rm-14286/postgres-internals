@@ -78,7 +78,7 @@ export function Stats({ items }: { items: [string, ReactNode, Tone?][] }) {
       {items.map(([k, v, t]) => (
         <div key={k} className="rounded-lg border border-line bg-surface-2 px-3 py-2">
           <p className="text-[11px] tracking-wide text-muted uppercase">{k}</p>
-          <motion.p key={String(v)} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className="font-mono text-lg font-bold" style={t ? { color: tone(t) } : undefined}>{v}</motion.p>
+          <motion.p key={String(v)} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className="font-mono text-lg font-bold" style={t ? { color: tone.text(t) } : undefined}>{v}</motion.p>
         </div>
       ))}
     </div>
@@ -89,7 +89,7 @@ export function Btn({ children, onClick, primary, testid, disabled, active }: { 
   return (
     <button type="button" onClick={onClick} data-testid={testid} disabled={disabled}
       className={primary
-        ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40'
+        ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-40'
         : `rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-40 ${active ? 'border-accent text-accent' : 'border-line hover:border-accent'}`}>
       {children}
     </button>

@@ -102,8 +102,8 @@ function ProcessViz() {
       })
     } else if (mode === 'fast') {
       setS((x) => addLog({ ...x, phase: 'smart', backends: x.backends.map((b) => ({ ...b, state: 'dying' })) }, 'header',
-        'LOG:  received fast shutdown request (SIGINT)', 'LOG:  aborting any active transactions',
-        ...x.backends.map((b) => `FATAL:  terminating connection due to administrator command (PID ${b.pid})`)))
+        'LOG:  received fast shutdown request', 'LOG:  aborting any active transactions',
+        ...x.backends.map(() => 'FATAL:  terminating connection due to administrator command')))
       later(700, (y) => finishShutdown({ ...y, backends: [] }, true))
     } else {
       setS((x) => ({ ...x, crashed: true, backends: x.backends.map((b) => ({ ...b, state: 'dying' })) }))
@@ -223,7 +223,7 @@ function ProcessViz() {
               {s.backends.filter((b) => b.state !== 'dying').map((b) => (
                 <tr key={b.pid} className="border-b border-line" style={selected?.pid === b.pid ? { background: toneBg('new', 14) } : undefined} onClick={() => setSel(b.pid)}>
                   <td className="px-2 py-0.5">{b.pid}</td><td className="px-2">client backend</td><td className="px-2">{b.user}</td>
-                  <td className="px-2" style={{ color: tone(stTone(b)) }}>{b.state === 'starting' ? 'starting' : b.state}</td>
+                  <td className="px-2" style={{ color: tone.text(stTone(b)) }}>{b.state === 'starting' ? 'starting' : b.state}</td>
                   <td className="max-w-[220px] truncate px-2 text-muted">{b.query}</td>
                 </tr>
               ))}
@@ -245,7 +245,7 @@ function ProcessViz() {
           </AnimatePresence>
         </div>
       </div>
-      <p className="text-xs text-muted">Click a backend to select it. Demo limits are tiny; the real defaults are <code className="inline-code">max_connections = 100</code> and <code className="inline-code">superuser_reserved_connections = 3</code>. Log lines use the server&apos;s own message wording.</p>
+      <p className="text-xs text-muted">Click a backend to select it. Demo limits are tiny; the real defaults are <code className="inline-code">max_connections = 100</code> and <code className="inline-code">superuser_reserved_connections = 3</code>. <code className="inline-code">LOG:</code> and <code className="inline-code">FATAL:</code> lines use the server&apos;s message wording; the grey lines are commentary.</p>
     </div>
   )
 }
@@ -290,9 +290,10 @@ SELECT pid, state, xact_start IS NOT NULL AS in_xact, backend_xid
 FROM pg_stat_activity WHERE pid = pg_backend_pid();
 
 SELECT locktype, relation::regclass, mode, granted
-FROM pg_locks WHERE pid = pg_backend_pid() AND locktype IN ('relation', 'transactionid');
+FROM pg_locks WHERE pid = pg_backend_pid()
+  AND (locktype = 'transactionid' OR relation IN ('accounts'::regclass, 'accounts_pkey'::regclass));
 COMMIT;`,
-        note: 'Between statements the session is **idle in transaction**: it holds an xid and a `RowExclusiveLock` on `accounts` until COMMIT. Any other session that wants this row waits for it.' },
+        note: 'The row says `active` because the session is running this very SELECT; between statements another session would see **idle in transaction**. It holds an xid (`backend_xid`) and a `RowExclusiveLock` on `accounts` until COMMIT. Any other session that wants this row waits for it.' },
       { label: 'What a backend costs', sql: `SELECT count(*) AS contexts, pg_size_pretty(sum(total_bytes)) AS private_memory
 FROM pg_backend_memory_contexts;
 
@@ -335,7 +336,7 @@ ALTER ROLE api CONNECTION LIMIT 300;`,
     { title: 'Raising max_connections into the thousands',
       symptom: 'After setting `max_connections = 5000` the server needs more shared memory and semaphores, and throughput falls as connections rise.',
       cause: 'Every allowed connection reserves shared-memory slots and a semaphore at startup, and every live backend is a full OS process with private caches. Thousands of mostly idle processes cost RAM and lock contention.',
-      fix: 'Keep `max_connections` in the low hundreds and use a connection pooler. Size pools to the number of CPU cores and disks, not to the number of app threads.' },
+      fix: 'Keep `max_connections` in the low hundreds and use a [connection pooler](/m7/connection-pooling). Size pools to the number of CPU cores and disks, not to the number of app threads.' },
     { title: 'Sessions left idle in transaction',
       symptom: '`pg_stat_activity` shows backends `idle in transaction` for minutes. Other writes queue behind their locks and VACUUM cannot clean up.',
       cause: 'The client ran `BEGIN` and some statements, then stopped without `COMMIT`: a request handler crashed, or someone left a psql session open.',
@@ -360,7 +361,7 @@ WHERE datname = current_database() AND state = 'idle in transaction' AND pid <> 
   ],
   pointers: [
     '**Postmaster** = first process. It forks a **backend** per connection and supervises the **auxiliary** processes.',
-    '`max_connections` (default 100) is fixed at start; `superuser_reserved_connections` (3) keeps slots for emergencies.',
+    '`max_connections` (default 100) is fixed at start; `superuser_reserved_connections` (3) keeps slots for emergencies, and `reserved_connections` (0) does the same for members of `pg_use_reserved_connections`.',
     '`pg_stat_activity.state`: **active**, **idle**, **idle in transaction**. The last one holds locks and blocks cleanup.',
     'One backend crash makes the postmaster **terminate everyone and run crash recovery**.',
     'Shutdown modes: **smart** (SIGTERM, wait), **fast** (SIGINT, abort transactions), **immediate** (SIGQUIT, recovery on next start). `pg_ctl restart` = fast stop + start.',

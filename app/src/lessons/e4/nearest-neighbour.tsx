@@ -225,8 +225,14 @@ CROSS JOIN LATERAL (SELECT id FROM places WHERE kind = 'pharmacy' ORDER BY place
 SELECT p.id FROM places p, riders r
 WHERE r.id = 1
 ORDER BY p.geom <-> r.geom
+LIMIT 3;
+
+-- the fix: the rider's point becomes one value, computed first
+EXPLAIN (COSTS OFF)
+SELECT p.id FROM places p
+ORDER BY p.geom <-> (SELECT geom FROM riders WHERE id = 1)
 LIMIT 3;`,
-        note: 'The distance is between two **columns**, so no index can order it: Seq Scan on `places`, then Sort. Rewrite with LATERAL or a scalar subquery.' },
+        note: 'In the first plan the distance is between two **columns**, so no index can order it: Seq Scan on `places`, then Sort. The second plan uses a scalar subquery: it runs once (`InitPlan`), and `places` is read by an **Index Scan** with `Order By`. LATERAL (previous preset) does the same for many riders.' },
       { label: 'Radius and order', sql: `EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT id FROM places
 WHERE ST_DWithin(geom, ${Q}, 0.01)
@@ -251,7 +257,7 @@ CROSS JOIN LATERAL (
   ORDER BY couriers.geom <-> o.geom
   LIMIT 3) c
 ORDER BY o.id, m;`,
-    outcome: 'Each order costs one short index descent instead of a scan. In the playground, 50 riders find their nearest pharmacy with 50 index probes in a few milliseconds. Taking 3 by degrees and re-ranking in metres fixes the degree mis-ranking.',
+    outcome: 'Each order costs one short index descent instead of a scan. In the playground, 50 riders find their nearest pharmacy with 50 index probes in a few milliseconds. Taking 3 by degrees and re-ranking in metres removes most of the degree mis-ranking; order by geography when the nearest must be exact.',
   },
   pitfalls: [
     { title: '<-> between two columns',
@@ -264,19 +270,19 @@ ORDER BY o.id, m;`,
       fix: 'Order by geography (`geom::geography <-> $1::geography` with a matching index), use a projected SRID, or fetch a few extra rows and re-rank by `ST_Distance` on geography.' },
     { title: 'Ordering by ST_Distance',
       symptom: '`ORDER BY ST_Distance(geom, $1) LIMIT 5` returns correct rows but reads the whole table.',
-      cause: '`ST_Distance` is a plain function. Only distance **operators** such as `<->` and `<#>` can drive an ordered index scan.',
+      cause: '`ST_Distance` is a plain function. Only distance **operators** such as `<->` and `<#>` can drive an ordered index scan, and the index must be **GiST**: SP-GiST and BRIN indexes on a geometry column cannot order by distance.',
       fix: 'Order by `geom <-> $1`; select `ST_Distance` in the column list for display.' },
     { title: 'A selective filter on top of KNN',
       symptom: 'A KNN query with `WHERE kind = \'rare\'` is fast for common kinds and slow for rare ones.',
       cause: 'The index returns rows in distance order and the filter rejects them one by one. A rare kind means walking far.',
-      fix: 'Use a partial index per hot filter value, or a separate table for the rare kind.',
+      fix: 'Create a partial GiST index for each filtered value (`WHERE kind = \'rare\'`): the scan then walks only matching rows. For many values, use one GiST index on `(kind, geom)` with the `btree_gist` extension.',
       sql: `CREATE INDEX ON places USING gist (geom) WHERE kind = 'pharmacy';` },
   ],
   pointers: [
     '`ORDER BY geom <-> constant LIMIT k` is an **index-ordered scan**: rows leave the index already sorted, with no Sort node.',
     'The scan is **best-first** over a priority queue: boxes are keyed by a lower-bound distance, rows by their exact distance.',
     'geometry `<->` uses SRID units (degrees in 4326); geography `<->` gives metres on a sphere and needs a geography index.',
-    '`<#>` orders by **bounding-box** distance; nearest-per-row needs **LATERAL**. The same idea for vectors is in [Distance metrics and exact search](/e1/distance-and-exact-search).',
+    '`<#>` orders by **bounding-box** distance; nearest-per-row needs **LATERAL**, explained in [LATERAL joins](/m3/lateral). The same idea for vectors is in [Distance metrics and exact search](/e1/distance-and-exact-search).',
   ],
   sources: ['geometry_distance_knn.html', 'geometry_distance_box.html', 'ST_Distance.html', 'ST_DWithin.html', 'using_postgis_query.html'],
 }

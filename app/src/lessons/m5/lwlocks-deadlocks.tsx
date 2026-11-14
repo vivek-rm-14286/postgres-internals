@@ -121,7 +121,7 @@ function Hierarchy() {
             ))}
           </div>
           <div className="rounded-lg border border-line bg-surface p-3">
-            <p className="mb-2 text-[11px] font-semibold tracking-wide text-muted uppercase">pg_wait_events (from a real query)</p>
+            <p className="mb-2 text-[11px] font-semibold tracking-wide text-muted uppercase">pg_wait_events</p>
             <div className="grid gap-1.5">
               {t.events.map(([ty, name, d]) => (
                 <div key={name} className="text-[12.5px]"><Tag t={t.t}>{ty}</Tag> <code className="font-mono font-semibold">{name}</code><p className="text-xs text-muted">{d}</p></div>
@@ -202,10 +202,11 @@ BEGIN
   COMMIT;
 END $$;
 
+UPDATE accounts SET balance = 500;   -- start from equal balances
 CALL transfer(22222, 11111, 50);
 CALL transfer(11111, 22222, 20);
 SELECT * FROM accounts ORDER BY acctnum;`,
-        note: 'Without the `PERFORM … FOR UPDATE`, two opposite transfers running at once lock their sender first and deadlock. With it, both lock 11111 before 22222, so the second simply waits. Balances end at **630** and **370**.' },
+        note: 'Without the `PERFORM … FOR UPDATE`, two opposite transfers running at once lock their sender first and deadlock. With it, both lock 11111 before 22222, so the second simply waits. Balances end at **530** and **470**.' },
       { label: 'Tune detection for a session', sql: `BEGIN;
 SET LOCAL deadlock_timeout = '200ms';
 SET LOCAL lock_timeout = '5s';
@@ -232,7 +233,7 @@ COMMIT;`,
     { title: 'Opposite lock order in different code paths',
       symptom: 'Sporadic `40P01 deadlock detected` errors, often in pairs of the same two statements.',
       cause: 'Two transactions lock the same rows or tables in opposite orders. Also common: UPDATE … WHERE id IN (…) without a stable order, or foreign-key checks interleaved with parent updates.',
-      fix: 'Sort keys before locking, take the strongest lock first, and retry on 40P01. The DETAIL line names both processes and lock targets.' },
+      fix: 'Sort keys before locking, take the strongest lock first, and retry on 40P01. The DETAIL line names both processes and lock targets. See [row locks](/m5/row-locks-skip-locked) for what each transaction holds.' },
     { title: 'Raising deadlock_timeout to "fix" deadlocks',
       symptom: 'Fewer deadlock errors in logs, but more latency spikes.',
       cause: 'The timeout only delays **detection**. A real deadlock still ends in an abort, just later.',

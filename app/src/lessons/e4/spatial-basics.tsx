@@ -78,7 +78,7 @@ function CoordViz() {
         <Segmented label="Measure with" value={mode} onChange={setMode}
           options={[['geom', 'geometry 4326'], ['merc', 'Web Mercator 3857'], ['geog', 'geography']]} />
         <button type="button" data-testid="viz-next" onClick={() => setPi((p) => (p + 1) % PAIRS.length)}
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">Next city pair</button>
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent">Next city pair</button>
         <label className="inline-flex items-center gap-1.5 text-xs text-muted">
           <input type="checkbox" checked={swap} onChange={(e) => setSwap(e.target.checked)} className="accent-[var(--accent)]" /> write (lat, lon) by mistake
         </label>
@@ -174,7 +174,7 @@ export const lesson: Lesson = {
   title: 'Geometry, geography and coordinate systems',
   tldr: [
     'PostGIS adds two spatial types to PostgreSQL: **geometry**, measured on a flat plane in the units of its coordinate system (its **SRID**), and **geography**, measured on the curved Earth in metres.',
-    'Every coordinate means nothing without its SRID, so picking the right type and coordinate system up front is what makes distances, areas and joins come out right.',
+    'A coordinate means nothing without its SRID, so picking the right type and coordinate system up front is what makes distances, areas and joins come out right.',
   ],
   visualizer: {
     title: 'One pair of cities, three rulers',
@@ -218,11 +218,12 @@ ORDER BY srid;`,
         note: '**8500** coordinate systems ship in `spatial_ref_sys`. 4326 is longitude/latitude on WGS 84, 3857 is Web Mercator, and 3035, 27700 and 32618 are local projections in metres.' },
       { label: 'Three rulers', sql: `SELECT ST_Distance(a.geom, b.geom)                         AS geometry_degrees,
        ST_Distance(a.geom::geography, b.geom::geography) / 1000 AS geography_km,
+       ST_Length(ST_MakeLine(a.geom, b.geom)::geography) / 1000 AS line_length_km,
        ST_Distance(ST_Transform(a.geom, 3857), ST_Transform(b.geom, 3857)) / 1000 AS mercator_km,
        ST_Distance(ST_Transform(a.geom, 3035), ST_Transform(b.geom, 3035)) / 1000 AS laea_europe_km
 FROM cities a, cities b
 WHERE a.name = 'London' AND b.name = 'Paris';`,
-        note: 'geometry in 4326 returns **3.63 degrees**. geography returns **343.9 km**. Web Mercator says 537 km, about 56% too long at this latitude. The local equal-area projection 3035 is within 0.5 km.' },
+        note: 'geometry in 4326 returns **3.63 degrees**. geography returns **343.9 km**. Web Mercator says 537 km, about 56% too long at this latitude. The local equal-area projection 3035 is within 0.5 km. `ST_Length` of the line between the two cities gives the same 343.9 km; `ST_Area` does the same job for polygons. For a local SRID, look up your country\'s grid or UTM zone in `spatial_ref_sys`.' },
       { label: 'Swap lat and lon', sql: `SELECT ST_AsText(ST_Point(51.5072, -0.1276, 4326)) AS swapped_london,
        ST_Distance(ST_Point(51.5072, -0.1276, 4326)::geography,
                    ST_Point(48.8566, 2.3522, 4326)::geography) / 1000 AS swapped_km,
@@ -242,7 +243,10 @@ SELECT s AS statement, try_sql(s) AS result FROM (VALUES
   ($$INSERT INTO cities VALUES ('X', 'SRID=3857;POINT(1 2)')$$),
   ($$INSERT INTO cities VALUES ('Y', 'SRID=4326;LINESTRING(0 0, 1 1)')$$),
   ($$INSERT INTO cities VALUES ('Z', ST_Transform(ST_Point(530043, 180358, 27700), 4326))$$)
-) v(s);`,
+) v(s);
+
+-- tidy up, so the table keeps its seven cities
+DELETE FROM cities WHERE name = 'Z';`,
         note: '`geometry(Point, 4326)` rejects a wrong SRID and a wrong shape. A point that really is in 27700 must be **transformed**, not relabelled; the third insert works and lands on London.' },
       { label: 'The antimeridian', sql: `SELECT ST_Distance('SRID=4326;POINT(179.5 0)'::geometry,
                    'SRID=4326;POINT(-179.5 0)'::geometry)   AS geometry_degrees,
@@ -270,10 +274,10 @@ SELECT ST_Distance(ST_Transform(pickup, 27700), ST_Transform(dropoff, 27700)) FR
       symptom: 'Points show up in the ocean or on the wrong continent, and distances are plausible but wrong. No error is raised.',
       cause: 'PostGIS coordinates are **x, y**, which for geodetic data means **longitude, latitude**. Many web APIs and spreadsheets write latitude first.',
       fix: 'Always pass longitude first to `ST_Point`/`ST_MakePoint`. Add a check constraint for your region to catch swaps.',
-      sql: `ALTER TABLE cities ADD CONSTRAINT in_europe
+      sql: `ALTER TABLE shops ADD CONSTRAINT in_europe
   CHECK (ST_X(geom) BETWEEN -25 AND 45 AND ST_Y(geom) BETWEEN 34 AND 72);` },
     { title: 'Reading degrees as metres',
-      symptom: '`ST_Distance` returns 0.0036 for two shops 266 m apart, or `ST_DWithin(geom, pt, 500)` matches the whole country.',
+      symptom: '`ST_Distance` returns 0.0038 for two shops 266 m apart, or `ST_DWithin(geom, pt, 500)` matches the whole country.',
       cause: 'geometry in SRID 4326 measures on the lon/lat plane, so its unit is the **degree**. A degree of longitude is 111 km at the equator and 72 km at 50° N.',
       fix: 'Cast to geography for metres, or transform to a projected SRID whose unit is metres.',
       sql: `SELECT ST_DWithin(a.geom::geography, b.geom::geography, 500) FROM cities a, cities b;` },
@@ -291,7 +295,7 @@ SELECT ST_Distance(ST_Transform(pickup, 27700), ST_Transform(dropoff, 27700)) FR
     '**geometry**: planar, units of its SRID, the richest function set. **geography**: spheroid, metres, the right default for lon/lat data spread over a wide area.',
     'Coordinates are **(x, y) = (longitude, latitude)**. `ST_Point(lon, lat, 4326)` builds a point with its SRID in one call.',
     '`ST_Transform` changes coordinates; `ST_SetSRID` only changes the label.',
-    'Use typmods such as `geometry(Point, 4326)` so the column rejects the wrong SRID or shape.',
+    'Use typmods such as `geometry(Point, 4326)` so the column rejects the wrong SRID or shape; a typmod is one more column rule next to those in [Constraints and defaults](/f3/constraints-defaults).',
     'Next: how a spatial index answers "what is near here" in [Spatial indexes](/e4/spatial-indexes).',
   ],
   sources: ['using_postgis_dbmanagement.html', 'ST_Distance.html', 'ST_Transform.html', 'ST_MakePoint.html', 'ST_AsGeoJSON.html'],

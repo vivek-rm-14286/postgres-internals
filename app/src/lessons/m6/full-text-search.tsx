@@ -91,13 +91,13 @@ function FtsViz() {
             })}
           </AnimatePresence>
         </div>
-        <p className="mt-2 font-mono text-[12px]">tsvector: <span style={{ color: tone('tuple') }}>{d.tsv}</span></p>
+        <p className="mt-2 font-mono text-[12px]">tsvector: <span style={{ color: tone.text('tuple') }}>{d.tsv}</span></p>
         <p className="mt-1 text-xs text-muted">Lexemes are sorted and deduplicated, each with its word positions. Stop words vanish but still use up a position, which is why positions skip numbers.</p>
       </Panel>
       <Panel title="2 · websearch_to_tsquery('english', input) → GIN lookup">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <button onClick={() => setQi((qi + 1) % QUERIES.length)} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">Next query ({qi + 1}/{QUERIES.length})</button>
-          <span className="font-mono text-[13px]">input <b>{q.input}</b> → tsquery <b style={{ color: tone('new') }}>{q.tsq}</b></span>
+          <button onClick={() => setQi((qi + 1) % QUERIES.length)} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent">Next query ({qi + 1}/{QUERIES.length})</button>
+          <span className="font-mono text-[13px]">input <b>{q.input}</b> → tsquery <b style={{ color: tone.text('new') }}>{q.tsq}</b></span>
         </div>
         <div className="mb-2 min-h-10 rounded-md bg-surface-2 px-3 py-1.5 text-sm"><AnimatePresence mode="wait"><motion.p key={qi} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><Md>{q.text}</Md></motion.p></AnimatePresence></div>
         <div className="grid gap-3 md:grid-cols-[1.4fr_1fr]">
@@ -289,7 +289,7 @@ ORDER BY rank DESC LIMIT 20;`,
   pointers: [
     'Pipeline: **parser** splits tokens → **dictionaries** normalize to lexemes and drop stop words → **tsvector** of sorted lexemes with positions.',
     'Build queries with `websearch_to_tsquery` for user input: quotes → `<->`, `or` → `|`, `-` → `!`, no syntax errors.',
-    'Index with **GIN** (one entry per lexeme, posting lists) on a **stored generated tsvector column**, or on `to_tsvector(\'config\', col)` with the same expression in queries.',
+    'Index with **GIN** (one entry per lexeme, posting lists) on a **stored generated tsvector column**, or on `to_tsvector(\'config\', col)` with the same expression in queries. **GiST** also works (`USING gist (tsv)`): a lossy signature per row that is cheaper to update, but every match is rechecked and it slows down as distinct lexemes grow, so GIN is the usual choice.',
     '**Weights** A–D (default 1.0, 0.4, 0.2, 0.1) let titles outrank bodies in `ts_rank` and `ts_rank_cd`.',
     'Phrase (`<->`) and weighted queries need the row\'s tsvector, so GIN results are **rechecked**.',
   ],

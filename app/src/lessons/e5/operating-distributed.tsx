@@ -175,13 +175,13 @@ function SplitBrain() {
             {s.nodes.map((n) => (
               <motion.div key={n.id} layout className="min-w-0 rounded-lg border p-1.5" style={{ borderColor: tone(ROLE_T[n.role]), background: toneBg(ROLE_T[n.role], 12), marginTop: s.cut && n.side === 1 ? 14 : 0 }}>
                 <p className="text-[11px] font-bold">node {n.id}</p>
-                <p className="truncate font-mono text-[10.5px]" style={{ color: tone(ROLE_T[n.role]) }}>{n.role}</p>
+                <p className="truncate font-mono text-[10.5px]" style={{ color: tone.text(ROLE_T[n.role]) }}>{n.role}</p>
                 <p className="font-mono text-[10.5px]">term {n.term}</p>
                 <p className="font-mono text-[10.5px]">log {n.log}{n.unc ? `+${n.unc}?` : ''}</p>
               </motion.div>
             ))}
           </div>
-          {s.cut && <p className="text-xs font-semibold" style={{ color: tone('dead') }}>partition: side A = nodes {s.nodes.filter((n) => n.side === 0).map((n) => n.id).join(', ')} · side B = nodes {s.nodes.filter((n) => n.side === 1).map((n) => n.id).join(', ')}</p>}
+          {s.cut && <p className="text-xs font-semibold" style={{ color: tone.text('dead') }}>partition: side A = nodes {s.nodes.filter((n) => n.side === 0).map((n) => n.id).join(', ')} · side B = nodes {s.nodes.filter((n) => n.side === 1).map((n) => n.id).join(', ')}</p>}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat label="acknowledged A / B" value={`${s.ok[0]} / ${s.ok[1]}`} t={s.ok[0] && s.ok[1] ? 'dead' : 'ok'} />
             <Stat label="refused A / B" value={`${s.rej[0]} / ${s.rej[1]}`} />
@@ -260,7 +260,7 @@ function Hba() {
             className="min-w-0 rounded-lg border px-2 py-1.5 text-left" style={{ borderColor: tone(res[i].ok ? 'ok' : 'dead'), background: toneBg(res[i].ok ? 'ok' : 'dead', sel === i ? 20 : 6) }}>
             <p className="truncate text-xs font-semibold">{c.name}</p>
             <p className="truncate font-mono text-[10.5px] text-muted">{c.ip} · {c.ssl ? 'TLS' : 'plain'} · db {c.db} · user {c.user}{c.cert ? ' · cert' : ''}</p>
-            <p className="font-mono text-[10.5px]" style={{ color: tone(res[i].ok ? 'ok' : 'dead') }}>{res[i].rule ? `line ${rules.indexOf(res[i].rule!) + 1}: ` : ''}{res[i].ok ? 'allowed' : 'denied'} · {res[i].why}</p>
+            <p className="font-mono text-[10.5px]" style={{ color: tone.text(res[i].ok ? 'ok' : 'dead') }}>{res[i].rule ? `line ${rules.indexOf(res[i].rule!) + 1}: ` : ''}{res[i].ok ? 'allowed' : 'denied'} · {res[i].why}</p>
           </button>
         ))}
       </div>
@@ -419,36 +419,39 @@ SELECT * FROM ledger ORDER BY seq;
 -- the quorum rule: a side may elect a leader only with a strict majority
 SELECT side, nodes, nodes > 5 / 2.0 AS may_elect FROM (VALUES ('A', 2), ('B', 3)) v(side, nodes);`,
         note: 'The term is the cluster\'s fencing token. Once term 2 exists, writes stamped with term 1 are refused, so a leader that was cut off cannot add history after the split. Only the 3-node side may elect a leader at all.' },
-      { label: 'Catch-up is measured in log bytes', sql: `CREATE TABLE replica_progress (replica text PRIMARY KEY, replayed_lsn pg_lsn NOT NULL);
+      { label: 'Catch-up is measured in log bytes', sql: `DROP TABLE IF EXISTS replica_progress, wal_filler;
+CREATE TABLE replica_progress (replica text PRIMARY KEY, replayed_lsn pg_lsn NOT NULL);
 INSERT INTO replica_progress VALUES ('replica-a', pg_current_wal_lsn()), ('replica-b', pg_current_wal_lsn());
 
--- replica-b disconnects; the primary keeps writing
-INSERT INTO account SELECT g, 'EU' FROM generate_series(9001, 14000) g;
+-- replica-b disconnects; the primary keeps writing (5 000 rows into a scratch table)
+CREATE TABLE wal_filler AS SELECT g, repeat('x', 100) AS pad FROM generate_series(1, 5000) g;
 UPDATE replica_progress SET replayed_lsn = pg_current_wal_lsn() WHERE replica = 'replica-a';
 
 SELECT replica, replayed_lsn, pg_current_wal_lsn() AS primary_lsn,
        pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), replayed_lsn)) AS behind
 FROM replica_progress ORDER BY replica;`,
         note: 'A rejoining node does not need a full copy, only the log after the last position it applied. The distance is a byte count (`pg_wal_lsn_diff`); if the primary has already recycled that WAL, the node must be rebuilt from a fresh copy.' },
-      { label: 'Routing table and rebalancing', sql: `CREATE FUNCTION route(id int) RETURNS text LANGUAGE sql STABLE AS $$
+      { label: 'Routing table and rebalancing', sql: `CREATE OR REPLACE FUNCTION route(id int) RETURNS text LANGUAGE sql STABLE AS $$
   SELECT node FROM shard WHERE hashint4(id) BETWEEN min_hash AND max_hash $$;
 SELECT route(id) AS node, count(*) AS accounts FROM account GROUP BY 1 ORDER BY 1;
 
 -- add node-3: move whole shards, never re-split them
+-- (inside a transaction that is rolled back, so the routing table is back on two nodes afterwards)
+BEGIN;
 CREATE TABLE before AS SELECT id, route(id) AS node FROM account;
 UPDATE shard SET node = 'node-3' WHERE shard_id IN (0, 3, 6);
 SELECT route(a.id) AS node, count(*) AS accounts,
        count(*) FILTER (WHERE route(a.id) <> b.node) AS moved_here
 FROM account a JOIN before b USING (id) GROUP BY 1 ORDER BY 1;
-SELECT shard_id, node FROM shard ORDER BY shard_id;`,
-        note: 'The router maps hash ranges to nodes, so rebalancing is a metadata change plus copying the moved shards. Moving 3 of 8 shards moves the keys in those shards and nothing else: node-3 receives 3,310 of the 9,000 accounts (36.8%), close to the 3/8 of the hash space it took over.' },
+SELECT shard_id, node FROM shard ORDER BY shard_id;
+ROLLBACK;`,
+        note: 'The router maps hash ranges to nodes, so rebalancing is a metadata change plus copying the moved shards. Moving 3 of 8 shards moves the keys in those shards and nothing else: node-3 receives 3,310 of the 9,000 accounts (36.8%), close to the 3/8 of the hash space it took over. The final `ROLLBACK` undoes the move, so the preset can be run again.' },
       { label: 'TLS and authentication settings', sql: `SELECT name, setting, short_desc FROM pg_settings
 WHERE name IN ('ssl', 'ssl_min_protocol_version', 'ssl_max_protocol_version', 'password_encryption', 'authentication_timeout')
 ORDER BY name;
 
-SELECT rule_number, type, database, user_name, address, auth_method, options, error FROM pg_hba_file_rules ORDER BY rule_number;
-SELECT pid, ssl, version FROM pg_stat_ssl WHERE pid = pg_backend_pid();`,
-        note: '`pg_hba_file_rules` lists the rules in the order they are tried. A cluster replaces `host` lines for its peers with `hostssl` lines that demand `cert` (or `clientcert=verify-full`), raises `ssl_min_protocol_version` if TLS 1.2 is not enough, and uses `scram-sha-256` for passwords.' },
+SELECT rule_number, type, database, user_name, address, auth_method, options, error FROM pg_hba_file_rules ORDER BY rule_number;`,
+        note: '`pg_hba_file_rules` lists the rules in the order they are tried. A cluster replaces `host` lines for its peers with `hostssl` lines that demand `cert` (or `clientcert=verify-full`), raises `ssl_min_protocol_version` if TLS 1.2 is not enough, and uses `scram-sha-256` for passwords. This server shows the unsafe starting point: `ssl` is off and every rule is `trust`.' },
       { label: 'Geo-partitioning and a residency check', sql: `CREATE TABLE profile (id int NOT NULL, home_region text NOT NULL, email text NOT NULL, PRIMARY KEY (id, home_region))
   PARTITION BY LIST (home_region);
 CREATE TABLE profile_eu   PARTITION OF profile FOR VALUES IN ('EU');
@@ -506,7 +509,7 @@ hostnossl all     all        0.0.0.0/0    reject`,
   ],
   pointers: [
     'Failure detectors trade speed for false alarms. **φ = −log10(P(next heartbeat still coming))** adapts to the measured jitter; Cassandra convicts at φ = 8 by default.',
-    'A partition looks like a crash from both sides. A **majority quorum** plus **terms** as fencing tokens keeps one leader; without them you get split brain and lost acknowledged writes. See [HA clusters](/e3/ha-clusters).',
+    'A partition looks like a crash from both sides. A **majority quorum** plus **terms** as fencing tokens ([consensus](/e5/commit-and-consensus)) keeps one leader; without them you get split brain and lost acknowledged writes. See [HA clusters](/e3/ha-clusters).',
     'A returning node replays the log from its last applied position; if that log is gone it must be rebuilt. Routing tables map hash ranges to nodes, so rebalancing moves whole ranges ([sharding](/e3/sharding-citus)).',
     'Node-to-node security: `hostssl` + `cert` (or `clientcert=verify-full`), `sslmode=verify-full`, `ssl_min_protocol_version` (default TLSv1.2), `scram-sha-256` for passwords.',
     'Data residency is a placement rule: list-partition by region and pin each partition\'s replicas to that region; replicate only small reference data everywhere.',

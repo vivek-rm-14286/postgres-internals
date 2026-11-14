@@ -7,3 +7,4 @@ app/scripts/.mobile.mjs
 
 # third-party page copies: kept locally, never published (copyright of their authors)
 sources/third-party-copies/
+app/src/search/index.json

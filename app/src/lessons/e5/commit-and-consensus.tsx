@@ -74,13 +74,17 @@ function CommitDiagram({ s, i }: { s: CmState; i: number }) {
   const pos = [[320, 44], [110, 196], [320, 196], [530, 196]]
   const names = ['coordinator', 'P1', 'P2', 'P3']
   const states: string[] = [s.c, ...s.p]
+  const cutX = pos[0][0] + 62 + 28 // just right of the coordinator box
+  const gapX = (pos[1][0] + pos[2][0]) / 2 // between P1 and P2
   return (
     <svg viewBox="0 0 640 250" className="w-full min-w-[500px]" role="img" aria-label="Commit protocol diagram">
       <Arrows tones={['new', 'ok', 'dead', 'header', 'pointer']} />
       {[1, 2, 3].map((k) => <line key={k} x1={pos[0][0]} y1={pos[0][1] + 22} x2={pos[k][0]} y2={pos[k][1] - 22} stroke="var(--border)" strokeWidth={1.5} />)}
       <line x1={110} y1={196} x2={530} y2={196} stroke="var(--border)" strokeWidth={1} strokeDasharray="2 4" />
-      {s.cut && <motion.line initial={{ opacity: 0 }} animate={{ opacity: 1 }} x1={215} y1={8} x2={215} y2={244} stroke={tone('dead')} strokeWidth={3} strokeDasharray="7 5" />}
-      {s.cut && <text x={222} y={22} fontSize={10.5} fill={tone('dead')} fontWeight={700}>partition</text>}
+      {/* the cut keeps the coordinator and P1 on one side, P2 and P3 on the other: it passes right of the coordinator box,
+          crosses the coordinator-P2 and coordinator-P3 links, then runs down between P1 and P2 */}
+      {s.cut && <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} d={`M${cutX},8 L${cutX},100 L${gapX},150 L${gapX},244`} fill="none" stroke={tone('dead')} strokeWidth={3} strokeDasharray="7 5" />}
+      {s.cut && <text x={cutX + 7} y={22} fontSize={10.5} fill={tone('dead')} fontWeight={700}>partition</text>}
       {s.msgs.map(([f, t, label, tn], k) => {
         const [x1, y1] = pos[f], [x2, y2] = pos[t]
         const mx = (x1 + x2) / 2, my = (y1 + y2) / 2
@@ -155,6 +159,9 @@ function PaxosSim() {
   const [st, setSt] = useState(fresh)
   const [first, setFirst] = useState<[number, string] | null>(null)
   const ch = chosen(st.acc)
+  // a chosen value stays chosen, even when later proposals re-accept it under higher numbers and no three
+  // acceptors hold the same (number, value) pair any more
+  const shown = ch ?? first
   const record = (next: typeof st) => { const c = chosen(next.acc); if (c && !first) setFirst(c); setSt(next) }
   const prepare = (pi: 0 | 1, s = st) => {
     const p = { ...s.props[pi] }
@@ -222,7 +229,7 @@ function PaxosSim() {
           </div>
         </Panel>
         <Panel title="Chosen value">
-          <motion.p key={ch ? ch.join() : 'none'} initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="font-mono text-lg font-bold" style={{ color: ch ? tone('ok') : tone('muted') }}>{ch ? `"${ch[1]}" (proposal ${ch[0]})` : 'none yet'}</motion.p>
+          <motion.p key={shown ? shown.join() : 'none'} initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="font-mono text-lg font-bold" style={{ color: shown ? tone.text('ok') : tone.text('muted') }}>{shown ? `"${shown[1]}" (proposal ${shown[0]})` : 'none yet'}</motion.p>
           <p className="mt-1 text-xs text-muted"><Md>{first && ch && first[1] !== ch[1] ? 'Safety violated.' : first
             ? `Once a majority accepted **"${first[1]}"**, every later majority of promises contains an acceptor that has accepted it (possibly under a higher number), so every later proposal carries the same value.`
             : 'A value is **chosen** when 3 of 5 acceptors accept the same proposal. Any two majorities share at least one acceptor.'}</Md></p>
@@ -319,7 +326,7 @@ function TOSim() {
               {res.out.map((r, k) => (
                 <motion.div key={`${mode}-${k}`} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="grid grid-cols-[52px_64px_1fr] items-baseline gap-2 text-[11.5px]">
                   <span className="font-mono font-bold">{opText(r.op)}</span>
-                  <span className="font-mono font-bold" style={{ color: tone(VT[r.verdict]) }}>{r.verdict}</span>
+                  <span className="font-mono font-bold" style={{ color: tone.text(VT[r.verdict]) }}>{r.verdict}</span>
                   <span className="text-muted">{r.why}</span>
                 </motion.div>
               ))}
@@ -337,7 +344,7 @@ function TOSim() {
               ))}</tbody>
             </table>
           )}
-          <p className="mt-2 text-xs">aborted: <b className="font-mono" style={{ color: tone(res.aborted.size ? 'dead' : 'ok') }}>{res.aborted.size ? [...res.aborted].map((t) => `T${t}`).join(', ') : 'none'}</b></p>
+          <p className="mt-2 text-xs">aborted: <b className="font-mono" style={{ color: tone.text(res.aborted.size ? 'dead' : 'ok') }}>{res.aborted.size ? [...res.aborted].map((t) => `T${t}`).join(', ') : 'none'}</b></p>
         </Panel>
       </div>
       <Legend items={[['ok', 'executed / committed'], ['header', 'ignored (Thomas rule)'], ['dead', 'rejected: abort'], ['muted', 'skipped']]} />
@@ -406,8 +413,8 @@ function Deadlock() {
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="rounded border border-line px-2 py-0.5 font-mono">{s.locks}</span>
-            {s.found && <span className="rounded border px-2 py-0.5 font-mono" style={{ borderColor: tone('dead'), color: tone('dead') }}>{s.found}</span>}
-            {s.victim && <span className="rounded border px-2 py-0.5 font-mono" style={{ borderColor: tone('ok'), color: tone('ok') }}>victim: {s.victim} (youngest)</span>}
+            {s.found && <span className="rounded border px-2 py-0.5 font-mono" style={{ borderColor: tone('dead'), color: tone.text('dead') }}>{s.found}</span>}
+            {s.victim && <span className="rounded border px-2 py-0.5 font-mono" style={{ borderColor: tone('ok'), color: tone.text('ok') }}>victim: {s.victim} (youngest)</span>}
           </div>
         </div>
       )} />
@@ -609,7 +616,7 @@ BEGIN
   UPDATE item SET w_ts = ts WHERE name = x; RETURN 'ok';
 END $$;
 
-SELECT 'w2(x)' AS op, to_op('w', 'x', 2, false) AS basic_to
+SELECT 'w2(x)' AS op, to_op('w', 'x', 2, false) AS result
 UNION ALL SELECT 'w1(x) basic', to_op('w', 'x', 1, false)
 UNION ALL SELECT 'w1(x) thomas', to_op('w', 'x', 1, true)
 UNION ALL SELECT 'r3(y)', to_op('r', 'y', 3, true)
@@ -683,7 +690,7 @@ SHOW citus.distributed_deadlock_detection_factor;`,
     '**2PC** blocks when the coordinator dies after the votes: an uncertain participant can neither commit nor abort. **3PC** adds a committable pre-commit state, which removes blocking for crashes but breaks atomicity under partitions.',
     '**Paxos**: prepare(n) → promises plus the highest accepted proposal; accept(n, v) where v is that proposal\'s value if any. A majority makes a value chosen; a single leader makes progress. **Raft** builds the same guarantee around terms and one leader.',
     '**Basic TO** aborts any operation that arrives after a conflicting one with a larger timestamp; the **Thomas write rule** skips obsolete writes instead. **Optimistic** schedulers validate at commit.',
-    'A distributed deadlock is a cycle in the **union** of local wait-for graphs; detectors typically cancel the youngest transaction on it and must avoid phantom cycles. Leases need **fencing tokens**.',
+    'A distributed deadlock is a cycle in the **union** of local wait-for graphs; detectors typically cancel the youngest transaction on it and must avoid phantom cycles. Leases need **fencing tokens**; terms play that role during failover in [Operating distributed databases](/e5/operating-distributed).',
     'PostgreSQL pieces: [two-phase commit and HLC](/e3/distributed-transactions), [Raft in distributed SQL](/e3/distributed-sql-multimaster), [local deadlocks](/m5/lwlocks-deadlocks), [row locks and SKIP LOCKED](/m5/row-locks-skip-locked).',
   ],
   sources: ['sql-prepare-transaction.html', 'sql-commit-prepared.html', 'view-pg-prepared-xacts.html', 'view-pg-locks.html', 'explicit-locking.html', 'functions-admin.html', 'runtime-config-locks.html', 'queries-with.html', 'sql-createsequence.html', 'plpgsql.html'],

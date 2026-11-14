@@ -195,7 +195,7 @@ function BTreeViz() {
 
   const split = tree.lastSplit.length > 0
   const msg = tree.lastKey === null
-    ? 'An empty index is a single leaf page (block 1; block 0 is the metapage). Add keys to grow it.'
+    ? 'A new index is just the metapage (block 0). The first insert creates the root, a single leaf page (block 1). Add keys to grow it.'
     : split
       ? `Inserting **${tree.lastKey}** overflowed a page, so it **split**: some keys moved to a new right sibling (orange), the old page got a **high key** = the sibling's first key, and a downlink went up to the parent${s.height > 1 && tree.lastSplit.length > 2 ? ', which split too' : ''}.${mode === 'seq' && tree.lastSplit.length === 2 ? ' Appending at the right edge keeps the old page **90% full** (fillfactor), so sequential keys pack densely.' : ''}`
       : `**${tree.lastKey}** descended root → leaf (blue path) by comparing with separator keys, and fitted without a split.`
@@ -204,7 +204,7 @@ function BTreeViz() {
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <Segmented label="Key pattern" value={mode} onChange={(m) => reset(m)} options={[['seq', 'Sequential keys (bigint, UUIDv7)'], ['rand', 'Random keys (UUIDv4)']]} />
-        <button onClick={() => add(1)} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">Insert 1</button>
+        <button onClick={() => add(1)} data-testid="viz-next" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent">Insert 1</button>
         <button onClick={() => add(10)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold hover:border-accent">Insert 10</button>
         <button onClick={() => reset()} className="rounded-lg px-3 py-1.5 text-xs text-muted hover:text-ink">Reset</button>
       </div>
@@ -278,12 +278,24 @@ GROUP BY t ORDER BY 2 DESC;`,
       { label: 'Index scan buffers', sql: `EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
 SELECT * FROM seq WHERE id = 12345;`,
         note: 'An equality lookup touches only a handful of buffers (metapage, root, leaf, heap page). `Index Searches: 1` (new in 18) counts descents of the tree.' },
+      { label: 'Deduplication: posting lists', sql: `DROP TABLE IF EXISTS dup;
+CREATE TABLE dup (id int, st int);
+INSERT INTO dup SELECT g, g % 5 FROM generate_series(1, 20000) g;
+CREATE INDEX dup_st ON dup (st);
+CREATE INDEX dup_st_plain ON dup (st) WITH (deduplicate_items = off);
+
+SELECT itemoffset, htid, array_length(tids, 1) AS tids_in_posting_list, itemlen
+FROM bt_page_items('dup_st', 1) LIMIT 4;
+
+SELECT pg_size_pretty(pg_relation_size('dup_st'))       AS deduplicated,
+       pg_size_pretty(pg_relation_size('dup_st_plain')) AS plain;`,
+        note: 'Only 5 distinct values in 20,000 rows. Equal keys are merged into one index tuple holding a **posting list** of heap TIDs (132 per tuple here; item 1 is the high key), so the index is 160 kB instead of 456 kB.' },
     ],
   },
   production: {
     title: 'Switching primary keys from UUIDv4 to UUIDv7',
     context: 'An orders service generated `uuid` primary keys client-side with v4 (fully random). At 300 M rows, insert latency crept up and the index outgrew RAM.',
-    problem: 'Every insert landed on a **random leaf**. With the index larger than cache, most inserts first had to read a cold leaf from disk, and full leaves split down the middle, leaving pages about 65% full at scale. Checkpoints also had to write a full-page image for every scattered leaf they touched.',
+    problem: 'Every insert landed on a **random leaf**. With the index larger than cache, most inserts first had to read a cold leaf from disk, and full leaves split down the middle, leaving pages about 65% full at scale. After every checkpoint, the first insert into each scattered leaf also wrote a full-page image of it to WAL.',
     solution: 'Generate **UUIDv7** keys, natively `uuidv7()` in PostgreSQL 18. The leading 48 bits are a millisecond timestamp, so new keys arrive in roughly ascending order and hit the rightmost leaf. Appends at the right edge fill leaves to `fillfactor` (90), and the hot leaf stays in cache.',
     sql: `ALTER TABLE orders ALTER COLUMN id SET DEFAULT uuidv7();
 -- later, rebuild the bloated index online:
@@ -311,7 +323,7 @@ SELECT uuid_extract_timestamp(id) FROM orders LIMIT 1;`,
     'Every non-rightmost page stores a **high key**. If a reader\'s key is greater than it, the reader follows the **right-link**: that is the Lehman & Yao move-right rule.',
     'When a page is full: try **deleting dead entries**, then **deduplicate** into posting lists, and only then **split**. Splits cascade upward, and a root split adds a level.',
     'Appending new largest keys fills leaves to **fillfactor 90**; random keys split pages in half, leaving leaves only about 65–72% full.',
-    'Entries max out at about **1/3 page** (2704 bytes); index a hash or prefix of big values.',
+    'Entries max out at about **1/3 page** (2704 bytes); index a hash or prefix of big values. See [UUIDv4 vs UUIDv7](/m2/uuid-v4-v7) and [Designing indexes](/m4/index-design).',
   ],
   sources: ['btree.html', 'btree-implementation.html', 'sql-createindex.html', 'pageinspect.html', 'functions-uuid.html'],
 }

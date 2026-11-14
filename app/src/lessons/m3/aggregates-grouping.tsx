@@ -64,7 +64,7 @@ function buildSteps(mode: Mode, sets: SetKey[]): Step<GState>[] {
     rows.forEach((r) => out.push({ key: `${k}-${r.gi}`, cells: [r.brand, r.size, r.sum, grouping(k)], t: PALETTE[r.gi % PALETTE.length] }))
     done.push(k)
     const g = grouping(k)
-    const nullNote = k === 's' ? ' Note the second **(NULL, NULL)** row: Baz\'s size really is NULL, so it forms its own group, and only `g = 2` tells it apart from the grand total.'
+    const nullNote = k === 's' ? ' Note the **(NULL, NULL)** row: Baz\'s size really is NULL, so it forms its own group, and only `g = 2` tells it apart from the grand total (`g = 3`).'
       : k === 'b' ? ' Its `size` column is NULL because size is **not in this set**, not because the data is NULL.'
       : k === 'bs' ? ' Baz has a real NULL size, which simply groups like any other value.'
       : ' The empty set puts **every row in one group**: the grand total, emitted even on empty input.'
@@ -72,7 +72,8 @@ function buildSteps(mode: Mode, sets: SetKey[]): Step<GState>[] {
       body: `Input rows fold into ${rows.length} group${rows.length === 1 ? '' : 's'} by ${SETS[k].cols.length ? SETS[k].cols.join(' and ') : 'nothing'}. \`grouping(brand, size)\` = ${g} (binary ${g.toString(2).padStart(2, '0')}): a 1 bit means that column is **not** grouped here.${nullNote}`,
       state: { active: k, done: [...done], rowGroup, out: [...out] } })
   }
-  steps.push({ title: `Result: ${out.length} rows`, body: 'PostgreSQL computes all sets in **one pass** (a `MixedAggregate` node with one Hash Key per set), not one scan per set. Use `grouping()` to label subtotal rows, never `IS NULL`.',
+  steps.push({ title: `Result: ${out.length} rows`, body: mode === 'plain' ? 'A plain GROUP BY is one `HashAggregate` (or a sort plus `GroupAggregate`) over a single scan.'
+      : 'PostgreSQL computes all sets in **one pass** (a `MixedAggregate` node with one Hash Key per set), not one scan per set. Use `grouping()` to label subtotal rows, never `IS NULL`.',
     state: { active: null, done: [...done], rowGroup: ITEMS.map(() => null), out: [...out] } })
   return steps
 }
@@ -241,8 +242,13 @@ GROUP BY region ORDER BY region;`,
        percentile_cont(0.5) WITHIN GROUP (ORDER BY amount) AS median_cont,
        percentile_disc(0.5) WITHIN GROUP (ORDER BY amount) AS median_disc,
        mode() WITHIN GROUP (ORDER BY status)              AS most_common_status
-FROM orders GROUP BY region ORDER BY region;`,
-        note: 'Ordered-set aggregates sort their input. `percentile_cont` interpolates between the two middle values; `percentile_disc` returns an actual input value. There is no separate `median()`: `percentile_cont(0.5)` is the median.' },
+FROM orders GROUP BY region ORDER BY region;
+
+-- four values, so the two medians differ
+SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY sales) AS cont,
+       percentile_disc(0.5) WITHIN GROUP (ORDER BY sales) AS disc
+FROM items_sold WHERE brand <> 'Baz';`,
+        note: 'Ordered-set aggregates sort their input. `percentile_cont` interpolates between the two middle values; `percentile_disc` returns an actual input value. On the four sales 5, 10, 15, 20 the continuous median is 12.5, the discrete one 10 (in `orders` the two middle values happen to be equal). There is no separate `median()`: `percentile_cont(0.5)` is the median.' },
       { label: 'WHERE vs HAVING', sql: `SELECT try_sql($q$
   SELECT region FROM orders WHERE sum(amount) > 50000 GROUP BY region $q$) AS in_where;
 
@@ -308,7 +314,7 @@ FROM generate_series(timestamp '2026-10-01', timestamp '2026-10-31 23:00', inter
   ],
   pointers: [
     '`count(*)` counts rows; `count(col)` counts non-NULL values; every other aggregate returns **NULL** on no rows.',
-    '`agg(...) FILTER (WHERE ...)` restricts one aggregate\'s input; WHERE restricts all rows; HAVING filters groups.',
+    '`agg(...) FILTER (WHERE ...)` restricts one aggregate\'s input; WHERE restricts all rows; HAVING filters groups. More in [pivots and reports](/f4/pivot-reporting).',
     '`ROLLUP (a, b)` = (a,b), (a), (); `CUBE (a, b)` = all 4 subsets; all sets run in one scan.',
     '`grouping(a, b)` is a bitmask: bit = 1 when that column is **not** grouped in the current row\'s set.',
     'Ordered-set aggregates: `percentile_cont` interpolates, `percentile_disc` picks a value, `mode()` returns the most frequent.',

@@ -104,7 +104,7 @@ function SizeViz() {
         <Segmented label="Dimensions" value={String(dims)} onChange={(v) => setDims(+v)} options={[['384', '384'], ['768', '768'], ['1536', '1536'], ['3072', '3072']]} />
       </div>
       <div className="grid gap-1.5">
-        {list.map((x) => <Bar key={x.k} label={x.k} value={gb(x.b)} max={gb(4 * dims + 8)} t={x.t} right={<span>{fmtGB(gb(x.b))} {x.ok ? '' : <span style={{ color: tone('dead') }}>no index</span>}</span>} />)}
+        {list.map((x) => <Bar key={x.k} label={x.k} value={gb(x.b)} max={gb(4 * dims + 8)} t={x.t} right={<span>{fmtGB(gb(x.b))} {x.ok ? '' : <span style={{ color: tone.text('dead') }}>no index</span>}</span>} />)}
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Tile label="raw vectors" value={fmtGB(gb(4 * dims + 8))} sub={`${rows.toLocaleString()} × (4·${dims} + 8) B`} />
@@ -180,22 +180,23 @@ ANALYZE;`,
        pg_size_pretty(pg_table_size('docs'))           AS table_size
 FROM docs LIMIT 1;`,
         note: 'A 256-d vector takes 4·256 + 8 = **1032 bytes**, half precision 520, and the bit form 40. The vectors are small enough to stay inline in the heap.' },
-      { label: 'Full-precision HNSW', sql: `CREATE INDEX docs_hnsw ON docs USING hnsw (embedding vector_l2_ops);
+      { label: 'Full-precision HNSW', sql: `CREATE INDEX IF NOT EXISTS docs_hnsw ON docs USING hnsw (embedding vector_l2_ops);
 SELECT pg_size_pretty(pg_relation_size('docs_hnsw')) AS index_size;
 ${recallOf('SELECT id FROM docs ORDER BY embedding <-> q.v LIMIT 10')};`,
         note: 'The baseline: an index somewhat larger than the table, with recall 1.0 on this data.' },
-      { label: 'Half-precision index', sql: `CREATE INDEX docs_half ON docs USING hnsw ((embedding::halfvec(256)) halfvec_l2_ops);
+      { label: 'Half-precision index', sql: `CREATE INDEX IF NOT EXISTS docs_half ON docs USING hnsw ((embedding::halfvec(256)) halfvec_l2_ops);
 SELECT pg_size_pretty(pg_relation_size('docs_half')) AS index_size;
 EXPLAIN (COSTS OFF)
 SELECT id FROM docs ORDER BY embedding::halfvec(256) <-> (SELECT v FROM queries WHERE qid = 1)::halfvec(256) LIMIT 10;
-DROP INDEX docs_hnsw;
+DROP INDEX IF EXISTS docs_hnsw;   -- the recall query below can then only use the half-precision index
 ${recallOf('SELECT id FROM docs ORDER BY embedding::halfvec(256) <-> q.v::halfvec(256) LIMIT 10')};`,
-        note: 'The table keeps full precision; only the index is float16. The query must repeat the **same expression** (`::halfvec(256)`) or the index is ignored. Recall is unchanged at about 60% of the index size. (Building the float16 index is slower than the full-precision one in this in-browser database; build speed on a native server can differ, so measure on your own hardware.)' },
-      { label: 'Binary quantization', sql: `CREATE INDEX docs_bq ON docs USING hnsw ((binary_quantize(embedding)::bit(256)) bit_hamming_ops);
+        note: 'The table keeps full precision; only the index is float16. The query must repeat the **same expression** (`::halfvec(256)`) or the index is ignored. Recall is unchanged at about 60% of the index size. (Here the float16 index builds more slowly than the full-precision one; build speed depends on the CPU, so measure on your own hardware.)' },
+      { label: 'Binary quantization', sql: `CREATE INDEX IF NOT EXISTS docs_bq ON docs USING hnsw ((binary_quantize(embedding)::bit(256)) bit_hamming_ops);
 SELECT pg_size_pretty(pg_relation_size('docs_bq')) AS index_size;
 ${recallOf('SELECT id FROM docs ORDER BY binary_quantize(embedding)::bit(256) <~> binary_quantize(q.v) LIMIT 10')};`,
         note: 'A quarter of the size, but sign bits alone are a blunt instrument: recall is below 0.5.' },
-      { label: 'Re-rank the bits', sql: `${rerank(20)}
+      { label: 'Re-rank the bits', sql: `CREATE INDEX IF NOT EXISTS docs_bq ON docs USING hnsw ((binary_quantize(embedding)::bit(256)) bit_hamming_ops);
+${rerank(20)}
 ${rerank(40)}
 ${rerank(100)}
 ${rerank(200)}
@@ -206,8 +207,9 @@ CREATE INDEX docs_tight ON docs USING hnsw (embedding vector_l2_ops);
 RESET maintenance_work_mem;
 DROP INDEX docs_tight;
 SHOW max_parallel_maintenance_workers;`,
-        note: 'Watch the messages: `hnsw graph no longer fits into maintenance_work_mem after … tuples`, and compare the run time with the "Full-precision HNSW" preset: roughly three to four times slower. This in-browser server has no parallel workers (0); a real server defaults to 2.' },
-      { label: 'Deletes and REINDEX', sql: `CREATE INDEX docs_hnsw ON docs USING hnsw (embedding vector_l2_ops);
+        note: 'Watch the messages: `hnsw graph no longer fits into maintenance_work_mem after … tuples`, and compare the run time with the "Full-precision HNSW" preset: roughly three to four times slower. The playground has no parallel workers (0); a server defaults to 2.' },
+      { label: 'Deletes and REINDEX', sql: `DROP INDEX IF EXISTS docs_hnsw;
+CREATE INDEX docs_hnsw ON docs USING hnsw (embedding vector_l2_ops);
 DELETE FROM docs WHERE id % 2 = 0;
 VACUUM docs;
 SELECT pg_size_pretty(pg_relation_size('docs_hnsw')) AS after_vacuum;
@@ -220,8 +222,18 @@ SELECT pg_size_pretty(pg_relation_size('docs_hnsw')) AS after_reindex;`,
     title: 'Fitting 20 million 1536-d chunks on one server',
     context: 'A document-search product stores 20 M chunks with 1536-d embeddings on a 128 GB server, and wants p95 latency under 50 ms with recall@10 above 0.95.',
     problem: 'Raw vectors are 20 M × 6152 B ≈ 123 GB. A full-precision HNSW index is larger again, so neither fits in RAM, builds spill out of `maintenance_work_mem`, and queries hit disk.',
-    solution: 'Keep `vector(1536)` in the table for exact re-ranking, and index binary-quantized bits (20 M × 200 B ≈ 4 GB of vectors in the index). Fetch 200 candidates by Hamming distance and re-rank them exactly. Verify recall on a sample of real queries before switching.',
-    sql: `CREATE INDEX CONCURRENTLY chunks_bq ON chunks
+    solution: 'Keep `vector(1536)` in the table for exact re-ranking, and index binary-quantized bits (20 M × 200 B ≈ 4 GB of vectors in the index). Fetch 200 candidates by Hamming distance and re-rank them exactly. One row per chunk holds the source document, the chunk text and the model name beside the vector. Verify recall on a sample of real queries before switching.',
+    sql: `CREATE TABLE chunks (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  document_id bigint NOT NULL REFERENCES documents ON DELETE CASCADE,
+  chunk_no    int NOT NULL,
+  content     text NOT NULL,          -- the text handed to the LLM
+  model       text NOT NULL,          -- which embedding model made the vector
+  embedding   vector(1536) NOT NULL,
+  UNIQUE (document_id, chunk_no)
+);
+
+CREATE INDEX CONCURRENTLY chunks_bq ON chunks
   USING hnsw ((binary_quantize(embedding)::bit(1536)) bit_hamming_ops);
 
 BEGIN;
@@ -261,7 +273,7 @@ VACUUM items;` },
     'Store `vector`, index `halfvec` (same recall, about half the size) or bits (with re-ranking).',
     'Re-rank: inner `LIMIT N` by `<~>` on bits, outer `ORDER BY` exact distance; ef_search ≥ N.',
     'Builds: load first, `maintenance_work_mem` big enough for the graph, `max_parallel_maintenance_workers`, `CREATE INDEX CONCURRENTLY`.',
-    'Maintenance: `REINDEX INDEX CONCURRENTLY` then `VACUUM` after large deletes; stay on 0.8.4+.',
+    'Maintenance: `REINDEX INDEX CONCURRENTLY` then [`VACUUM`](/m7/vacuum) after large deletes; stay on 0.8.4+.',
     'Stay in PostgreSQL while vectors share rows, filters, transactions and backups with the rest of your data; consider a dedicated engine only when one node can no longer hold the index in memory and sharding is not an option.',
   ],
   sources: ['runtime-config-resource.html', 'sql-reindex.html', 'routine-vacuuming.html', 'sql-createindex.html', 'storage-toast.html'],

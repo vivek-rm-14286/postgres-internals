@@ -10,7 +10,7 @@ export function Btn({ children, onClick, primary, testid, disabled, active }: {
 }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} data-testid={testid}
-      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:opacity-40 ${primary ? 'bg-accent text-white' : active ? 'border border-accent text-accent' : 'border border-line text-ink hover:border-accent'}`}>
+      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition disabled:opacity-40 ${primary ? 'bg-accent text-on-accent' : active ? 'border border-accent text-accent' : 'border border-line text-ink hover:border-accent'}`}>
       {children}
     </button>
   )
@@ -21,7 +21,7 @@ export function Stat({ label, value, t }: { label: string; value: ReactNode; t?:
     <div className="rounded-lg border border-line bg-surface-2 px-3 py-2">
       <p className="text-[11px] tracking-wide text-muted uppercase">{label}</p>
       <motion.p key={String(value)} initial={{ opacity: 0.3, y: 2 }} animate={{ opacity: 1, y: 0 }}
-        className={`font-mono font-bold break-words ${String(value).length > 12 ? 'text-sm' : 'text-base sm:text-lg'}`} style={t ? { color: tone(t) } : undefined}>{value}</motion.p>
+        className={`font-mono font-bold break-words ${String(value).length > 12 ? 'text-sm' : 'text-base sm:text-lg'}`} style={t ? { color: tone.text(t) } : undefined}>{value}</motion.p>
     </div>
   )
 }
@@ -35,7 +35,7 @@ export function OutcomeBox({ o, k }: { o: Outcome | null; k: string | number }) 
         {o && (
           <motion.div key={k} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
             className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: tone(o.ok ? 'ok' : 'dead'), background: toneBg(o.ok ? 'ok' : 'dead', 10) }}>
-            <p className="font-mono text-[12.5px] font-semibold break-words" style={{ color: tone(o.ok ? 'ok' : 'dead') }}>
+            <p className="font-mono text-[12.5px] font-semibold break-words" style={{ color: tone.text(o.ok ? 'ok' : 'dead') }}>
               {o.code && <span className="mr-2 rounded px-1.5 py-0.5 text-[11px]" style={{ background: toneBg(o.ok ? 'ok' : 'dead', 22) }}>{o.code}</span>}
               {o.title}
             </p>
@@ -64,8 +64,8 @@ export function TableCard({ name, cols, rows, hl, onRow, note, keyCols = [], fkC
             <tr className="text-left text-[11px] text-muted">
               {cols.map((c, i) => (
                 <th key={c} className="px-2 py-1 font-semibold whitespace-nowrap">
-                  {c}{keyCols.includes(i) && <span className="ml-1" style={{ color: tone('header') }}>PK</span>}
-                  {fkCols.includes(i) && <span className="ml-1" style={{ color: tone('pointer') }}>FK</span>}
+                  {c}{keyCols.includes(i) && <span className="ml-1" style={{ color: tone.text('header') }}>PK</span>}
+                  {fkCols.includes(i) && <span className="ml-1" style={{ color: tone.text('pointer') }}>FK</span>}
                 </th>
               ))}
             </tr>

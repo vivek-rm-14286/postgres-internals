@@ -217,14 +217,19 @@ UPDATE sensors SET reading = 21.5 WHERE id = 10;
 SELECT resource_manager, record_type, record_length, fpi_length, block_ref
 FROM pg_get_wal_records_info(current_setting('lab.start')::pg_lsn, pg_current_wal_lsn());`,
         note: 'The `HOT_UPDATE` is about 14.8 kB: `(FPW)` images of heap block 0 (8192 minus the free-space hole) and of the visibility-map page, whose all-visible bit the UPDATE cleared.' },
-      { label: 'Same page, next change', sql: `SELECT set_config('lab.start', pg_current_wal_insert_lsn()::text, false);
+      { label: 'Same page, next change', sql: `-- the previous preset again: a checkpoint, then a first change that images block 0
+VACUUM sensors;
+CHECKPOINT;
+UPDATE sensors SET reading = 21.5 WHERE id = 10;
+
+SELECT set_config('lab.start', pg_current_wal_insert_lsn()::text, false);
 
 UPDATE sensors SET reading = 21.6 WHERE id = 11;
 UPDATE sensors SET reading = 21.7 WHERE id = 500;
 
 SELECT resource_manager, record_type, record_length, fpi_length, block_ref
 FROM pg_get_wal_records_info(current_setting('lab.start')::pg_lsn, pg_current_wal_lsn());`,
-        note: 'id 11 is on block 0, already imaged since the checkpoint: about 77 bytes. id 500 is on block 5: a new image of about 6.6 kB.' },
+        note: 'id 11 is on block 0, already imaged since the checkpoint: about 77 bytes. id 500 is on block 5: a new image of about 6.6 kB. The small `PRUNE_ON_ACCESS` record is page cleanup done on the way.' },
       { label: 'Compress the page images', sql: `SET wal_compression = pglz;
 CHECKPOINT;
 SELECT set_config('lab.start', pg_current_wal_insert_lsn()::text, false);

@@ -71,7 +71,7 @@ function QuizViz() {
             {i + 1}. {x.topic}
           </button>
         ))}
-        <Btn primary testid="viz-next" onClick={() => (pick ? go((qi + 1) % QS.length) : choose(q.best))}>{pick ? 'Next question' : 'Reveal answer'}</Btn>
+        <Btn primary testid="viz-next" onClick={() => { if (pick) go((qi + 1) % QS.length); else { setPick(q.best); setScore((s) => (qi in s ? s : { ...s, [qi]: false })) } }}>{pick ? 'Next question' : 'Reveal answer'}</Btn>
       </div>
       <Tiles items={[['Question', `${qi + 1} / ${QS.length}`], ['Score', `${Object.values(score).filter(Boolean).length} / ${Object.keys(score).length}`, 'ok'], ['Seq scan buffers', d.none.buffers], ['Table', '100k rows']]} />
       <Panel title={`${q.topic}: which single index serves this query best?`}>
@@ -94,7 +94,7 @@ function QuizViz() {
         {pick && (
           <motion.div key={`${qi}-${pick}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="grid gap-3">
             <div className="rounded-lg border px-4 py-2.5 text-sm" style={{ borderColor: tone(toneFor(pick)), background: toneBg(toneFor(pick), 10) }}>
-              <p className="font-semibold" style={{ color: tone(toneFor(pick)) }}>{pick === q.best ? 'Best choice.' : 'Not the best.'}</p>
+              <p className="font-semibold" style={{ color: tone.text(toneFor(pick)) }}>{pick === q.best ? 'Best choice.' : 'Not the best.'}</p>
               <p className="mt-0.5"><Md>{q.why[pick]}</Md></p>
               {pick !== q.best && <p className="mt-1 text-muted"><Md>{`Best: \`${d[q.best].def}\`. ${q.why[q.best]}`}</Md></p>}
             </div>
@@ -149,7 +149,23 @@ EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
 SELECT id FROM events WHERE user_id = 42 AND created_at >= '2026-02-01';
 DROP INDEX ev_user_time;`,
         note: 'Both conditions appear in `Index Cond`, and the scan reads only user 42\'s February entries: about 5 buffers.' },
-      { label: 'Skip scan (18)', sql: `CREATE TABLE sales (id serial PRIMARY KEY, region text, category text, sale_date date, amount numeric(10,2));
+      { label: 'Index order must match ORDER BY', sql: `CREATE INDEX IF NOT EXISTS ev_tenant_time ON events (tenant_id, created_at);
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY OFF)
+SELECT id FROM events ORDER BY tenant_id, created_at LIMIT 10;
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY OFF)
+SELECT id FROM events ORDER BY tenant_id DESC, created_at DESC LIMIT 10;
+
+-- mixed directions: the index order no longer matches
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY OFF)
+SELECT id FROM events ORDER BY tenant_id, created_at DESC LIMIT 10;
+
+CREATE INDEX IF NOT EXISTS ev_tenant_time_desc ON events (tenant_id, created_at DESC);
+EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY OFF)
+SELECT id FROM events ORDER BY tenant_id, created_at DESC LIMIT 10;
+DROP INDEX ev_tenant_time, ev_tenant_time_desc;`,
+        note: 'A B-tree can be read forwards or backwards, so one index serves `ORDER BY a, b` and `ORDER BY a DESC, b DESC` (`Index Scan Backward`). A **mixed** direction needs its own index `(tenant_id, created_at DESC)`: without it the plan runs an Incremental Sort over 5,001 rows (about 1,050 buffers) instead of reading 10 entries.' },
+      { label: 'Skip scan (18)', sql: `DROP TABLE IF EXISTS sales;
+CREATE TABLE sales (id serial PRIMARY KEY, region text, category text, sale_date date, amount numeric(10,2));
 INSERT INTO sales (region, category, sale_date, amount)
 SELECT (ARRAY['North','South','West'])[1 + i % 3],
        (ARRAY['Electronics','Clothing','Books','Home'])[1 + (i / 3) % 4],
@@ -267,7 +283,7 @@ WHERE c.contype = 'f'
     '**Partial** indexes need the query to imply the predicate at plan time. Great for queues, soft deletes and rare states.',
     '**Expression** indexes match only the identical expression. Run ANALYZE after creating one.',
     '**INCLUDE** columns enable index-only scans (needs all-visible pages, i.e. VACUUM). INCLUDE indexes are never deduplicated.',
-    'Unique indexes treat NULLs as distinct unless `NULLS NOT DISTINCT`. Build with `CREATE INDEX CONCURRENTLY` and check for INVALID leftovers.',
+    'Unique indexes treat NULLs as distinct unless `NULLS NOT DISTINCT`. Build with `CREATE INDEX CONCURRENTLY` and check for INVALID leftovers. See [B-Tree internals](/m4/btree) and [HOT updates and fillfactor](/m5/hot-fillfactor).',
   ],
   sources: ['indexes-multicolumn.html', 'indexes-partial.html', 'indexes-expressional.html', 'indexes-index-only-scans.html', 'indexes-unique.html', 'sql-createindex.html', 'monitoring-stats.html'],
 }

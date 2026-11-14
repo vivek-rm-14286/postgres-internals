@@ -54,7 +54,11 @@ function BucketViz({ step }: { step: number }) {
   const buckets = bs.slice(0, -1).map((b, i) => ({ lo: b, hi: bs[i + 1] })).filter((b) => b.hi > A0 && b.lo < A1)
   const bucketOf = (t: number) => buckets.findIndex((b) => t >= b.lo && t < b.hi)
   const stats = buckets.map((b) => { const r = READ.filter((p) => p.t >= b.lo && p.t < b.hi); return { n: r.length, avg: r.length ? r.reduce((a, p) => a + p.v, 0) / r.length : null } })
-  const args = [`'${WSQL[w]}'`, 'time', off !== '0' ? `"offset" => '${off} hours'` : '', org === 'sun' ? "origin => '2000-01-02'" : '', tz === 'berlin' ? "timezone => 'Europe/Berlin'" : ''].filter(Boolean)
+  // only the time-zone overload takes origin and offset together; without a zone the offset is folded into the origin
+  const both = off !== '0' && org === 'sun' && tz === 'utc'
+  const args = [`'${WSQL[w]}'`, 'time',
+    both ? `origin => timestamptz '2000-01-02' + interval '${off} hours'` : off !== '0' ? `"offset" => '${off} hours'` : '',
+    !both && org === 'sun' ? "origin => '2000-01-02'" : '', tz === 'berlin' ? "timezone => 'Europe/Berlin'" : ''].filter(Boolean)
   const origin = `timestamptz '2000-01-0${org === 'mon' ? 3 : 2}'${off !== '0' ? ` + interval '${off} hours'` : ''}`
   const native = tz === 'utc'
     ? `date_bin('${WSQL[w]}', time, ${origin})`
@@ -113,7 +117,7 @@ function BucketViz({ step }: { step: number }) {
         w === '7d' ? (org === 'mon' ? 'Weekly buckets start on **Monday** because the default origin, 2000-01-03, was a Monday. Here the boundary falls on Mon 30 Mar.' : 'With `origin => \'2000-01-02\'` (a Sunday) weeks start on **Sunday**, so the boundary moves to 29 Mar.')
           : odd ? 'Buckets are cut on **Berlin wall-clock time** and converted back to UTC. The night clocks jump from 02:00 to 03:00 has one bucket that is **shorter by an hour**.'
             : tz === 'berlin' ? 'Berlin midnight is 23:00 UTC before the switch and 22:00 UTC after it, so the boundaries shift by an hour across the dashed line.'
-              : off !== '0' ? `\`offset\` slides every boundary by ${off} hour${Math.abs(+off) > 1 ? 's' : ''}. It is the same as moving the origin.`
+              : off !== '0' ? `\`offset\` slides every boundary by ${off} hour${Math.abs(+off) > 1 ? 's' : ''}. It is the same as moving the origin${both ? ', which is how the call is written here: without a time zone, `time_bucket` takes an origin or an offset, not both' : ''}.`
                 : '`time_bucket` returns the **start** of the bucket each row falls into. Boundaries are origin + k × width, aligned on **UTC** by default. Every reading (dot) takes the colour of its bucket.'
       }</Md></p>
     </div>

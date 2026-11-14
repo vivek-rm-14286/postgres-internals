@@ -21,7 +21,7 @@ const cteSeq = (storage: string): PNode => ({ name: 'Seq Scan on orders', rows: 
 const steps: Step<CState>[] = [
   { title: 'Referenced once: the CTE is inlined', body: 'A plain, side-effect-free CTE used **once** is folded into the outer query, as if you wrote the subquery inline. The `customer_id = 42` filter reaches the table, so the **index** is used: 40 rows read.',
     state: { sql: `WITH c AS (SELECT * FROM orders)\nSELECT * FROM c WHERE customer_id = 42;`, plan: [bitmap], read: 40, hits: 42, storage: '0' } },
-  { title: 'MATERIALIZED: an optimization fence', body: '`AS MATERIALIZED` forces the CTE to run **on its own first**. All 20,000 rows are copied into a tuplestore, then the outer filter throws away 19,960 of them. The index is never considered.',
+  { title: 'MATERIALIZED: an optimization fence', body: '`AS MATERIALIZED` forces the CTE to run **on its own first**. All 20,000 rows are copied into a **tuplestore** (a temporary row buffer, in memory or spilled to disk), then the outer filter throws away 19,960 of them. The index is never considered.',
     state: { sql: `WITH c AS MATERIALIZED (\n  SELECT * FROM orders)\nSELECT * FROM c WHERE customer_id = 42;`, read: TOTAL, hits: 128, storage: '1066 kB',
       plan: [{ name: 'CTE Scan on c', rows: 40, t: 'new', detail: ['Filter: (customer_id = 42)', 'Rows Removed by Filter: 19960'] }, cteSeq('1066 kB')] } },
   { title: 'A volatile function blocks inlining', body: 'Inlining is only allowed when the CTE has **no side effects**. `random()` is volatile, so the CTE is materialized even without the keyword, with the same full scan.',
@@ -38,7 +38,7 @@ const steps: Step<CState>[] = [
       plan: [{ name: 'Nested Loop', rows: 1, t: 'muted', kids: [
         { name: 'Index Scan using orders_pkey on orders orders_1', rows: 1, t: 'ok', detail: ['Index Cond: (id = 123)'] },
         { name: 'Index Scan using orders_pkey on orders', rows: 1, t: 'ok', detail: ['Index Cond: (id = orders_1.customer_id)'] }] }] } },
-  { title: 'Data-modifying CTE: one snapshot for all', body: 'A CTE may UPDATE. It runs **exactly once, to completion**, but every part of the statement uses the **same snapshot**, so the outer SELECT still reads the old amount. Only `RETURNING` carries the new value out.',
+  { title: 'Data-modifying CTE: one snapshot for all', body: 'A CTE may UPDATE. It runs **exactly once, to completion**, but every part of the statement uses the **same snapshot** (one frozen view of the data, taken when the statement starts), so the outer SELECT still reads the old amount. Only `RETURNING` carries the new value out.',
     state: { sql: `WITH t AS (\n  UPDATE orders SET amount = amount * 2\n  WHERE id = 1 RETURNING amount)\nSELECT (SELECT amount FROM orders WHERE id = 1) AS table_sees,\n       (SELECT amount FROM t) AS returning_sees;`, read: 1, hits: 0, storage: '0',
       snapshot: { table: '1.99', returning: '3.98' } } },
 ]
@@ -72,7 +72,7 @@ function CteViz() {
         <Legend items={[['ok', 'index access: reads only what it needs'], ['pointer', 'index scan'], ['dead', 'full scan into the CTE'], ['new', 'scan of the materialized copy']]} />
         <div className="grid grid-cols-3 gap-2">
           <Stat label="rows read from orders" value={s.read.toLocaleString('en-US')} t={s.read > 100 ? 'dead' : 'ok'} />
-          <Stat label="shared buffers hit" value={s.snapshot ? 'n/a' : s.hits} t={s.hits > 100 ? 'dead' : 'ok'} />
+          <Stat label="shared buffers touched" value={s.snapshot ? 'n/a' : s.hits} t={s.hits > 100 ? 'dead' : 'ok'} />
           <Stat label="CTE tuplestore" value={s.storage === '0' ? 'none' : s.storage} t={s.storage === '0' ? 'ok' : 'new'} />
         </div>
         <div className="grid gap-3 md:grid-cols-[0.85fr_1.15fr]">
@@ -235,7 +235,7 @@ SELECT count(*) FROM base WHERE tenant_id = 42;`,
     '`AS MATERIALIZED` forces a fence; `AS NOT MATERIALIZED` forces inlining of every reference.',
     'Volatile functions, data-modifying statements and recursion always materialize.',
     'Data-modifying CTEs run once, to completion, on the **same snapshot**; use RETURNING to pass rows on.',
-    'In EXPLAIN, a `CTE Scan` node means materialized; no CTE node means inlined.',
+    'In [EXPLAIN](/m4/explain-analyze), a `CTE Scan` node means materialized; no CTE node means inlined.',
   ],
   sources: ['queries-with.html', 'sql-select.html', 'using-explain.html', 'dml-returning.html'],
 }

@@ -43,7 +43,7 @@ const s7 = age(s6)
 const steps: Step<DmlState>[] = [
   { title: 'An empty table and its identity sequence', body: '`id` is `GENERATED ALWAYS AS IDENTITY`, backed by a sequence. `sku` is the primary key, so it has a **unique index**. Nothing is stored yet.',
     state: { sql: `CREATE TABLE inventory (\n  id  int GENERATED ALWAYS AS IDENTITY,\n  sku text PRIMARY KEY,\n  qty int NOT NULL CHECK (qty >= 0));`, tag: 'CREATE TABLE', versions: [], issued: 0, burned: [] } },
-  { title: 'INSERT two rows (xid 756)', body: 'Each row becomes one **tuple** with `xmin` = 756 and `xmax` = 0. Both rows share one xid because one statement is one transaction. `RETURNING` hands back the generated ids, so no second query is needed.',
+  { title: 'INSERT two rows (xid 756)', body: 'Each row becomes one **tuple** with `xmin` = 756 and `xmax` = 0. `xmin` is the id of the transaction (**xid**) that created the version, `xmax` the one that deleted it (0 = nobody), and `ctid` is its address: (page, slot). The slot number is the line pointer, `lp`. Both rows share one xid because one statement is one transaction. `RETURNING` hands back the generated ids, so no second query is needed.',
     state: { sql: `INSERT INTO inventory (sku, qty)\nVALUES ('apple', 10), ('pear', 5)\nRETURNING id, sku, qty, xmin, ctid;`, tag: 'INSERT 0 2', versions: s1, issued: 2, burned: [],
       ret: { fields: ['id', 'sku', 'qty', 'xmin', 'ctid'], rows: [[1, 'apple', 10, 756, '(0,1)'], [2, 'pear', 5, 756, '(0,2)']] } } },
   { title: 'UPDATE never overwrites (xid 757)', body: 'The old apple version keeps its bytes and gets `xmax` = 757. A **new version** at `(0,3)` carries qty 7. PostgreSQL 18 lets `RETURNING` read both: `old.qty` = 10 and `new.qty` = 7.',
@@ -83,7 +83,7 @@ function VersionCard({ v, selected, onClick }: { v: Version; selected: boolean; 
       <div className="mt-0.5 flex flex-wrap items-center gap-x-3">
         <span className={gone ? 'line-through' : ''}>({v.id}, '{v.sku}', {v.qty})</span>
         <span className="text-[11px]">xmin <b>{v.xmin}</b></span>
-        <span className="text-[11px]" style={{ color: v.xmax && !v.lockOnly ? 'var(--c-dead)' : 'var(--muted)' }}>xmax <b>{v.xmax || '0'}</b>{v.lockOnly ? ' (lock only)' : ''}</span>
+        <span className="text-[11px]" style={{ color: v.xmax && !v.lockOnly ? 'var(--t-dead)' : 'var(--muted)' }}>xmax <b>{v.xmax || '0'}</b>{v.lockOnly ? ' (lock only)' : ''}</span>
       </div>
     </motion.button>
   )
@@ -320,8 +320,8 @@ UPDATE regions SET population = 1.002 WHERE name = 'Americas';  -- expect UPDATE
 -- tag says UPDATE 1? COMMIT;  anything else? ROLLBACK;` },
     { title: 'Get-or-create with a no-op DO UPDATE',
       symptom: 'A "find or insert" endpoint makes a hot table bloat, although almost every call finds an existing row.',
-      cause: '`ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email RETURNING id` returns the row, but every call writes a **new row version** (new ctid, a dead tuple, WAL, maybe index entries) and burns a sequence value.',
-      fix: 'Use `DO NOTHING RETURNING id` and fall back to a SELECT when nothing came back. Under concurrency the fallback SELECT can miss a row committed after the statement\'s snapshot, so retry once.',
+      cause: '`ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email RETURNING id` returns the row, but every call writes a **new row version** (new ctid, a dead tuple, WAL, maybe index entries). Both forms of ON CONFLICT also burn a sequence value per call.',
+      fix: 'Use `DO NOTHING RETURNING id` and fall back to a SELECT when nothing came back. Under concurrency the fallback SELECT can miss a row committed after the statement\'s snapshot, so retry once. `DO NOTHING` still consumes one sequence value per call (the default is computed before the conflict check), so on a hot path SELECT first and INSERT only on a miss, or use a `bigint` key.',
       sql: `WITH ins AS (
   INSERT INTO users (email) VALUES ($1)
   ON CONFLICT (email) DO NOTHING RETURNING id)
@@ -334,11 +334,11 @@ SELECT id FROM users WHERE email = $1 AND NOT EXISTS (SELECT 1 FROM ins);` },
       fix: 'Use `INSERT … ON CONFLICT DO UPDATE` for concurrent upserts. Use MERGE for batch synchronisation, where you need DELETE or `NOT MATCHED BY SOURCE`.' },
   ],
   pointers: [
-    'INSERT writes a tuple, DELETE sets its **xmax**, UPDATE does both: the old version stays until VACUUM.',
+    'INSERT writes a tuple, DELETE sets its **xmax**, UPDATE does both: the old version stays until VACUUM ([snapshots and visibility](/m5/snapshots-visibility)).',
     '`RETURNING` works on all four commands; PostgreSQL 18 adds `old.*` and `new.*` (old is NULL for INSERT, new is NULL for DELETE).',
     '`ON CONFLICT (cols)` infers its **arbiter** unique index; `EXCLUDED` is the proposed row; DO UPDATE never touches one row twice.',
     'MERGE gives each candidate row one status and runs the **first** matching WHEN clause; `merge_action()` tells you which.',
-    'Sequences are **not gapless**: upserts, failed inserts and rollbacks all burn values.',
+    'Sequences are **not gapless**: upserts, failed inserts and rollbacks all burn values. For bulk loads, `COPY` moves many rows in one command and one transaction, far faster than row-by-row INSERTs; it has no `ON CONFLICT`, so load a staging table and [upsert](/f4/upsert-dedup) from there.',
   ],
   sources: ['dml-insert.html', 'dml-update.html', 'dml-delete.html', 'dml-returning.html', 'sql-insert.html', 'sql-update.html', 'sql-merge.html', 'functions-merge-support.html', 'functions-sequence.html', 'sql-copy.html'],
 }

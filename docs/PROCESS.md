@@ -41,6 +41,8 @@ Each module agent follows `curriculum/_BUILD_BRIEF.md` (the round-2 addendum ove
 
 - `npm run check:lessons` checks template completeness and placeholder text. It fails on broken internal links, and it
   executes every setup and preset on PGlite in Node, with the lesson's extensions and server settings.
+- `npm run check:standalone` runs every playground example on a fresh database (setup plus that one example), so no
+  example depends on the one before it.
 - `npm run check:cookbook` checks that every reference solution is accepted and an empty wrong answer is rejected.
   Dataset ids must be unique.
 - `npm run build` runs a type-check and the static build. A generated manifest drives navigation and per-lesson chunks.

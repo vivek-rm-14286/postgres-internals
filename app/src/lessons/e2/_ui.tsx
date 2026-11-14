@@ -10,8 +10,8 @@ export function Btn({ children, onClick, primary, testid, disabled, title, activ
   return (
     <button type="button" onClick={onClick} data-testid={testid} disabled={disabled} title={title}
       className={primary
-        ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40'
-        : `rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-40 ${active ? 'border-accent bg-accent text-white' : 'border-line bg-surface hover:border-accent'}`}>
+        ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-40'
+        : `rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-40 ${active ? 'border-accent bg-accent text-on-accent' : 'border-line bg-surface hover:border-accent'}`}>
       {children}
     </button>
   )
@@ -22,7 +22,7 @@ export function Stat({ label, value, t, sub }: { label: string; value: ReactNode
     <div className="min-w-0 rounded-lg border border-line bg-surface-2 px-3 py-2">
       <p className="truncate text-[11px] tracking-wide text-muted uppercase">{label}</p>
       <motion.p key={String(value)} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className="font-mono text-lg font-bold tabular-nums"
-        style={t ? { color: tone(t) } : undefined}>{value}</motion.p>
+        style={t ? { color: tone.text(t) } : undefined}>{value}</motion.p>
       {sub && <p className="text-[11px] text-muted">{sub}</p>}
     </div>
   )
@@ -38,7 +38,7 @@ const edLabel: Record<Edition, string> = { apache: 'Apache 2 edition', community
 const edTone: Record<Edition, Tone> = { apache: 'ok', community: 'new', cloud: 'header' }
 /** Licensing badge: which TimescaleDB edition a feature needs. */
 export function EditionTag({ ed }: { ed: Edition }) {
-  return <span className="inline-block rounded px-1.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap" style={{ background: toneBg(edTone[ed], 18), color: tone(edTone[ed]) }}>{edLabel[ed]}</span>
+  return <span className="inline-block rounded px-1.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap" style={{ background: toneBg(edTone[ed], 18), color: tone.text(edTone[ed]) }}>{edLabel[ed]}</span>
 }
 
 export function Code({ children }: { children: string }) {

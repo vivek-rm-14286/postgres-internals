@@ -104,7 +104,7 @@ function StringWorkbench() {
         </Panel>
         <Panel title={outText !== null ? 'Output characters' : 'Output'}>
           {outText !== null ? <Tiles text={outText} changed={r.outChanged} prefix={`out-${f.id}`} />
-            : <motion.p key={String(r.out)} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="py-2 font-mono text-3xl font-bold" style={{ color: tone('pointer') }}>{r.out}</motion.p>}
+            : <motion.p key={String(r.out)} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="py-2 font-mono text-3xl font-bold" style={{ color: tone.text('pointer') }}>{r.out}</motion.p>}
         </Panel>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -207,27 +207,30 @@ SELECT id, email FROM customers WHERE email ILIKE 'ann.%';
 
 SELECT 'Ann.Lee@Example.COM'::citext = 'ann.lee@example.com' AS citext_equal;
 
--- The standard (BCP 47) spelling is locale = 'und-u-ks-level2'. This playground's ICU
--- ignores -u- settings, so it uses ICU's older keyword form, which means the same thing.
+-- 'und@colStrength=secondary' is the ICU keyword spelling of the BCP 47 locale
+-- 'und-u-ks-level2': compare letters, ignore case.
 CREATE COLLATION IF NOT EXISTS case_insensitive
   (provider = icu, locale = 'und@colStrength=secondary', deterministic = false);
-SELECT 'Ann' = 'ANN' COLLATE case_insensitive AS collation_equal,
-       'Ann' = 'ANN'                           AS default_equal;`,
-        note: 'Plain `=` finds 1 row; normalising with `lower(trim(...))` finds both Ann rows. `ILIKE`, the `citext` type and a **nondeterministic collation** are three more ways to ignore case.' },
+SELECT 'Ann' = 'ANN' COLLATE case_insensitive    AS collation_equal,
+       'Ann' LIKE 'an%' COLLATE case_insensitive AS like_too,
+       'Ann' = 'ANN'                              AS default_equal,
+       casefold('Ann.LEE')                        AS folded;`,
+        note: 'Plain `=` finds 1 row; normalising with `lower(trim(...))` finds both Ann rows. `ILIKE`, the `citext` type and a **nondeterministic collation** are three more ways to ignore case. On PostgreSQL 18 `LIKE` works with such a collation, and `casefold()` is the Unicode-aware alternative to `lower()` for comparisons.' },
     ],
   },
   production: {
     title: 'Duplicate sign-ups that differ only by case',
     context: 'A newsletter service stores whatever email the sign-up form sends. Mobile keyboards capitalise the first letter and some users paste a trailing space.',
     problem: '`Ann.Lee@Example.COM` and `ann.lee@example.com` are different strings, so the `UNIQUE (email)` constraint lets both in. Users get two copies of every mail, and unsubscribe only removes one.',
-    solution: 'Find the duplicates by grouping on a normalised value. Merge them, store the normalised form, and enforce uniqueness on `lower(email)` with an **expression index** so the database rejects new case-variants.',
+    solution: 'Find the duplicates by grouping on a normalised value. Merge them, store the normalised form, and enforce uniqueness on `lower(email)` with an **expression index** so the database rejects new case-variants. (An index is a lookup structure the database maintains; see [Indexes for beginners](/f3/indexes-101).)',
     sql: `-- 1. find duplicates
 SELECT lower(trim(email)) AS normalised, count(*), array_agg(id ORDER BY id) AS ids
 FROM customers
-GROUP BY 1
+GROUP BY 1                 -- 1 = the first output column
 HAVING count(*) > 1;
 
--- 2. keep the oldest row of each group (after moving its history over)
+-- 2. keep the oldest row of each group (after moving its history over);
+--    USING joins the table to itself: delete a where an older twin b exists
 DELETE FROM customers a USING customers b
 WHERE lower(trim(a.email)) = lower(trim(b.email)) AND a.id > b.id;
 
@@ -252,7 +255,7 @@ INSERT INTO customers (id, email) VALUES (7, 'ANN.LEE@example.com');  -- ERROR: 
     { title: 'regexp_matches silently drops rows',
       symptom: 'Adding a regex column to a SELECT makes some rows disappear from the result.',
       cause: '`regexp_matches` is a set-returning function: it returns zero rows when there is no match, which removes the row.',
-      fix: 'Use `regexp_match` (one result or NULL) when you want the first match, or wrap it: `(SELECT regexp_matches(col, pat))`.' },
+      fix: 'Use `regexp_match` (one result or NULL) when you want the first match, or, without the `g` flag, wrap it: `(SELECT regexp_matches(col, pat))`.' },
     { title: 'Case-insensitive search that scans the whole table',
       symptom: '`WHERE lower(email) = $1` is slow on a big table even though `email` has an index.',
       cause: 'An index on `email` stores the original values. It cannot answer a question about `lower(email)`.',

@@ -78,7 +78,7 @@ function buildSteps(mode: Mode, filter: Filter): Step<JState>[] {
       const nulls = evals.filter((e) => e === null).length
       body = hits.length
         ? `**${t.name}** matches ${hits.map((p) => p.name).join(' and ')}: ${hits.length} output row${hits.length > 1 ? 's' : ''}.${nulls && mode !== 'cross' ? ` \`NULL = ${t.id}\` is **NULL, not true**, so Dee and Eli never match.` : ''}`
-        : outer ? `Nothing matches **${t.name}**. A ${mode.toUpperCase()} join still emits it once, **NULL-extended** on the right.` : `Nothing matches **${t.name}**, and an ${mode.toUpperCase()} join drops unmatched rows.`
+        : outer ? `Nothing matches **${t.name}**. A ${mode.toUpperCase()} join still emits it once, **NULL-extended** on the right.` : `Nothing matches **${t.name}**, and ${mode === 'right' ? 'a RIGHT' : 'an INNER'} join drops unmatched **left** rows.`
       const blocked = f === 'on' ? PLAYERS.filter((p) => p.team_id === t.id && !p.active) : []
       if (blocked.length) body += ` ${blocked.map((p) => p.name).join(', ')} fails \`p.active\` inside ON, so it simply does not match.`
     }
@@ -93,7 +93,7 @@ function buildSteps(mode: Mode, filter: Filter): Step<JState>[] {
   if (f === 'where') {
     const kept = rows.map((r) => ({ ...r, dim: r.cells[4] !== 'true', note: r.cells[4] === null ? 'p.active is NULL: not true' : undefined }))
     const removed = kept.filter((r) => r.dim).length
-    steps.push({ title: 'WHERE p.active runs after the join', body: `The filter sees the **joined** rows. NULL-extended rows have \`p.active\` = NULL, which is not true, so they go too: ${removed} of ${rows.length} rows removed.${mode === 'left' ? ' The LEFT JOIN has quietly become an inner join.' : ''}`,
+    steps.push({ title: 'WHERE p.active runs after the join', body: `The filter sees the **joined** rows.${rows.some((r) => r.cells[4] === null) ? ' NULL-extended rows have `p.active` = NULL, which is not true, so they go too:' : ''} ${removed} of ${rows.length} rows removed.${mode === 'left' ? ' The LEFT JOIN has quietly become an inner join.' : ''}`,
       state: { phase: 'where', cur: null, evals: [], rows: kept, matched: new Set(matched) } })
     const final = rows.filter((r) => r.cells[4] === 'true')
     steps.push({ title: `Result: ${final.length} rows`, body: f === 'where' && mode === 'left' ? 'Compare with the **ON** filter: there the condition decides *matching*, so Bears and Wolves survive as NULL-extended rows (4 rows, not 2).' : 'Rows that failed the WHERE test are gone.',
@@ -351,7 +351,7 @@ GROUP BY c.id, c.name;`,
     { title: 'Expecting NULL keys to match',
       symptom: 'Rows with a NULL `region` vanish from a join that compares `a.region = b.region`.',
       cause: 'NULL compared with anything, NULL included, is NULL. Join conditions keep only true pairs.',
-      fix: 'Use `a.region IS NOT DISTINCT FROM b.region` if NULLs should pair up, knowing it cannot use a plain hash or merge join as efficiently.' },
+      fix: 'Use `a.region IS NOT DISTINCT FROM b.region` if NULLs should pair up, knowing that it is not hash- or merge-joinable: the planner falls back to a nested loop, which is slow on large inputs.' },
     { title: 'Set operators without parentheses',
       symptom: 'A "differences in both directions" query built from EXCEPT and UNION misses or keeps the wrong rows.',
       cause: '`UNION` and `EXCEPT` have the **same precedence** and group left to right (`INTERSECT` binds tighter). `A EXCEPT B UNION C EXCEPT D` means `((A EXCEPT B) UNION C) EXCEPT D`.',
@@ -368,7 +368,7 @@ SELECT 'x' UNION (SELECT 'y' EXCEPT SELECT 'x');  -- x, y` },
     'ON decides *matching*; WHERE filters *after* the join. They differ only for outer joins.',
     '`NULL = NULL` is NULL, so NULL keys never join. Use `IS NOT DISTINCT FROM` deliberately.',
     '`EXISTS` / `NOT EXISTS` are **semi- and anti-joins**: they never duplicate the left row.',
-    'Prefer `USING` or `ON` over `NATURAL`; join algorithms (nested loop, hash, merge) are covered in m4.',
+    'Prefer `USING` or `ON` over `NATURAL`; the join algorithms (nested loop, hash, merge) are in [Reading EXPLAIN (ANALYZE, BUFFERS)](/m4/explain-analyze).',
   ],
   sources: ['queries-table-expressions.html', 'tutorial-join.html', 'sql-select.html', 'functions-subquery.html', 'functions-comparison.html'],
 }

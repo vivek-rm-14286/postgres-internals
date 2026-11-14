@@ -79,7 +79,7 @@ function SmellViz() {
       <div className="flex flex-wrap gap-1.5">
         {SMELLS.map((x, k) => (
           <button key={x.id} type="button" onClick={() => { setI(k); setView('before') }}
-            className={`rounded-md px-2 py-1 text-[11.5px] font-medium ${k === i ? 'bg-accent text-white' : 'border border-line text-muted hover:text-ink'}`}>{k + 1}. {x.name}</button>
+            className={`rounded-md px-2 py-1 text-[11.5px] font-medium ${k === i ? 'bg-accent text-on-accent' : 'border border-line text-muted hover:text-ink'}`}>{k + 1}. {x.name}</button>
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -222,13 +222,15 @@ SELECT u.id, count(o.id) AS orders, coalesce(sum(o.amount), 0) AS total
 FROM users u LEFT JOIN orders o ON o.user_id = u.id
 WHERE u.id <= 5 GROUP BY u.id ORDER BY u.id;`,
         note: 'One statement fetches all 50 users\' orders: one round trip, one plan, and a single Bitmap Index Scan with `user_id = ANY(…)` that returns every matching row (400 after preset 4\'s import, 300 without it) for about 300 buffers, against about 500 for 50 separate queries. A join with GROUP BY replaces a per-row loop entirely.' },
-      { label: '7. Indexes that never get used', sql: `SELECT relname AS table_name, seq_scan, idx_scan
+      { label: '7. Indexes that never get used', sql: `SELECT pg_stat_force_next_flush();
+
+SELECT relname AS table_name, seq_scan, idx_scan
 FROM pg_stat_user_tables ORDER BY seq_scan DESC;
 
 SELECT indexrelname AS index_name, idx_scan,
        pg_size_pretty(pg_relation_size(indexrelid)) AS size
 FROM pg_stat_user_indexes ORDER BY idx_scan, indexrelname;`,
-        note: 'Indexes with `idx_scan = 0` after a representative workload cost writes and space for nothing (here `users_email`, made redundant by the `lower(email)` index). A primary key or unique index at 0 still enforces its constraint, so keep it. Check replicas too before dropping one.' },
+        note: 'Indexes with `idx_scan = 0` after a representative workload cost writes and space for nothing (here `users_email`: every lookup in this lesson goes through `lower(email)`, so nothing reads the plain index). A primary key or unique index at 0 still enforces its constraint, so keep it. Check replicas too before dropping one.' },
     ],
   },
   production: {
@@ -265,13 +267,19 @@ ANALYZE orders;`,
       symptom: 'Writes slow down and the database grows, while reads do not improve.',
       cause: 'Every index is updated on every insert and non-HOT update, and unused indexes are pure cost.',
       fix: 'Index for the queries you actually run (check `pg_stat_statements`), and drop indexes that stay at `idx_scan = 0`.' },
+    { title: 'Hundreds of open connections',
+      symptom: 'Latency rises with the number of application instances, and `pg_stat_activity` is full of `idle` and `idle in transaction` sessions.',
+      cause: 'Every connection is a server process with its own memory. Opening one per request pays the startup cost each time, and a session left idle inside a transaction keeps its locks and holds back VACUUM.',
+      fix: 'Reuse a small pool of connections, keep transactions short, and set `idle_in_transaction_session_timeout`. See [Connection pooling](/m7/connection-pooling).',
+      sql: `SELECT state, count(*) FROM pg_stat_activity
+WHERE backend_type = 'client backend' GROUP BY state ORDER BY 2 DESC;` },
   ],
   pointers: [
     'Find: `pg_stat_statements` sorted by **total time** and by **calls**.',
     'Read: estimated vs **actual rows × loops**, **Rows Removed by Filter**, buffers, **external merge**.',
     'Fix: expression index or half-open range for wrapped columns, matching parameter types, `ANALYZE` after loads, batch N+1.',
     'Measure: compare **shared buffers** before and after; timings vary, buffer counts are stable.',
-    'Going deeper: [EXPLAIN ANALYZE](/m4/explain-analyze) and [Planner statistics](/m4/statistics) explain every number in a plan.',
+    '**Going deeper:** [EXPLAIN ANALYZE](/m4/explain-analyze) and [Planner statistics](/m4/statistics) explain every number in a plan.',
   ],
   sources: ['using-explain.html', 'sql-explain.html', 'indexes-expressional.html', 'typeconv-oper.html', 'planner-stats.html', 'runtime-config-resource.html', 'pgstatstatements.html', 'monitoring-stats.html', 'performance-tips.html'],
 }

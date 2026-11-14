@@ -92,7 +92,7 @@ function ShardMapViz() {
         <div className="grid gap-1 rounded-lg border border-line bg-surface-2 px-3 py-2 font-mono text-[12px]">
           <span><span className="text-muted">hashint4({key}) =</span> <b>{token}</b></span>
           <span><span className="text-muted">shard index = floor((token + 2³¹) / 134217728) =</span> <b>{shard}</b></span>
-          <span><span className="text-muted">shard =</span> <b>campaigns_{BASE.campaigns + shard}</b> <span className="text-muted">on</span> <b style={{ color: tone(WT[home]) }}>worker {home + 1}</b></span>
+          <span><span className="text-muted">shard =</span> <b>campaigns_{BASE.campaigns + shard}</b> <span className="text-muted">on</span> <b style={{ color: tone.text(WT[home]) }}>worker {home + 1}</b></span>
         </div>
       )}
 
@@ -104,7 +104,7 @@ function ShardMapViz() {
           const adsMine = Array.from({ length: SHARDS }, (_, i) => i).filter((i) => (coloc === 'default' ? i : i + 1) % workers === w)
           return (
             <motion.div key={w} layout className="min-w-0 rounded-lg border p-2" style={{ borderColor: tone(WT[w]), background: toneBg(WT[w], 6) }}>
-              <p className="mb-1 text-xs font-bold" style={{ color: tone(WT[w]) }}>worker {w + 1}</p>
+              <p className="mb-1 text-xs font-bold" style={{ color: tone.text(WT[w]) }}>worker {w + 1}</p>
               {mode === 'schema' ? (
                 <div className="flex flex-wrap gap-1">
                   {TENANTS.map((t, i) => schemaHome(i) === w && <ShardChip key={t} id={`${t}.*`} t={WT[w]} hot={i === tenant} />)}
@@ -281,7 +281,7 @@ SELECT table_name, citus_table_type, distribution_column, colocation_id, shard_c
     '`pg_dist_shard` stores each shard\'s token range, `pg_dist_placement` its node. The coordinator routes a query that pins the key to one shard.',
     '**Colocated** tables share ranges and placements, so joins and foreign keys on the key stay local. **Reference** tables are copied to every worker and written with 2PC.',
     'Primary keys and unique constraints must **include the distribution column**, the same rule as for [partitioned tables](/m7/partitioning). Foreign keys work between colocated tables on the key, or to reference tables.',
-    'Schema-based sharding (Citus 12+) distributes whole schemas, one per node, for apps with up to thousands of tenants and no tenant column.',
+    'Schema-based sharding (Citus 12+) distributes whole schemas, each kept entirely on one node, for apps with up to thousands of tenants and no tenant column. The theory of splitting tables: [fragmentation, allocation and replication](/e5/fragmentation-replication).',
   ],
   sources: ['ddl-partitioning.html', 'ddl-constraints.html', 'functions-info.html', 'ddl-schemas.html'],
 }

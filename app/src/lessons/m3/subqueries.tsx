@@ -312,7 +312,7 @@ ALTER TABLE unsubscribes ALTER COLUMN customer_id SET NOT NULL;`,
     '`IN` = `= ANY`, `NOT IN` = `<> ALL`. With a NULL in the list and no match, both give **NULL**.',
     'Empty subquery: `IN`/`ANY` → false, `NOT IN`/`ALL` → true.',
     'A scalar subquery with 0 rows is NULL; with 2+ rows it is an **error**.',
-    'IN/EXISTS plan as **semi-joins**, NOT EXISTS as an **anti-join**; NOT IN stays a SubPlan filter.',
+    'IN/EXISTS plan as [semi-joins](/m3/joins), NOT EXISTS as an **anti-join**; NOT IN stays a SubPlan filter.',
   ],
   sources: ['functions-subquery.html', 'functions-comparisons.html', 'queries-table-expressions.html', 'sql-expressions.html', 'using-explain.html'],
 }

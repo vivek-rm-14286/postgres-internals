@@ -21,6 +21,9 @@
   --c-free: #e9edf2;    /* free space */
   --c-ok: #2e9a3f;
   --line: var(--border); /* alias used by some visualizers */
+  /* Text shades of the data colours: dark enough for small text (4.5:1) on white, surface-2 and their own tints. */
+  --t-ok: #1b6e2b; --t-new: #8a5800; --t-pointer: #086e67; --t-tuple: #09649a; --t-dead: #b0352f;
+  --on-accent: #ffffff; /* text on an accent or data-colour fill */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -28,6 +31,7 @@
     --bg: #0d1117; --surface: #131a23; --surface-2: #1a2330; --border: #273242; --text: #e6edf3; --muted: #93a1b3;
     --accent: #6aa8ff; --accent-soft: #16263d; --code-bg: #0f151d;
     --c-header: #a594ff; --c-pointer: #2fd1c2; --c-tuple: #4cc0f5; --c-dead: #f07167; --c-new: #f5b85c; --c-free: #1c2531; --c-ok: #7bd862;
+    --t-ok: var(--c-ok); --t-new: var(--c-new); --t-pointer: var(--c-pointer); --t-tuple: var(--c-tuple); --t-dead: var(--c-dead); --on-accent: #0d1117;
     color-scheme: dark;
   }
 }
@@ -35,12 +39,13 @@
   --bg: #0d1117; --surface: #131a23; --surface-2: #1a2330; --border: #273242; --text: #e6edf3; --muted: #93a1b3;
   --accent: #6aa8ff; --accent-soft: #16263d; --code-bg: #0f151d;
   --c-header: #a594ff; --c-pointer: #2fd1c2; --c-tuple: #4cc0f5; --c-dead: #f07167; --c-new: #f5b85c; --c-free: #1c2531; --c-ok: #7bd862;
+    --t-ok: var(--c-ok); --t-new: var(--c-new); --t-pointer: var(--c-pointer); --t-tuple: var(--c-tuple); --t-dead: var(--c-dead); --on-accent: #0d1117;
   color-scheme: dark;
 }
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -57,6 +62,13 @@
   --color-new: var(--c-new);
   --color-free: var(--c-free);
   --color-ok: var(--c-ok);
+  --color-on-accent: var(--on-accent);
+  /* Data colours used as text get a darker shade in light mode; fills and borders keep the brighter --c-* colour. */
+  --text-color-ok: var(--t-ok);
+  --text-color-new: var(--t-new);
+  --text-color-pointer: var(--t-pointer);
+  --text-color-tuple: var(--t-tuple);
+  --text-color-dead: var(--t-dead);
 }
 
 html, body { background: var(--bg); color: var(--text); }

@@ -322,7 +322,7 @@ function Replication() {
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="rounded border border-line px-2 py-0.5 font-mono">client sees: {s.ack}</span>
-            {s.lost !== undefined && <span className="rounded border px-2 py-0.5 font-mono" style={{ borderColor: tone(s.lost ? 'dead' : 'ok'), color: tone(s.lost ? 'dead' : 'ok') }}>acknowledged writes lost: {s.lost}</span>}
+            {s.lost !== undefined && <span className="rounded border px-2 py-0.5 font-mono" style={{ borderColor: tone(s.lost ? 'dead' : 'ok'), color: tone.text(s.lost ? 'dead' : 'ok') }}>acknowledged writes lost: {s.lost}</span>}
           </div>
         </div>
       )} />
@@ -462,6 +462,15 @@ SELECT count(*) FILTER (WHERE ring_owner(h) <> b.ring_node) AS ring_moved,
 FROM keys JOIN before b USING (k);
 SELECT ring_owner(h) AS node, count(*) AS keys FROM keys GROUP BY 1 ORDER BY 1;`,
         note: 'The hash function and token formula match the visualizer exactly, so the counts agree: with 16 vnodes the ring moves 3,006 keys, modulo moves 7,986, and the minimum is 2,000. The per-node counts show the remaining imbalance.' },
+      { label: 'Allocation: which site stores each fragment', sql: `DROP TABLE IF EXISTS allocation;
+CREATE TABLE allocation (fragment regclass, site text, PRIMARY KEY (fragment, site));
+INSERT INTO allocation VALUES
+  ('customers_eu', 'fra-1'), ('customers_eu', 'ams-1'),
+  ('customers_us', 'nyc-1'), ('customers_apac', 'sin-1');
+
+SELECT fragment, count(*) AS copies, string_agg(site, ', ' ORDER BY site) AS sites
+FROM allocation GROUP BY fragment ORDER BY fragment::text;`,
+        note: 'Allocation is this table: one row per fragment and site. The EU fragment is **partially replicated** (2 copies, on 2 of the 4 sites); the other two are stored once (**partitioned** allocation). A copy on every site would be full replication.' },
       { label: 'Snapshot and partial replication', sql: `-- snapshot replication: a copy taken at one moment
 CREATE MATERIALIZED VIEW eu_snapshot AS SELECT id, tier, balance FROM customers WHERE region = 'EU';
 UPDATE customers SET balance = balance + 100 WHERE region = 'EU' AND id <= 30;
@@ -515,7 +524,7 @@ SELECT pg_reload_conf();` },
   pointers: [
     'Correctness rules: **completeness** (every item in some fragment), **reconstruction** (union for horizontal, join on the key for vertical), **disjointness** (stored once; vertical fragments repeat only the key).',
     '**Derived horizontal fragmentation** places member rows with their owner: orders_i = orders ⋉ customers_i. The foreign key keeps it complete and disjoint, and makes joins on the key local.',
-    'Allocation is partitioned, partially replicated or fully replicated. Replication is **synchronous** (no acknowledged loss, slower commits) or **asynchronous** (fast, loses the lag on failover); active-active adds write conflicts.',
+    'Allocation is partitioned, partially replicated or fully replicated. Replication is **synchronous** (no acknowledged loss, slower commits) or **asynchronous** (fast, loses the lag on failover); active-active adds write conflicts. In practice: [failover with HA clusters](/e3/ha-clusters) and [conflicts in multi-master](/e3/distributed-sql-multimaster); how copies agree on a commit is in [Distributed transactions and consensus](/e5/commit-and-consensus).',
     '**Consistent hashing** moves about 1/(N+1) of keys when a node joins; modulo moves about N/(N+1). **Virtual nodes** even out the load; **fixed ranges** decouple partitioning from placement, as Citus shards do in [sharding with Citus](/e3/sharding-citus).',
     'In PostgreSQL, fragments are [partitions](/m7/partitioning), and replicas come from [streaming](/m7/streaming-replication) or [logical replication](/m7/logical-replication).',
   ],

@@ -72,7 +72,7 @@ function render(seg: Seg, st: St) {
               <div className="grid gap-1">
                 {g.map((r, ri) => (
                   <div key={r.i}>
-                    {k === 'batch' && ri % 4 === 0 && <p className="mt-1 font-mono text-[10.5px] font-semibold" style={{ color: tone('accent') }}>batch {Math.floor(ri / 4) + 1}</p>}
+                    {k === 'batch' && ri % 4 === 0 && <p className="mt-1 font-mono text-[10.5px] font-semibold" style={{ color: tone.text('accent') }}>batch {Math.floor(ri / 4) + 1}</p>}
                     <RowLine r={r} />
                   </div>
                 ))}
@@ -94,7 +94,7 @@ function render(seg: Seg, st: St) {
       <div className="grid gap-2">
         {k === 'update' && (
           <motion.div layout className="rounded-lg border p-2" style={{ borderColor: tone('new'), background: toneBg('new', 8) }}>
-            <p className="mb-1 font-mono text-[11px]" style={{ color: tone('new') }}>rowstore part of the chunk (decompressed by the UPDATE)</p>
+            <p className="mb-1 font-mono text-[11px]" style={{ color: tone.text('new') }}>rowstore part of the chunk (decompressed by the UPDATE)</p>
             <div className="grid gap-1">{bs.filter(updated)[0].rows.map((r) => <RowLine key={r.i} r={r.i === UPDATE_ROW ? { ...r, temp: 19.3 } : r} hl={r.i === UPDATE_ROW} />)}</div>
           </motion.div>
         )}
@@ -108,11 +108,11 @@ function render(seg: Seg, st: St) {
               <motion.div layout key={bi} animate={{ opacity: dim ? 0.4 : 1 }} className="min-w-0 rounded-lg border p-2"
                 style={{ borderColor: hot ? tone('ok') : 'var(--border)', background: hot ? toneBg('ok', 10) : 'var(--surface)', borderStyle: dim ? 'dashed' : 'solid' }}>
                 <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10.5px] text-muted">
-                  <span className="font-semibold" style={{ color: tone('accent') }}>compressed row {bi + 1}</span>
+                  <span className="font-semibold" style={{ color: tone.text('accent') }}>compressed row {bi + 1}</span>
                   <span>count={b.rows.length}</span>
                   <span>min_time={ts(b.rows[0].sec)}</span>
                   <span>max_time={ts(b.rows[b.rows.length - 1].sec)}</span>
-                  {k === 'query' && <span className="font-semibold" style={{ color: tone(hot ? 'ok' : 'muted') }}>{hot ? 'decompressed' : seg === 'device' && b.seg !== QUERY_DEV ? `skipped: device ≠ ${QUERY_DEV}` : 'skipped: max_time < 10:01:00'}</span>}
+                  {k === 'query' && <span className="font-semibold" style={{ color: tone.text(hot ? 'ok' : 'muted') }}>{hot ? 'decompressed' : seg === 'device' && b.seg !== QUERY_DEV ? `skipped: device ≠ ${QUERY_DEV}` : 'skipped: max_time < 10:01:00'}</span>}
                 </div>
                 <div className="grid gap-1">
                   <div className="flex flex-wrap items-center gap-1"><span className="w-14 font-mono text-[10.5px] text-muted">device</span>
@@ -124,7 +124,7 @@ function render(seg: Seg, st: St) {
                     {b.rows.map((r) => <Cell key={r.i} id={`t${r.i}`} t="pointer">{ts(r.sec)}</Cell>)}
                   </div>
                   {(k === 'encode') && b.rows.length > 1 && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-15 font-mono text-[10.5px]" style={{ color: tone('ok') }}>
+                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-15 font-mono text-[10.5px]" style={{ color: tone.text('ok') }}>
                       first {ts(b.rows[0].sec)}, deltas [{d.join(', ')}]s{dd.length ? `, delta-of-delta [${dd.join(', ')}]` : ''}
                     </motion.p>
                   )}
@@ -132,7 +132,7 @@ function render(seg: Seg, st: St) {
                     {b.rows.map((r) => <Cell key={r.i} id={`v${r.i}`} t="tuple">{r.temp.toFixed(1)}</Cell>)}
                   </div>
                   {(k === 'encode') && b.rows.length > 1 && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-mono text-[10.5px]" style={{ color: tone('ok') }}>
+                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-mono text-[10.5px]" style={{ color: tone.text('ok') }}>
                       XOR with previous value: {b.rows.slice(1).map((r, i) => (r.temp === b.rows[i].temp ? '0 (repeat)' : '≠0')).join(', ')}
                     </motion.p>
                   )}
@@ -190,6 +190,18 @@ function ColumnstoreViz() {
 
 /* ------------------------------------------------------------------------------------------------ */
 
+/* The columnar copy is built by the setup and rebuilt (DROP + CREATE) by the example that teaches it, so the
+ * later examples run on a fresh database. */
+const COLUMNAR = `CREATE TABLE ticks_columnar AS
+SELECT symbol,                                 -- segmentby
+       (rn - 1) / 1000          AS batch,      -- up to 1000 rows per batch
+       count(*)                 AS n,
+       min(time) AS min_time, max(time) AS max_time,   -- batch metadata
+       array_agg(time  ORDER BY time) AS times,        -- orderby time
+       array_agg(price ORDER BY time) AS prices
+FROM (SELECT *, row_number() OVER (PARTITION BY symbol ORDER BY time) AS rn FROM ticks) s
+GROUP BY symbol, (rn - 1) / 1000;`
+
 export const lesson: Lesson = {
   slug: 'compression-columnstore',
   module: 'e2',
@@ -212,7 +224,9 @@ CREATE TABLE ticks (time timestamptz NOT NULL, symbol text NOT NULL, price doubl
 INSERT INTO ticks
 SELECT timestamptz '2026-01-05' + make_interval(secs => i), (ARRAY['BTC','ETH','SOL'])[1 + i % 3], 100 + (i % 50)
 FROM generate_series(1, 30000) i;
-ANALYZE ticks;`,
+ANALYZE ticks;
+-- the same ticks as columnar batches (rebuilt step by step in "Build columnar batches")
+${COLUMNAR}`,
     presets: [
       { label: 'The rowstore', sql: `SELECT count(*) AS row_count,
        pg_relation_size('ticks') / 8192 AS pages,
@@ -222,15 +236,8 @@ FROM ticks;
 
 SELECT pg_column_size(t.*) AS bytes_per_row FROM ticks t LIMIT 1;`,
         note: '30,000 rows in 192 pages (**1568 kB**), 156 rows per page. Each row carries its own header and repeats the symbol text.' },
-      { label: 'Build columnar batches', sql: `CREATE TABLE ticks_columnar AS
-SELECT symbol,                                 -- segmentby
-       (rn - 1) / 1000          AS batch,      -- up to 1000 rows per batch
-       count(*)                 AS n,
-       min(time) AS min_time, max(time) AS max_time,   -- batch metadata
-       array_agg(time  ORDER BY time) AS times,        -- orderby time
-       array_agg(price ORDER BY time) AS prices
-FROM (SELECT *, row_number() OVER (PARTITION BY symbol ORDER BY time) AS rn FROM ticks) s
-GROUP BY symbol, (rn - 1) / 1000;
+      { label: 'Build columnar batches', sql: `DROP TABLE IF EXISTS ticks_columnar;
+${COLUMNAR}
 
 SELECT pg_size_pretty(pg_total_relation_size('ticks'))          AS rowstore,
        pg_size_pretty(pg_total_relation_size('ticks_columnar')) AS columnar,
@@ -259,7 +266,8 @@ ORDER BY u.t;`,
 FROM ticks WHERE symbol = 'BTC'
 WINDOW w AS (ORDER BY time) ORDER BY time LIMIT 6;`,
         note: 'Within one segment ticks arrive every 3 seconds, so **delta-of-delta is 0** for every row: a 64-bit timestamp shrinks to about a bit. Prices step by a constant 3, which run-length and delta encodings capture too.' },
-      { label: 'Choosing segmentby', sql: `CREATE TABLE ticks_no_segment AS
+      { label: 'Choosing segmentby', sql: `DROP TABLE IF EXISTS ticks_no_segment, ticks_unique_segment;
+CREATE TABLE ticks_no_segment AS
 SELECT (rn - 1) / 1000 AS batch, array_agg(time ORDER BY time) AS times,
        array_agg(price ORDER BY time) AS prices, array_agg(symbol ORDER BY time) AS symbols
 FROM (SELECT *, row_number() OVER (ORDER BY time) AS rn FROM ticks) s GROUP BY 1;
@@ -289,7 +297,7 @@ SELECT n_tup_upd, n_tup_hot_upd FROM pg_stat_xact_user_tables WHERE relname = 't
     title: 'Keeping a year of market ticks on one server',
     context: 'A trading-analytics team stores every tick for about 2,000 symbols in a hypertable with 1-day chunks. Analysts query one symbol over weeks or months; only the last day still receives inserts.',
     problem: 'A year of rowstore chunks filled the disk, and month-long scans read every column of every row even though they used only time and price.',
-    solution: 'Enable the columnstore with `segmentby = symbol` (filtered on, moderate cardinality) and `orderby = time DESC`, and convert chunks once they stop receiving writes. The columnstore is a **Community edition** feature: it is not in the Apache 2 edition, and Neon does not offer it. Old names from before 2.18 still work but are deprecated.',
+    solution: 'Enable the columnstore with `segmentby = symbol` (filtered on, moderate cardinality) and `orderby = time DESC`, and convert chunks once they stop receiving writes. The columnstore is a **Community edition** feature: it is not in the Apache 2 edition. Old names from before 2.18 still work but are deprecated.',
     sql: `ALTER TABLE ticks SET (
   timescaledb.enable_columnstore,          -- before 2.18: timescaledb.compress
   timescaledb.segmentby = 'symbol',        -- before 2.18: timescaledb.compress_segmentby

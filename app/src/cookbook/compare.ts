@@ -13,9 +13,16 @@ export interface Verdict {
 /** The result set that gets compared: the last statement that returned columns. */
 const lastRows = (out: RunOutput) => [...out.results].reverse().find((r) => r.fields.length > 0)
 
+/** JSON replacer: object keys in sorted order, so two JSON documents that differ only in key order compare equal. Arrays keep their order. */
+const sortKeys = (_k: string, x: unknown) =>
+  x && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype
+    ? Object.fromEntries(Object.entries(x as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    : x
+
 const norm = (v: unknown) => {
   if (typeof v === 'number') return Number.isInteger(v) ? String(v) : String(Math.round(v * 1e6) / 1e6)
-  const s = formatCell(v)
+  const plain = v !== null && typeof v === 'object' && !(v instanceof Date) && !(v instanceof Uint8Array)
+  const s = plain ? JSON.stringify(v, sortKeys) : formatCell(v)
   // numeric comes back as a string: compare 2.50 and 2.5 as equal
   return /^-?\d+\.\d+$/.test(s) ? String(Math.round(parseFloat(s) * 1e6) / 1e6) : s
 }

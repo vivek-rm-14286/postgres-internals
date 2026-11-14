@@ -240,11 +240,11 @@ function Candlestick({ step }: { step: number }) {
         </svg>
       </div>
       <Panel title="Toolkit SQL being simulated">
-        <Code>{step < 8 ? `SELECT time_bucket('1 minute', ts) AS minute,
-       open(c), high(c), low(c), close(c), volume(c), vwap(c)
-FROM (SELECT ts, candlestick_agg(ts, price, volume) AS c
+        <Code>{step < 8 ? `SELECT minute, open(c), high(c), low(c), close(c), volume(c), vwap(c)
+FROM (SELECT time_bucket('1 minute', ts) AS minute,
+             candlestick_agg(ts, price, volume) AS c
       FROM ticks WHERE symbol = 'ACME'
-      GROUP BY time_bucket('1 minute', ts)) t;` : `-- candles_1m stores candlestick_agg(ts, price, volume) per minute
+      GROUP BY minute) t;` : `-- candles_1m stores candlestick_agg(ts, price, volume) per minute
 SELECT time_bucket('2 minutes', minute) AS bucket,
        open(rollup(c)), high(rollup(c)), low(rollup(c)),
        close(rollup(c)), volume(rollup(c)), vwap(rollup(c))
@@ -758,7 +758,7 @@ WHERE p.pronamespace = 'toolkit_experimental'::regnamespace;` },
     '`time_weight(\'LOCF\' | \'linear\', ts, v)`: the area under the curve divided by elapsed time. One point gives NULL; `interpolated_average` fills bucket edges from neighbours.',
     '`candlestick_agg(ts, price, volume)`: open/close by time, high/low, volume and VWAP = Σ(price·volume) / Σvolume, all mergeable.',
     'UddSketch buckets values at ⌈log_γ x⌉, so merging adds counts and keeps a relative error bound (0.001 for `percentile_agg`, which grows if 200 buckets overflow). Never average percentiles. `counter_agg` treats any drop as a reset to zero.',
-    '`timescaledb_toolkit` 1.27.0 supports PostgreSQL 16–18 under the Timescale License. It comes with Tiger Cloud and the `timescaledb-ha` image; self-hosted servers install it from packages (apt, yum, brew) or from source. Neon does not offer it.',
+    '`timescaledb_toolkit` 1.27.0 supports PostgreSQL 16–18 under the Tiger Data License (TSL, formerly the Timescale License), the licence of the Community edition. It comes with Tiger Cloud and the `timescaledb-ha` image; self-hosted servers install it from packages (apt, yum, brew) or from source. Neon does not offer it.',
   ],
   sources: ['functions-window.html', 'functions-aggregate.html', 'xaggr.html', 'sql-select.html', 'functions-math.html',
     'github.com/timescale/timescaledb-toolkit', 'github.com/timescale/timescaledb-toolkit/blob/main/CHANGELOG.md',

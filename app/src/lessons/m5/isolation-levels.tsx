@@ -153,7 +153,7 @@ ANALYZE mytab;`,
 BEGIN ISOLATION LEVEL READ UNCOMMITTED;
 SHOW transaction_isolation;
 COMMIT;`,
-        note: 'You may request READ UNCOMMITTED, and it is reported back, but PostgreSQL runs it as **Read Committed**: dirty reads are never possible.' },
+        note: 'You may request READ UNCOMMITTED, and it is reported back, but PostgreSQL runs it as **Read Committed**: dirty reads are never possible. The full picture: non-repeatable reads and phantoms are possible in Read Committed only; serialization anomalies (write skew) are possible in Read Committed and Repeatable Read, never in Serializable.' },
       { label: 'Hits example, run serially', sql: `BEGIN;
 UPDATE website SET hits = hits + 1;
 SELECT ctid, xmin, xmax, * FROM website ORDER BY id;
@@ -161,7 +161,11 @@ COMMIT;
 DELETE FROM website WHERE hits = 10 RETURNING *;
 SELECT * FROM website ORDER BY id;`,
         note: 'Run one after the other, the DELETE removes **id 1** (now 10). Run concurrently (the visualizer), the same two statements delete nothing. That gap is the RC anomaly.' },
-      { label: 'Race-free upsert', sql: `INSERT INTO website VALUES (2, 1), (3, 1)
+      { label: 'Race-free upsert', sql: `-- start from a known state
+DELETE FROM website WHERE id = 3;
+UPDATE website SET hits = 11 WHERE id = 2;
+
+INSERT INTO website VALUES (2, 1), (3, 1)
 ON CONFLICT (id) DO UPDATE SET hits = website.hits + 1
 RETURNING id, old.hits AS old_hits, new.hits AS new_hits,
           old.id IS NULL AS inserted,
@@ -223,14 +227,14 @@ COMMIT;
     { title: 'Serializable with sequential scans',
       symptom: 'Many 40001 errors between transactions that touch unrelated rows.',
       cause: 'A sequential scan takes a **relation-level** SIRead lock, so any write to the table conflicts. Lock promotion under memory pressure has the same effect.',
-      fix: 'Index the predicates serializable transactions filter on, keep them short, mark read-only ones `READ ONLY`, and raise `max_pred_locks_per_transaction` if promotion is frequent.' },
+      fix: 'Index the predicates serializable transactions filter on, keep them short, mark read-only ones `READ ONLY`, and raise `max_pred_locks_per_transaction` (pool size) or `max_pred_locks_per_relation` / `max_pred_locks_per_page` (promotion thresholds) if promotion is frequent.' },
   ],
   pointers: [
     'PostgreSQL has three real levels; **READ UNCOMMITTED = READ COMMITTED**, and its Repeatable Read also blocks phantoms.',
     '**Read Committed**: snapshot per statement; a blocked UPDATE/DELETE re-checks its WHERE on the newest row version.',
     '**Repeatable Read**: changing a row updated after your snapshot raises `40001` *could not serialize access due to concurrent update*.',
     '**Serializable** (SSI): SIRead locks never block; a cycle of rw-conflicts aborts one transaction with `40001`.',
-    'Always retry the **whole transaction** on 40001 (and 40P01). Read-only transactions under RR never need to.',
+    'Always retry the **whole transaction** on 40001 (and 40P01, see [deadlock detection](/m5/lwlocks-deadlocks)). Read-only transactions under RR never need to.',
   ],
   sources: ['transaction-iso.html', 'mvcc-serialization-failure-handling.html', 'sql-set-transaction.html', 'view-pg-locks.html', 'runtime-config-locks.html', 'applevel-consistency.html'],
 }

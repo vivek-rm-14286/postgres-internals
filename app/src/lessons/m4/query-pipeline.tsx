@@ -157,7 +157,7 @@ function StageView({ s }: { s: PState }): ReactNode {
       <div className="flex flex-wrap gap-1.5">
         {tokens.map(([t, k], i) => (
           <motion.span key={i} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.025 }}
-            className="rounded px-1.5 py-0.5 font-mono text-[12px]" style={{ background: toneBg(tokTone[k], 18), color: tone(tokTone[k]) }}>{t}</motion.span>
+            className="rounded px-1.5 py-0.5 font-mono text-[12px]" style={{ background: toneBg(tokTone[k], 18), color: tone.text(tokTone[k]) }}>{t}</motion.span>
         ))}
       </div>
     )
@@ -342,7 +342,13 @@ SELECT * FROM p WHERE customer_id = 42;
 
 EXPLAIN WITH p AS MATERIALIZED (SELECT * FROM orders WHERE status = 'pending')
 SELECT * FROM p WHERE customer_id = 42;`,
-        note: 'A plain CTE used once is **inlined**: the outer filter joins it, and a BitmapAnd of two indexes finds 1 row (cost about 21). `MATERIALIZED` computes all 1027 pending rows first, then filters a `CTE Scan` (cost about 155).' },
+        note: 'A plain CTE used once is **inlined**: the outer filter joins it, and a BitmapAnd of two indexes finds 1 row (cost about 21). `MATERIALIZED` computes all 1,000 pending rows first (the estimate is close to that), then filters a `CTE Scan` (cost about 135).' },
+      { label: 'PostgreSQL 18 rewrites', sql: `EXPLAIN (COSTS OFF)
+SELECT a.* FROM orders a JOIN orders b ON a.id = b.id WHERE b.amount > 900;
+
+EXPLAIN (COSTS OFF)
+SELECT * FROM orders WHERE id = 1 OR id = 2 OR id = 3;`,
+        note: 'Two planner transformations new in PostgreSQL 18. A join of a table to itself on its unique key is removed, leaving one scan (`enable_self_join_elimination`). An OR list on one column becomes a single `= ANY` index condition.' },
       { label: 'Custom → generic', sql: `PREPARE by_cust(int) AS SELECT * FROM orders WHERE customer_id = $1;
 EXECUTE by_cust(1);
 EXECUTE by_cust(2);
@@ -388,7 +394,7 @@ SET plan_cache_mode = force_custom_plan;`,
       fix: 'Use a **materialized view** (refreshed explicitly) or a summary table when you need the result stored.' },
     { title: 'Big joins switch to GEQO',
       symptom: 'A report joining a dozen tables gets different, sometimes much worse plans after unrelated changes.',
-      cause: 'At `geqo_threshold` (12) FROM items the planner stops near-exhaustive search and uses the **genetic optimizer**, which samples join orders randomly.',
+      cause: 'At `geqo_threshold` (12) FROM items the planner stops near-exhaustive search and uses the **genetic optimizer**, which samples join orders randomly. With explicit `JOIN` syntax the earlier limit is `join_collapse_limit` = 8 (and `from_collapse_limit` = 8 for subqueries): beyond 8 items the planner stops reordering and follows the order you wrote, so GEQO is reached mainly by comma-separated FROM lists or when those limits are raised to 12 or more.',
       fix: 'Reduce the join count (pre-aggregate, split the query), or write joins in a good order and set `join_collapse_limit = 1` for that query. `geqo_seed` makes the choice repeatable.' },
     { title: 'Using a CTE as an optimization fence, or as a cache',
       symptom: 'A query was split into a WITH clause "so it is computed once", yet the plan shows the CTE merged into the outer query. Or a CTE that used to isolate an expensive step now changes the plan.',
@@ -402,7 +408,7 @@ SET plan_cache_mode = force_custom_plan;`,
   pointers: [
     'Stages: **parser** (grammar only, no catalogs) → **analysis** (names, types, operators) → **rewriter** (views, rules) → **planner** (paths, costs) → **executor**.',
     'The rewriter turns query trees into query trees. A view is a `_RETURN` rule expanded like a macro, then usually flattened into the outer query.',
-    'The planner costs **paths** for each relation, then join pairs, keeping the cheapest. Above `geqo_threshold` = 12 FROM items it switches to GEQO.',
+    'The planner costs **paths** for each relation, then join pairs, keeping the cheapest. From `geqo_threshold` = 12 FROM items upward it switches to GEQO. See [The cost model](/m4/cost-model) and [Planner statistics](/m4/statistics).',
     'The executor is **demand-pull**: each node returns one row per call, or NULL when done. Hash and Sort must drain their input first.',
     '**PREPARE** caches the analyzed tree. Five custom plans, then a generic plan if its cost is not much higher (`plan_cache_mode`).',
   ],

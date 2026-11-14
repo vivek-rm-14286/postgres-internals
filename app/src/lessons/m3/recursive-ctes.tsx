@@ -245,7 +245,7 @@ INSERT INTO routes VALUES ('A', 'B'), ('B', 'C'), ('C', 'A'), ('C', 'D');`,
   FROM employees e JOIN sub s ON e.manager_id = s.id
 )
 SELECT * FROM sub;`,
-        note: '6 rows in four passes: Raj (depth 0), Omar and Ivy, Zoe and Kai, then Noor. The fifth pass finds nobody and the loop stops.' },
+        note: '6 rows: the anchor returns Raj (depth 0), then three iterations add Omar and Ivy, Zoe and Kai, then Noor. The fourth iteration finds nobody and the loop stops.' },
       { label: 'Self-join: one level per join', sql: `-- a self-join reaches exactly as deep as you write joins
 SELECT m.name AS manager, e.name AS direct, e2.name AS second_level
 FROM employees m
@@ -364,7 +364,7 @@ SELECT * FROM sub;` },
     'Shape: **non-recursive term** `UNION [ALL]` **recursive term**; only the recursive term may reference the CTE, once.',
     'Each pass reads only the **working table** (last pass\'s new rows); recursion ends when a pass produces nothing.',
     'UNION drops rows that duplicate **any earlier row**; UNION ALL keeps everything.',
-    '`CYCLE col SET is_cycle USING path` stops loops; `SEARCH DEPTH|BREADTH FIRST BY col SET ord` gives a sortable order.',
+    '`CYCLE col SET is_cycle USING path` stops loops; `SEARCH DEPTH|BREADTH FIRST BY col SET ord` gives a sortable order. More tree models: [trees and graphs](/f4/hierarchies).',
     'Recursive CTEs are always materialized; data-modifying statements cannot be recursive.',
   ],
   sources: ['queries-with.html', 'sql-select.html'],

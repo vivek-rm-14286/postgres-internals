@@ -344,7 +344,7 @@ SELECT * FROM citus_rebalance_status();` },
     '**Multi-shard** query: one task per shard in parallel, merged on the coordinator. Aggregates split into worker parts and a final step (avg → sum + count).',
     'Joins on the distribution column of **colocated** tables push down; other joins need a **repartition** shuffle, which is off by default.',
     'EXPLAIN shows `Custom Scan (Citus Adaptive)` with `Task Count` and one sample task plan from a worker.',
-    'Rebalancing moves whole colocated shard groups, online through logical replication when tables have a replica identity.',
+    'Rebalancing moves whole colocated shard groups, online through logical replication when tables have a replica identity. The general theory: [distributed query processing](/e5/distributed-query-processing).',
   ],
   sources: ['ddl-partitioning.html', 'runtime-config-query.html', 'sql-altertable.html', 'using-explain.html'],
 }

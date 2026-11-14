@@ -64,7 +64,7 @@ function PostingCell({ k, tids, hit }: { k: string; tids: number[]; hit: boolean
       </div>
       {tree ? (
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-1 grid gap-0.5">
-          <div className="mx-auto rounded border px-1.5 font-mono text-[10px]" style={{ borderColor: tone('pointer'), color: tone('pointer') }}>root</div>
+          <div className="mx-auto rounded border px-1.5 font-mono text-[10px]" style={{ borderColor: tone('pointer'), color: tone.text('pointer') }}>root</div>
           <div className="flex justify-center gap-1">
             {Array.from({ length: Math.ceil(tids.length / POSTING_MAX) }, (_, i) => (
               <div key={i} className="rounded border px-1 font-mono text-[9.5px]" style={{ borderColor: tone('pointer') }}>
@@ -198,20 +198,30 @@ FROM gin_metapage_info(get_raw_page('docs_tags', 0));
 EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
 SELECT id FROM docs WHERE tags @> ARRAY['rare', 't0'];`,
         note: '300 new rows sit in **2 pending pages**, not in the entry tree. The same search now also reads the pending pages: index buffers go from 5 to **7**.' },
-      { label: 'Flush the pending list', sql: `SELECT gin_clean_pending_list('docs_tags') AS pages_flushed;
+      { label: 'Flush the pending list', sql: `INSERT INTO docs
+SELECT g, ARRAY['t' || (g % 20), 'flush' || g]
+FROM generate_series((SELECT max(id) FROM docs) + 1, (SELECT max(id) FROM docs) + 300) g;
+
+SELECT n_pending_pages, n_pending_tuples
+FROM gin_metapage_info(get_raw_page('docs_tags', 0));
+
+SELECT gin_clean_pending_list('docs_tags') AS pages_flushed;
 
 SELECT n_pending_pages, n_pending_tuples
 FROM gin_metapage_info(get_raw_page('docs_tags', 0));`,
-        note: '`gin_clean_pending_list` (or VACUUM, or autovacuum\'s analyze) moves pending entries into the main structure in one bulk pass and returns the number of pages flushed.' },
-      { label: 'jsonb_ops vs jsonb_path_ops', sql: `CREATE INDEX docs_attrs_ops ON docs USING gin (attrs);
-CREATE INDEX docs_attrs_path ON docs USING gin (attrs jsonb_path_ops);
+        note: '300 more rows wait in the pending list. `gin_clean_pending_list` (or VACUUM, or autovacuum\'s analyze) moves pending entries into the main structure in one bulk pass and returns the number of pages flushed.' },
+      { label: 'jsonb_ops vs jsonb_path_ops', sql: `CREATE INDEX IF NOT EXISTS docs_attrs_ops ON docs USING gin (attrs);
+CREATE INDEX IF NOT EXISTS docs_attrs_path ON docs USING gin (attrs jsonb_path_ops);
 SELECT indexrelid::regclass AS index, pg_size_pretty(pg_relation_size(indexrelid)) AS size
 FROM pg_index WHERE indrelid = 'docs'::regclass AND indexrelid::regclass::text LIKE 'docs_attrs%';
 
 EXPLAIN SELECT id FROM docs WHERE attrs @> '{"color": "red", "size": 3}';
 EXPLAIN SELECT id FROM docs WHERE attrs ->> 'color' = 'red';`,
         note: '`jsonb_path_ops` hashes whole paths, so it is smaller but supports only `@>`, `@?` and `@@`. Neither GIN index helps `->> =`: that is a plain equality on an expression and needs a B-tree expression index.' },
-      { label: 'Fix ->> with a B-tree', sql: `EXPLAIN SELECT id FROM docs WHERE attrs ->> 'sku' = 'S4242';
+      { label: 'Fix ->> with a B-tree', sql: `CREATE INDEX IF NOT EXISTS docs_attrs_path ON docs USING gin (attrs jsonb_path_ops);
+DROP INDEX IF EXISTS docs_sku;
+
+EXPLAIN SELECT id FROM docs WHERE attrs ->> 'sku' = 'S4242';
 EXPLAIN SELECT id FROM docs WHERE attrs @> '{"sku": "S4242"}';
 
 CREATE INDEX docs_sku ON docs ((attrs ->> 'sku'));
@@ -219,8 +229,8 @@ ANALYZE docs;
 EXPLAIN SELECT id FROM docs WHERE attrs ->> 'sku' = 'S4242';
 SELECT pg_size_pretty(pg_relation_size('docs_sku')) AS btree_on_sku,
        pg_size_pretty(pg_relation_size('docs_attrs_path')) AS gin_path_ops;`,
-        note: 'Three ways to ask for one SKU. `->> =` is a Seq Scan (cost 172.50). Rewritten as containment it uses the GIN index (about 17). A **B-tree expression index** on `attrs ->> \'sku\'` serves the original query as an Index Scan (8.30), and at 128 kB it is less than half the size of the `jsonb_path_ops` index.' },
-      { label: 'Substring search with trigrams', sql: `CREATE INDEX docs_sku_trgm ON docs USING gin ((attrs ->> 'sku') gin_trgm_ops);
+        note: 'Three ways to ask for one SKU. `->> =` is a Seq Scan (cost 165.00). Rewritten as containment it uses the GIN index (about 17). A **B-tree expression index** on `attrs ->> \'sku\'` serves the original query as an Index Scan (8.30), and at 128 kB it is less than half the size of the `jsonb_path_ops` index.' },
+      { label: 'Substring search with trigrams', sql: `CREATE INDEX IF NOT EXISTS docs_sku_trgm ON docs USING gin ((attrs ->> 'sku') gin_trgm_ops);
 EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF)
 SELECT id FROM docs WHERE attrs ->> 'sku' LIKE '%499%';`,
         note: 'pg_trgm splits text into 3-character keys, so a GIN index can answer `LIKE \'%…%\'`, which no B-tree can. The bitmap scan rechecks rows because trigram matches are only candidates.' },
@@ -255,7 +265,7 @@ FROM gin_metapage_info(get_raw_page('products_attrs_gin', 0));`,
     { title: 'Building GIN indexes slowly',
       symptom: 'CREATE INDEX for a GIN index on a large table takes far longer than a B-tree build, or a bulk load into an indexed table crawls.',
       cause: 'GIN build time is very sensitive to `maintenance_work_mem`, and incremental inserts touch one entry per extracted key.',
-      fix: 'Raise `maintenance_work_mem` for the build session. For bulk loads, drop the GIN index, load, then recreate it.',
+      fix: 'Raise `maintenance_work_mem` for the build session. For bulk loads, drop the GIN index, load, then recreate it. PostgreSQL 18 can also build GIN indexes in parallel (`max_parallel_maintenance_workers`).',
       sql: `SET maintenance_work_mem = '1GB';
 CREATE INDEX CONCURRENTLY docs_tags ON docs USING gin (tags);` },
   ],
@@ -264,7 +274,7 @@ CREATE INDEX CONCURRENTLY docs_tags ON docs USING gin (tags);` },
     'Each key is stored **once**, so repeated elements compress well. GIN supports only **bitmap scans** and never index-only scans.',
     '**fastupdate** (default on) appends new entries to an unsorted **pending list**. VACUUM, autoanalyze, `gin_clean_pending_list()` or exceeding `gin_pending_list_limit` (4MB) merges it.',
     'Every search also scans the pending list. A big list slows reads, and the insert that overflows it pays for the merge.',
-    'Opclasses decide the keys: `array_ops`, `jsonb_ops` (default), `jsonb_path_ops` (smaller, `@>` only), `tsvector_ops`, `gin_trgm_ops`.',
+    'Opclasses decide the keys: `array_ops`, `jsonb_ops` (default), `jsonb_path_ops` (smaller; `@>`, `@?`, `@@` but no `?`), `tsvector_ops`, `gin_trgm_ops`. The opclass\'s `consistent` function (or the ternary `triConsistent`, which lets GIN rule rows out before reading every posting list) decides matches, and prefix searches such as `to_tsquery(\'post:*\')` use **partial match** over a range of keys. See [Arrays](/m2/arrays), [JSON vs JSONB](/m2/json-jsonb) and [Full-text search](/m6/full-text-search).',
   ],
   sources: ['gin.html', 'indexes-types.html', 'sql-createindex.html', 'datatype-json.html', 'pgtrgm.html', 'pageinspect.html'],
 }

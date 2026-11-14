@@ -102,7 +102,7 @@ function LogicalViz() {
                 {WAL.map((w, i) => (
                   <li key={i} className="rounded border px-2 py-1 font-mono text-[11.5px]"
                     style={{ borderColor: i === s.cursor ? tone('accent') : 'var(--border)', background: i <= s.cursor ? toneBg(xidTone[w.xid], 12) : 'transparent', opacity: i <= s.cursor ? 1 : 0.55 }}>
-                    <span style={{ color: tone(xidTone[w.xid]) }}>{w.xid}</span> {w.kind === 'change' ? w.change!.label : w.kind}
+                    <span style={{ color: tone.text(xidTone[w.xid]) }}>{w.xid}</span> {w.kind === 'change' ? w.change!.label : w.kind}
                   </li>
                 ))}
               </ol>
@@ -119,7 +119,7 @@ function LogicalViz() {
                   ))}
                 </AnimatePresence>
                 {Object.keys(s.buffers).length === 0 && <p className="text-xs text-muted">empty</p>}
-                {s.aborted.length > 0 && <p className="text-xs" style={{ color: tone('dead') }}>discarded on abort: xid {s.aborted.join(', ')}</p>}
+                {s.aborted.length > 0 && <p className="text-xs" style={{ color: tone.text('dead') }}>discarded on abort: xid {s.aborted.join(', ')}</p>}
               </div>
             </Panel>
             <Panel title="3 · pgoutput → subscriber">
@@ -162,7 +162,7 @@ function FilterTable() {
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <span className="text-muted">old row region</span><Segmented label="old region" value={oldR} onChange={setOld} options={[['EU', 'EU'], ['US', 'US']]} />
         <span className="text-muted">new row region</span><Segmented label="new region" value={newR} onChange={setNew} options={[['EU', 'EU'], ['US', 'US']]} />
-        <motion.span key={res} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-md px-3 py-1 font-mono text-sm font-bold" style={{ background: toneBg(t, 20), color: tone(t) }}>→ {res}</motion.span>
+        <motion.span key={res} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-md px-3 py-1 font-mono text-sm font-bold" style={{ background: toneBg(t, 20), color: tone.text(t) }}>→ {res}</motion.span>
       </div>
       <p className="text-xs text-muted"><Md>{'The filter is evaluated on the old and the new row. Evaluating the old row needs its values, which is why a filter on UPDATE/DELETE may only use **replica identity** columns.'}</Md></p>
     </div>
@@ -238,15 +238,20 @@ SELECT p.pubname, p.pubgencols, t.attnames
 FROM pg_publication p JOIN pg_publication_tables t USING (pubname)
 WHERE t.tablename = 'products' ORDER BY 1;`,
         note: 'With `publish_generated_columns = stored` the stored `price_with_vat` is sent; the **virtual** `label` never is, because it has no stored value. Listing a stored generated column in a column list publishes it even with the default `none`. On the subscriber the target column must be an ordinary column.' },
-      { label: 'DDL is not replicated', sql: `ALTER TABLE orders ADD COLUMN coupon text;
-SELECT pubname, attnames FROM pg_publication_tables WHERE tablename = 'orders' ORDER BY pubname;`,
-        note: 'The new column joins publications without a column list automatically, but the ALTER itself is not sent: the subscriber must add `coupon` first, or apply errors start.' },
+      { label: 'DDL is not replicated', sql: `DROP PUBLICATION IF EXISTS pub_all_cols, pub_some_cols;
+CREATE PUBLICATION pub_all_cols FOR TABLE orders WITH (publish = 'insert');
+CREATE PUBLICATION pub_some_cols FOR TABLE orders (id, region) WITH (publish = 'insert');
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon text;
+SELECT pubname, attnames FROM pg_publication_tables
+WHERE pubname IN ('pub_all_cols', 'pub_some_cols') ORDER BY pubname;`,
+        note: 'The new column joins publications without a column list automatically: `pub_all_cols` gains `coupon`, `pub_some_cols` does not. The ALTER itself is not sent: the subscriber must add `coupon` first, or apply errors start.' },
       { label: 'The WAL is the source', sql: `SELECT current_setting('wal_level') AS wal_level;
 SELECT set_config('lab.start', pg_current_wal_insert_lsn()::text, false);
 SELECT pg_logical_emit_message(true, 'billing', 'invoice batch 42 closed');
 SELECT resource_manager, record_type, description
 FROM pg_get_wal_records_info(current_setting('lab.start')::pg_lsn, pg_current_wal_lsn());`,
-        note: 'Logical decoding reads the same WAL as everything else; `pg_logical_emit_message` writes a record decoders pass through. Creating a logical slot needs `wal_level = logical`, which this playground runs without (it reports `replica`).' },
+        note: 'Logical decoding reads the same WAL as everything else; `pg_logical_emit_message` writes a record decoders pass through. `test_decoding` is the contrib output plugin that prints decoded changes as text through `pg_logical_slot_get_changes()`. Creating a logical slot needs `wal_level = logical`, which this playground runs without (it reports `replica`).' },
     ],
   },
   production: {
@@ -288,6 +293,13 @@ FROM pg_stat_subscription_stats;` },
       fix: 'Check `pg_replication_slots` on the publisher and drop orphaned slots; cap retention with `max_slot_wal_keep_size`.',
       sql: `SELECT slot_name, plugin, active, pg_size_pretty(pg_current_wal_lsn() - restart_lsn)
 FROM pg_replication_slots WHERE slot_type = 'logical';` },
+    { title: 'Logical slots vanish at failover',
+      symptom: 'After promoting a physical standby of the publisher, every subscriber fails with `replication slot "..." does not exist`.',
+      cause: 'A logical slot lives only on the server where it was created. Slots are not part of the WAL stream, so a standby has none unless they are synchronised to it.',
+      fix: 'Create the subscription `WITH (failover = true)`. On the standby set `sync_replication_slots = on`, `hot_standby_feedback = on`, a `primary_slot_name`, and a `dbname` in `primary_conninfo`. On the primary list that physical slot in `synchronized_standby_slots`, so subscribers never get ahead of the standby.',
+      sql: `ALTER SUBSCRIPTION upgrade_sub SET (failover = true);   -- while the subscription is disabled
+-- on the standby: which slots are being kept in sync?
+SELECT slot_name, failover, synced FROM pg_replication_slots WHERE slot_type = 'logical';` },
     { title: 'Sequences and DDL silently drift',
       symptom: 'After failing over to the subscriber, inserts fail with duplicate keys, or apply breaks after a schema change.',
       cause: 'Logical replication does not replicate DDL or sequence state.',
@@ -302,7 +314,7 @@ FROM pg_replication_slots WHERE slot_type = 'logical';` },
     'Decoding is in **commit order**; rolled-back transactions are **never sent**.',
     '**Replica identity** (default: primary key) identifies old rows; without one, published UPDATE/DELETE fail on the publisher.',
     '**Row filters** turn UPDATEs into INSERT/DELETE when rows cross the filter; **column lists** limit columns but are not security.',
-    'Not replicated: **DDL, sequences, large objects**. Initial data is copied by table-sync workers, then changes stream.',
+    'Not replicated: **DDL, sequences, large objects**. Initial data is copied by table-sync workers, then changes stream. Active-active setups build on this: [multi-master](/e3/distributed-sql-multimaster).',
   ],
   sources: ['logical-replication.html', 'logical-replication-publication.html', 'logical-replication-row-filter.html', 'logical-replication-col-lists.html', 'logical-replication-gencols.html', 'logical-replication-conflicts.html', 'logical-replication-restrictions.html', 'logical-replication-architecture.html', 'logicaldecoding-explanation.html', 'logicaldecoding-output-plugin.html', 'sql-createpublication.html'],
 }

@@ -70,7 +70,7 @@ FROM monthly_sales_without_spine;` } },
 ]
 
 function cellTone(phase: Phase, c: Ch, m: number): Tone | undefined {
-  if (c === 'store' && m === 3) return phase === 'pivot' ? 'dead' : phase === 'long' ? undefined : 'new'
+  if (c === 'store' && m === 3) return phase === 'pivot' || phase === 'deltaGap' ? 'dead' : phase === 'long' ? undefined : 'new'
   if (phase === 'deltaGap' && c === 'store' && m === 4) return 'dead'
   if ((phase === 'delta') && c === 'store' && m === 4) return 'new'
   return undefined
@@ -253,7 +253,7 @@ ORDER BY grouping(month), month;`,
 FROM monthly_sales
 ORDER BY month, channel
 LIMIT 9;`,
-        note: 'Window aggregates compute the denominators without collapsing rows: `PARTITION BY month` for the month share, an empty `OVER ()` for the share of everything. Web is about 50% each month.' },
+        note: 'Window aggregates compute the denominators without collapsing rows: `PARTITION BY month` for the month share, an empty `OVER ()` for the share of everything. Web is about 50% in each month shown; remove the `LIMIT` and April jumps to 66%, because the store sold nothing.' },
       { label: '6. Month over month: the lag trap', sql: `-- with the spine: May store is compared with April (0)
 SELECT to_char(month, 'YYYY-MM') AS month, sales,
        sales - lag(sales) OVER (ORDER BY month) AS delta
@@ -270,7 +270,7 @@ ORDER BY month;`,
   },
   production: {
     title: 'A revenue dashboard that hid a lost channel',
-    context: 'A retail analytics team feeds a weekly dashboard from `GROUP BY week, region` and a month-over-month column computed with `lag()`.',
+    context: 'A retail analytics team feeds a weekly dashboard from `GROUP BY week, region` and a week-over-week column computed with `lag()`.',
     problem: 'One region stopped selling for two weeks after a payment outage. Those weeks produced no rows, so the chart joined the points on either side, the average per week went *up*, and `lag` compared the recovery week with the week before the outage, showing healthy growth.',
     solution: 'Generate the expected periods (and dimension members) first, LEFT JOIN the facts and `coalesce` empty cells to 0. Compute `lag`, shares and averages only over that complete grid.',
     sql: `WITH spine AS (
@@ -310,7 +310,7 @@ GROUP BY s.week, s.region;`,
     'Build a **date spine** with `generate_series`, cross join the dimensions, LEFT JOIN the facts, `coalesce` to 0.',
     '`lag()` means the previous **row**. It is only "the previous period" over a complete spine.',
     'Shares come from window aggregates: `x / sum(x) OVER (PARTITION BY period)`. Subtotals come from `ROLLUP` in the same pass.',
-    'Going deeper: [Aggregates, FILTER and GROUPING SETS](/m3/aggregates-grouping) and [Window functions and frames](/m3/window-functions).',
+    '**Going deeper:** [Aggregates, FILTER and GROUPING SETS](/m3/aggregates-grouping) and [Window functions and frames](/m3/window-functions).',
   ],
   sources: ['sql-expressions.html', 'tablefunc.html', 'queries-table-expressions.html', 'functions-aggregate.html', 'functions-srf.html', 'functions-window.html', 'functions-datetime.html', 'tutorial-window.html'],
 }

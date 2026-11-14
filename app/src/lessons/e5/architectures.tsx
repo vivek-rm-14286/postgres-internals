@@ -31,13 +31,13 @@ const ARCH: Record<ArchId, ArchDef> = {
     name: 'Shared-disk',
     shared: 'Each node has **its own memory** but all nodes read and write **the same disks**.',
     addNode: 'The new node mounts the same storage. Before it may change a page, it must learn whether another node caches that page: a **global lock and cache-coherence** protocol grows with the node count.',
-    rows: [['shares', 'disks (storage network)'], ['talks through', 'distributed lock manager, page transfers'], ['scales by', 'more compute nodes over one store'], ['bottleneck', 'lock traffic on hot pages; the storage tier'], ['failure unit', 'a node (storage survives)'], ['example', 'Oracle RAC; Aurora-style log-structured storage']],
+    rows: [['shares', 'disks (storage network)'], ['talks through', 'distributed lock manager, page transfers'], ['scales by', 'more compute nodes over one store'], ['bottleneck', 'lock traffic on hot pages; the storage tier'], ['failure unit', 'a node (storage survives)'], ['example', 'Oracle RAC (many writers); Aurora-style shared storage (one writer, many readers)']],
   },
   nothing: {
     name: 'Shared-nothing',
     shared: 'Each node owns **its memory and its disks**. Nodes cooperate only by **sending messages**.',
     addNode: 'The new node shares nothing, so nothing has to stay coherent. Instead, part of the data must **move** to it (rebalancing), and queries that span nodes now ship rows over the network.',
-    rows: [['shares', 'nothing but the network'], ['talks through', 'messages: RPC, 2PC, consensus'], ['scales by', 'adding commodity nodes'], ['bottleneck', 'cross-node queries and transactions'], ['failure unit', 'one node and the data it owns (unless replicated)'], ['example', 'Citus, Cassandra, CockroachDB, YugabyteDB']],
+    rows: [['shares', 'nothing but the network'], ['talks through', 'messages: RPC, 2PC, consensus'], ['scales by', 'adding commodity nodes'], ['topology', 'coordinator + workers (Citus) or peer-to-peer (Cassandra)'], ['bottleneck', 'cross-node queries and transactions'], ['failure unit', 'one node and the data it owns (unless replicated)'], ['example', 'Citus, Cassandra, CockroachDB, YugabyteDB']],
   },
   fed: {
     name: 'Federated (multidatabase)',
@@ -229,7 +229,7 @@ orders(id=9,  customer_id=42, total=12.50)`,
                      PRIMARY KEY (customer_id, id));
 -- rows of customer 42 land in one shard; other customers elsewhere`,
     ops: [['get by key', 'one shard', 'ok'], ['query by other column', 'global secondary index', 'ok'], ['join', 'native; cross-shard ships rows', 'new'], ['multi-shard transaction', 'ACID via 2PC + consensus', 'new']],
-    who: 'CockroachDB, YugabyteDB, Citus' },
+    who: 'CockroachDB, YugabyteDB: one Raft group per shard. Citus also shards a SQL database, but without a consensus protocol: a coordinator and workers, 2PC across shards, and ordinary streaming replication for the copies.' },
 }
 const FAM_ORDER: Fam[] = ['rel', 'kv', 'doc', 'wide', 'graph', 'dsql']
 
@@ -342,17 +342,17 @@ CREATE OR REPLACE VIEW orders AS
   SELECT * FROM us.orders;
 
 SELECT region, count(*) AS rows, sum(total) AS revenue FROM orders GROUP BY region ORDER BY region;
-EXPLAIN (COSTS OFF) SELECT id, total FROM orders WHERE customer_id = 42 AND status = 'open';`,
+EXPLAIN (VERBOSE, COSTS OFF) SELECT id, total FROM orders WHERE customer_id = 42 AND status = 'open';`,
         note: 'The query names only `orders`. The plan shows the system replacing it by both fragments (an Append over `eu.orders` and `us.orders`): that substitution is exactly what fragmentation transparency hides.' },
       { label: 'Localization: a predicate that rules out a fragment', sql: `CREATE OR REPLACE VIEW orders AS
   SELECT * FROM eu.orders
   UNION ALL
   SELECT * FROM us.orders;
 
-EXPLAIN (COSTS OFF) SELECT id, total FROM orders WHERE region = 'EU' AND status = 'open';
+EXPLAIN (VERBOSE, COSTS OFF) SELECT id, total FROM orders WHERE region = 'EU' AND status = 'open';
 
 SELECT count(*) AS eu_open FROM orders WHERE region = 'EU' AND status = 'open';`,
-        note: 'Each fragment carries a CHECK constraint on `region`. The planner proves the US fragment cannot contain `region = \'EU\'` rows and drops that branch: the plan is a single scan, and the US site is never asked. This is **data localization** at its simplest.' },
+        note: 'Each fragment carries a CHECK constraint on `region`. The planner proves the US fragment cannot contain `region = \'EU\'` rows and drops that branch: the plan is a single `Seq Scan on eu.orders`, and the US site is never asked. This is **data localization** at its simplest.' },
       { label: 'Replication transparency', sql: `-- the application asks for "products"; a setting decides which copy serves it
 CREATE OR REPLACE VIEW products AS
   SELECT * FROM eu.products_copy1 WHERE current_setting('app.replica', true) IS DISTINCT FROM 'copy2'
@@ -425,9 +425,10 @@ SELECT * FROM billing.invoices i JOIN orders o ON o.id = i.order_id WHERE i.amou
   ],
   pointers: [
     'Architecture = what nodes share: **shared-memory** (memory + disks), **shared-disk** (disks), **shared-nothing** (only the network). Federated systems join **autonomous** databases through export schemas.',
-    'Classify any system along **distribution**, **heterogeneity** and **autonomy**. A federation is high on all three, a distributed SQL cluster is tightly integrated and homogeneous.',
+    'Classify any system along **distribution**, **heterogeneity** and **autonomy**. A federation is high on all three, a distributed SQL cluster is tightly integrated and homogeneous. **Client-server** systems give one site (a coordinator) the global catalog and query planning (Citus); **peer-to-peer** systems let every node accept any query (Cassandra, CockroachDB). **Homogeneous** means the same DBMS on every site; **heterogeneous** means different products behind wrappers.',
     'Transparencies, weakest to strongest: **location** (no site names), **replication** (no copy names), **fragmentation** (only global names), then **failure** transparency through atomic commit and failover.',
     'NoSQL families trade query flexibility for a fast access path: key-value, document, wide-column, graph. Distributed SQL keeps SQL and ACID on shared-nothing; see [why distribute](/e3/why-distribute) and [foreign data wrappers](/m6/fdw).',
+    'Next: how the data is split and placed, in [Fragmentation, allocation and replication](/e5/fragmentation-replication). For one concrete coordinator-and-workers system, see [Sharding with Citus](/e3/sharding-citus).',
   ],
   sources: ['postgres-fdw.html', 'sql-createforeigndatawrapper.html', 'sql-createserver.html', 'sql-createusermapping.html', 'sql-createforeigntable.html', 'ddl-partitioning.html', 'ddl-constraints.html', 'queries-with.html', 'datatype-json.html'],
 }

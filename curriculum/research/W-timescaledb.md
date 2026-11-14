@@ -178,7 +178,7 @@ SELECT create_hypertable(
   `invalid number of partitions: must be between 1 and 32767`. Current CREATE TABLE doc: "Hypertable to hypertable foreign keys
   are not allowed, all other combinations are permitted."
 
-**Extra dimensions:** `SELECT add_dimension('conditions', by_hash('location', 4));` (only on an **empty** hypertable).
+**Extra dimensions:** `SELECT add_dimension('conditions', by_hash('location', 4));` (the API reference still says "empty hypertable", but current source `src/dimension.c`, `ts_dimension_add_internal`, allows it on a hypertable that has chunks: existing chunks get a −inf/+inf slice for the new dimension, and only chunks created afterwards are partitioned by it; checked 2026-11-15).
 Docs strongly discourage it: "Space partitioning multiplies the number of chunks, increases query planning overhead, and requires
 all unique constraints to include the hash column." Hash partitioning's stated purpose is parallel I/O across multiple
 tablespaces/disks; partitions = N disks × partitions per disk; RAID with one tablespace is preferred. Old form
@@ -573,7 +573,7 @@ point learners to Citus (separate topic).
 | `create_hypertable` (old interface) | `(relation, time_column_name, partitioning_column, number_partitions, chunk_time_interval, …)` | pre-2.13 form | Apache |
 | `by_range` | `(column_name name, partition_interval anyelement, partition_func regproc)` | range dimension builder | Apache |
 | `by_hash` | `(column_name name, number_partitions, partition_func regproc)` | hash dimension builder | Apache |
-| `add_dimension` | `(hypertable regclass, dimension dimension_info, if_not_exists bool=false) → (dimension_id, created)` | add dimension to empty hypertable | Apache |
+| `add_dimension` | `(hypertable regclass, dimension dimension_info, if_not_exists bool=false) → (dimension_id, created)` | add dimension (existing chunks keep a −inf/+inf slice; see §2) | Apache |
 | `set_chunk_time_interval` | `(hypertable, chunk_time_interval, dimension_name name=NULL) → void` | new chunks only | Apache |
 | `set_integer_now_func` | `(hypertable, integer_now_func regproc, replace_if_exists bool=false) → void` | "now" for integer time | Apache |
 | `show_chunks` | `(relation, older_than, newer_than, created_before, created_after) → setof regclass` | list chunks | Apache |

@@ -31,7 +31,7 @@ export function Code({ lines, active = [], dim = [], className = '', marks = {} 
             {on && <motion.div layoutId={`hl-${lines.length}-${lines[0]}`} className="absolute inset-0" style={{ background: toneBg('accent', 16), borderLeft: `3px solid ${tone('accent')}` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />}
             <span className="relative w-5 shrink-0 text-right text-[10.5px] text-muted select-none">{i + 1}</span>
             <span className="relative">{l || ' '}</span>
-            {mark && <span className="relative ml-auto shrink-0 rounded px-1.5 text-[10.5px] font-semibold" style={{ background: toneBg(mark.t, 22), color: tone(mark.t) }}>{mark.label}</span>}
+            {mark && <span className="relative ml-auto shrink-0 rounded px-1.5 text-[10.5px] font-semibold" style={{ background: toneBg(mark.t, 22), color: tone.text(mark.t) }}>{mark.label}</span>}
           </div>
         )
       })}
@@ -44,7 +44,7 @@ export function Tile({ label, value, t, sub }: { label: string; value: ReactNode
   return (
     <div className="rounded-lg border border-line bg-surface-2 px-3 py-2">
       <p className="text-[11px] tracking-wide text-muted uppercase">{label}</p>
-      <motion.p key={String(value)} initial={{ opacity: 0.3, y: 2 }} animate={{ opacity: 1, y: 0 }} className="font-mono text-lg font-bold" style={t ? { color: tone(t) } : undefined}>{value}</motion.p>
+      <motion.p key={String(value)} initial={{ opacity: 0.3, y: 2 }} animate={{ opacity: 1, y: 0 }} className="font-mono text-lg font-bold" style={t ? { color: tone.text(t) } : undefined}>{value}</motion.p>
       {sub && <p className="text-[11px] text-muted">{sub}</p>}
     </div>
   )

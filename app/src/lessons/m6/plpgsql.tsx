@@ -7,7 +7,7 @@ import { Code, Tile } from './_shared'
 
 /* ------------------------------------------------------------------------------------------------
  * Visualizer: one call of a PL/pgSQL function whose inner block has an EXCEPTION clause.
- * The xids (top 757, subtransaction 758) and the surviving rows were captured from PostgreSQL 18.6
+ * The xids (top 758, subtransaction 759) and the surviving rows were captured from PostgreSQL 18.6
  * (PGlite) by running the playground's demo() function; the loop timings come from the "Cost of
  * EXCEPTION blocks" preset in the same engine.
  * ---------------------------------------------------------------------------------------------- */
@@ -39,36 +39,36 @@ const alice = (xmax?: number, status: Status = 'live'): Ver => ({ tbl: 'accounts
 function build(withExc: boolean): Step<S>[] {
   const L = (n: number) => (withExc ? n : n > 9 ? n - 2 : n)
   const top = (xid: number | null, state: Tx['state'] = 'active'): Tx => ({ xid, label: 'top-level', state })
-  const before: Ver = { tbl: 'audit', row: "(1,'before block')", xmin: 757, status: 'pending' }
-  const joe: Ver = { tbl: 'accounts', row: "(1,'Joe',100)", xmin: 758, status: 'pending' }
+  const before: Ver = { tbl: 'audit', row: "(1,'before block')", xmin: 758, status: 'pending' }
+  const joe: Ver = { tbl: 'accounts', row: "(1,'Joe',100)", xmin: 759, status: 'pending' }
   const common: Step<S>[] = [
     { title: 'SELECT demo(): compile on first call', body: 'The first call in a session parses the body into an **instruction tree**. No SQL inside it is planned yet. The statement has only a virtual transaction id: a real xid is assigned at the first write.',
       state: { line: 2, tx: [top(null)], vers: [alice()], x: 1, y: 'NULL', prepared: 0 } },
-    { title: 'First write: xid 757 is assigned', body: 'The INSERT is prepared through **SPI** the first time it runs (later calls reuse it). Writing a row forces a real transaction id: **757**, stamped as the row\'s `xmin`.',
-      state: { line: 3, tx: [top(757)], vers: [alice(), before], x: 1, y: 'NULL', prepared: 1 } },
+    { title: 'First write: xid 758 is assigned', body: 'The INSERT is prepared through **SPI** the first time it runs (later calls reuse it). Writing a row forces a real transaction id: **758**, stamped as the row\'s `xmin`.',
+      state: { line: 3, tx: [top(758)], vers: [alice(), before], x: 1, y: 'NULL', prepared: 1 } },
     { title: withExc ? 'Enter a block with EXCEPTION: subtransaction' : 'Enter a plain inner block', body: withExc ? 'Because this block has an **EXCEPTION** clause, entering it starts a **subtransaction**, the same machinery as `SAVEPOINT`. That is what makes the block expensive.' : 'Without an EXCEPTION clause the inner BEGIN … END is only a scope for statements. No subtransaction, no extra cost.',
-      state: { line: 4, tx: withExc ? [top(757), { xid: null, label: 'subxact', state: 'active' }] : [top(757)], vers: [alice(), before], x: 1, y: 'NULL', prepared: 1 } },
-    { title: withExc ? 'UPDATE inside the block gets subxid 758' : 'UPDATE runs under xid 757', body: withExc ? 'The subtransaction writes, so it gets its own xid **758**. The old version of row 1 gets `xmax = 758`; the new version (`Joe`) gets `xmin = 758`.' : 'The UPDATE writes a new version with `xmin = 757` and stamps the old one `xmax = 757`.',
-      state: { line: 5, tx: withExc ? [top(757), { xid: 758, label: 'subxact', state: 'active' }] : [top(757)], vers: [alice(withExc ? 758 : 757), before, withExc ? joe : { ...joe, xmin: 757 }], x: 1, y: 'NULL', prepared: 2 } },
+      state: { line: 4, tx: withExc ? [top(758), { xid: null, label: 'subxact', state: 'active' }] : [top(758)], vers: [alice(), before], x: 1, y: 'NULL', prepared: 1 } },
+    { title: withExc ? 'UPDATE inside the block gets subxid 759' : 'UPDATE runs under xid 758', body: withExc ? 'The subtransaction writes, so it gets its own xid **759**. The old version of row 1 gets `xmax = 759`; the new version (`Joe`) gets `xmin = 759`.' : 'The UPDATE writes a new version with `xmin = 758` and stamps the old one `xmax = 758`.',
+      state: { line: 5, tx: withExc ? [top(758), { xid: 759, label: 'subxact', state: 'active' }] : [top(758)], vers: [alice(withExc ? 759 : 758), before, withExc ? joe : { ...joe, xmin: 758 }], x: 1, y: 'NULL', prepared: 2 } },
     { title: 'x := x + 1 (a local variable)', body: 'Assignments change **PL/pgSQL variables in memory**. They are not database state and are never rolled back.',
-      state: { line: 6, tx: withExc ? [top(757), { xid: 758, label: 'subxact', state: 'active' }] : [top(757)], vers: [alice(withExc ? 758 : 757), before, withExc ? joe : { ...joe, xmin: 757 }], x: 2, y: 'NULL', prepared: 2 } },
+      state: { line: 6, tx: withExc ? [top(758), { xid: 759, label: 'subxact', state: 'active' }] : [top(758)], vers: [alice(withExc ? 759 : 758), before, withExc ? joe : { ...joe, xmin: 758 }], x: 2, y: 'NULL', prepared: 2 } },
     { title: 'y := x / 0 raises SQLSTATE 22012', body: 'The error abandons the rest of the block. PostgreSQL now looks for a handler in the nearest enclosing block with an EXCEPTION clause.',
-      state: { line: 7, tx: withExc ? [top(757), { xid: 758, label: 'subxact', state: 'active' }] : [top(757)], vers: [alice(withExc ? 758 : 757), before, withExc ? joe : { ...joe, xmin: 757 }], x: 2, y: 'NULL', prepared: 2, msg: { t: 'dead', text: 'ERROR 22012: division by zero' } } },
+      state: { line: 7, tx: withExc ? [top(758), { xid: 759, label: 'subxact', state: 'active' }] : [top(758)], vers: [alice(withExc ? 759 : 758), before, withExc ? joe : { ...joe, xmin: 758 }], x: 2, y: 'NULL', prepared: 2, msg: { t: 'dead', text: 'ERROR 22012: division by zero' } } },
   ]
   if (!withExc) {
-    return [...common, { title: 'No handler: the whole transaction aborts', body: 'Nothing catches the error, so it leaves the function and **aborts the transaction**. Xid 757 is marked aborted: the `before block` row and the UPDATE both disappear.',
-      state: { line: 7, tx: [top(757, 'aborted')], vers: [alice(757), { ...before, status: 'aborted' }, { ...joe, xmin: 757, status: 'aborted' }], x: 2, y: 'NULL', prepared: 2, msg: { t: 'dead', text: 'ERROR 22012: division by zero · transaction aborted' } } }]
+    return [...common, { title: 'No handler: the whole transaction aborts', body: 'Nothing catches the error, so it leaves the function and **aborts the transaction**. Xid 758 is marked aborted: the `before block` row and the UPDATE both disappear.',
+      state: { line: 7, tx: [top(758, 'aborted')], vers: [alice(758), { ...before, status: 'aborted' }, { ...joe, xmin: 758, status: 'aborted' }], x: 2, y: 'NULL', prepared: 2, msg: { t: 'dead', text: 'ERROR 22012: division by zero · transaction aborted' } } }]
   }
   return [
     ...common,
-    { title: 'Roll back the subtransaction', body: '`division_by_zero` matches. First the subtransaction is **rolled back**: xid 758 is marked aborted, so `Joe` is dead and `alice` is visible again. Local variable **x keeps 2**.',
-      state: { line: 8, tx: [top(757), { xid: 758, label: 'subxact', state: 'aborted' }], vers: [alice(758), before, { ...joe, status: 'aborted' }], x: 2, y: 'NULL', prepared: 2, msg: { t: 'new', text: 'handler matched: division_by_zero' } } },
+    { title: 'Roll back the subtransaction', body: '`division_by_zero` matches. First the subtransaction is **rolled back**: xid 759 is marked aborted, so `Joe` is dead and `alice` is visible again. Local variable **x keeps 2**.',
+      state: { line: 8, tx: [top(758), { xid: 759, label: 'subxact', state: 'aborted' }], vers: [alice(759), before, { ...joe, status: 'aborted' }], x: 2, y: 'NULL', prepared: 2, msg: { t: 'new', text: 'handler matched: division_by_zero' } } },
     { title: 'Run the handler', body: 'Inside the handler, **SQLSTATE** and **SQLERRM** describe the error. The function continues after the block\'s END as if nothing failed.',
-      state: { line: 9, tx: [top(757)], vers: [alice(758), before, { ...joe, status: 'aborted' }], x: 2, y: 'NULL', prepared: 2, msg: { t: 'ok', text: 'NOTICE: caught: division by zero (x = 2)' } } },
-    { title: 'Back in the outer block: xid 757 again', body: 'The next INSERT runs in the top-level transaction, so its row also has `xmin = 757`.',
-      state: { line: L(11), tx: [top(757)], vers: [alice(758), before, { ...joe, status: 'aborted' }, { tbl: 'audit', row: "(2,'after block')", xmin: 757, status: 'pending' }], x: 2, y: 'NULL', prepared: 3 } },
-    { title: 'COMMIT', body: '757 commits. Both audit rows survive; the UPDATE does not. In the playground, `SELECT xmin, * FROM audit` shows **757, 757**, and the accounts row is still alice.',
-      state: { line: L(12), tx: [top(757, 'committed')], vers: [alice(758), { ...before, status: 'live' }, { ...joe, status: 'aborted' }, { tbl: 'audit', row: "(2,'after block')", xmin: 757, status: 'live' }], x: 2, y: 'NULL', prepared: 3 } },
+      state: { line: 9, tx: [top(758)], vers: [alice(759), before, { ...joe, status: 'aborted' }], x: 2, y: 'NULL', prepared: 2, msg: { t: 'ok', text: 'NOTICE: caught: division by zero (x = 2)' } } },
+    { title: 'Back in the outer block: xid 758 again', body: 'The next INSERT runs in the top-level transaction, so its row also has `xmin = 758`.',
+      state: { line: L(11), tx: [top(758)], vers: [alice(759), before, { ...joe, status: 'aborted' }, { tbl: 'audit', row: "(2,'after block')", xmin: 758, status: 'pending' }], x: 2, y: 'NULL', prepared: 3 } },
+    { title: 'COMMIT', body: '758 commits. Both audit rows survive; the UPDATE does not. In the playground, `SELECT xmin, * FROM audit` shows **758, 758**, and the accounts row is still alice.',
+      state: { line: L(12), tx: [top(758, 'committed')], vers: [alice(759), { ...before, status: 'live' }, { ...joe, status: 'aborted' }, { tbl: 'audit', row: "(2,'after block')", xmin: 758, status: 'live' }], x: 2, y: 'NULL', prepared: 3 } },
   ]
 }
 
@@ -106,7 +106,7 @@ function PlpgsqlViz() {
               </Panel>
               <Panel title="local variables">
                 <div className="flex gap-4 font-mono text-[13px]">
-                  <span>x = <motion.b key={s.x} initial={{ color: tone('new') }} animate={{ color: 'var(--text)' }}>{s.x}</motion.b></span>
+                  <span>x = <motion.b key={s.x} initial={{ color: tone.text('new') }} animate={{ color: 'var(--text)' }}>{s.x}</motion.b></span>
                   <span>y = {s.y}</span>
                   <span className="text-muted">prepared stmts: {s.prepared}</span>
                 </div>
@@ -286,15 +286,24 @@ BEGIN
 END $$;
 
 SELECT count_rows('accounts', 2) AS accounts_from_2,
-       format('SELECT * FROM %I WHERE owner = %L', 'my table', 'O''Brien') AS quoted;`,
-        note: '`regclass` validates the table name, `%I` quotes identifiers, `%L` quotes literals, and `USING` passes values as parameters. EXECUTE is re-planned on every call.' },
-      { label: 'STABLE now() vs VOLATILE clock', sql: `SELECT g, to_char(now(), 'HH24:MI:SS.US') AS now_stable,
-       to_char(clock_timestamp(), 'HH24:MI:SS.US') AS clock_volatile
+       format('SELECT * FROM %I WHERE owner = %L', 'my table', 'O''Brien') AS quoted;
+
+-- A set-returning function: each RETURN QUERY appends rows to the result.
+CREATE OR REPLACE FUNCTION rich_or(min_balance numeric, also_id int) RETURNS SETOF accounts LANGUAGE plpgsql AS $$
+BEGIN
+  RETURN QUERY SELECT * FROM accounts WHERE balance >= min_balance;
+  RETURN QUERY EXECUTE format('SELECT * FROM %I WHERE id = $1', 'accounts') USING also_id;
+END $$;
+SELECT * FROM rich_or(80, 2);`,
+        note: '`regclass` validates the table name, `%I` quotes identifiers, `%L` quotes literals, and `USING` passes values as parameters. EXECUTE is re-planned on every call. `RETURN QUERY` (static or `EXECUTE`) and `RETURN NEXT` append rows to the result: alice from the first query, bob from the second. The whole set is collected before the function returns, so very large results are better served by a plain SQL function or a cursor.' },
+      { label: 'STABLE now() vs VOLATILE clock', sql: `SELECT g, to_char(now(), 'HH24:MI:SS.MS') AS now_stable,
+       to_char(clock_timestamp(), 'HH24:MI:SS.MS') AS clock_volatile,
+       pg_sleep(0.005) AS pause
 FROM generate_series(1, 3) g;
 
 SELECT proname, provolatile FROM pg_proc
 WHERE proname IN ('now', 'clock_timestamp', 'lower', 'random') ORDER BY 1;`,
-        note: '`now()` is **STABLE**: one value for the whole statement (in fact the whole transaction). `clock_timestamp()` is **VOLATILE** and changes per row. `provolatile` is `i`, `s` or `v`.' },
+        note: '`now()` is **STABLE**: one value for the whole statement (in fact the whole transaction). `clock_timestamp()` is **VOLATILE** and changes per row (the 5 ms `pg_sleep` makes the gap visible). `provolatile` is `i`, `s` or `v`.' },
     ],
   },
   production: {
@@ -313,7 +322,7 @@ ON CONFLICT (id) DO UPDATE SET owner = EXCLUDED.owner, balance = EXCLUDED.balanc
   pitfalls: [
     { title: 'EXCEPTION blocks inside hot loops',
       symptom: 'A function is several times slower than expected, xid age climbs fast, and monitoring shows backends with overflowed subtransaction caches.',
-      cause: 'Every entry into a block with an EXCEPTION clause starts a subtransaction. Such a block is significantly more expensive to enter and exit than one without, even when no error is ever raised. Each one that writes also consumes an xid.',
+      cause: 'Every entry into a block with an EXCEPTION clause starts a subtransaction. Such a block is significantly more expensive to enter and exit than one without, even when no error is ever raised. Each one that writes also consumes an xid. The mechanics are in [ACID and transactions](/m5/acid-transactions).',
       fix: 'Put the EXCEPTION clause around the whole loop, not inside it, or avoid it: `ON CONFLICT`, `IF NOT FOUND`, and constraint checks before the write usually remove the need.' },
     { title: 'SQL injection through EXECUTE',
       symptom: 'A dynamic report function lets a caller drop tables by passing `orders; DROP TABLE users` as a table name.',

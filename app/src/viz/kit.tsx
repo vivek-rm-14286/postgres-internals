@@ -11,7 +11,10 @@ const toneVar: Record<Tone, string> = {
   header: 'var(--c-header)', pointer: 'var(--c-pointer)', tuple: 'var(--c-tuple)', dead: 'var(--c-dead)',
   new: 'var(--c-new)', free: 'var(--c-free)', ok: 'var(--c-ok)', muted: 'var(--muted)', accent: 'var(--accent)',
 }
-export const tone = (t: Tone) => toneVar[t]
+/** Text shade of a tone: darker than the fill in light mode so small text stays readable (4.5:1). */
+const toneTextVar: Record<Tone, string> = { ...toneVar, pointer: 'var(--t-pointer)', tuple: 'var(--t-tuple)', dead: 'var(--t-dead)', new: 'var(--t-new)', ok: 'var(--t-ok)' }
+/** `tone(t)` is the fill / border colour; `tone.text(t)` is the same hue for text. */
+export const tone = Object.assign((t: Tone) => toneVar[t], { text: (t: Tone) => toneTextVar[t] })
 /** Translucent fill for a tone. */
 export const toneBg = (t: Tone, pct = 16) => (t === 'free' ? 'var(--c-free)' : `color-mix(in srgb, ${toneVar[t]} ${pct}%, transparent)`)
 
@@ -31,7 +34,7 @@ export function Block({ t = 'tuple', children, className = '', layoutId, dim, pu
 }
 
 export function Tag({ t = 'accent', children }: { t?: Tone; children: ReactNode }) {
-  return <span className="inline-block rounded px-1.5 py-0.5 font-mono text-[11px] font-medium" style={{ background: toneBg(t, 20), color: tone(t) }}>{children}</span>
+  return <span className="inline-block rounded px-1.5 py-0.5 font-mono text-[11px] font-medium" style={{ background: toneBg(t, 20), color: tone.text(t) }}>{children}</span>
 }
 
 /** Colour key. Every visualizer with more than two colours shows one. */
@@ -53,7 +56,7 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
     <div role="radiogroup" aria-label={label} className="inline-flex rounded-lg border border-line bg-surface p-0.5 text-xs">
       {options.map(([v, l]) => (
         <button key={v} role="radio" aria-checked={value === v} onClick={() => onChange(v)}
-          className={`rounded-md px-2.5 py-1 transition ${value === v ? 'bg-accent text-white' : 'text-muted hover:text-ink'}`}>{l}</button>
+          className={`rounded-md px-2.5 py-1 transition ${value === v ? 'bg-accent text-on-accent' : 'text-muted hover:text-ink'}`}>{l}</button>
       ))}
     </div>
   )

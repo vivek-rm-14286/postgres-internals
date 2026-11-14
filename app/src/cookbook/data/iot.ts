@@ -81,7 +81,7 @@ WHERE sensor_id = 3 AND ts >= '2025-03-03 06:00+00' AND ts < '2025-03-03 18:00+0
 
   // ── intermediate ─────────────────────────────────────────────────────────
   {
-    id: 'iot-hourly', dataset: 'iot', level: 'intermediate', topic: 'time bucketing',
+    id: 'iot-hourly', dataset: 'iot', level: 'intermediate', topic: 'dates & time zones',
     title: 'Hourly averages',
     task: 'For sensor 1 on 1 March 2025 (UTC), return `hour` (the start of each hour, a `timestamptz`) and `avg_value` rounded to 2 decimals, in time order.',
     solution: `SELECT date_trunc('hour', ts) AS hour, round(avg(value), 2) AS avg_value
@@ -92,7 +92,7 @@ GROUP BY hour ORDER BY hour;`,
     ordered: true,
   },
   {
-    id: 'iot-six-hour-buckets', dataset: 'iot', level: 'intermediate', topic: 'time bucketing',
+    id: 'iot-six-hour-buckets', dataset: 'iot', level: 'intermediate', topic: 'dates & time zones',
     title: 'Six-hour buckets reveal an outage',
     task: 'For sensor 2 on 2 March 2025 (UTC), return `bucket` (start of each 6-hour bucket: 00:00, 06:00, 12:00, 18:00 UTC) and `readings` (rows in it), in time order.',
     hint: '`date_trunc` only knows whole units; `date_bin` takes any stride.',
@@ -104,7 +104,7 @@ GROUP BY bucket ORDER BY bucket;`,
     ordered: true,
   },
   {
-    id: 'iot-local-days', dataset: 'iot', level: 'intermediate', topic: 'time zones',
+    id: 'iot-local-days', dataset: 'iot', level: 'intermediate', topic: 'dates & time zones',
     title: 'Daily figures on the site’s calendar',
     task: 'For sensor 1, group readings by **local calendar day** in the sensor’s time zone (`sensors.tz`). Return `day` (a `date`), `readings` (rows) and `avg_value` rounded to 2 decimals.',
     solution: `SELECT (r.ts AT TIME ZONE s.tz)::date AS day, count(*) AS readings, round(avg(r.value), 2) AS avg_value
@@ -166,7 +166,7 @@ GROUP BY grp;`,
     explanation: 'Within a run of hot readings both row numbers grow by one per row, so their difference stays constant and identifies the island; any reading in between bumps the overall number only. NULL values land in their own partition (`value > 25` is NULL), so they break a run like a cool reading does: the first day’s spell is split in two by a missing measurement.',
   },
   {
-    id: 'iot-moving-avg', dataset: 'iot', level: 'advanced', topic: 'window frames',
+    id: 'iot-moving-avg', dataset: 'iot', level: 'advanced', topic: 'window functions',
     title: 'Six-reading moving average',
     task: 'For sensor 1 between 2025-03-01 00:00 and 01:50 UTC inclusive, return `ts`, `value` and `moving_avg`: the average of this reading and the 5 before it (fewer at the start), rounded to 2 decimals. Order by `ts`.',
     solution: `SELECT ts, value,
@@ -178,7 +178,7 @@ ORDER BY ts;`,
     ordered: true,
   },
   {
-    id: 'iot-time-frame', dataset: 'iot', level: 'advanced', topic: 'window frames',
+    id: 'iot-time-frame', dataset: 'iot', level: 'advanced', topic: 'window functions',
     title: 'Average over the last hour, not the last six rows',
     task: 'For sensor 2 readings from 2025-03-02 06:30 to 07:30 UTC inclusive, return `ts`, `value` and `avg_1h`: the average of **all** sensor-2 readings with timestamps in `[ts − 1 hour, ts]`, rounded to 2 decimals. Order by `ts`.',
     hint: 'Two traps: the frame unit, and where you filter.',
@@ -218,7 +218,7 @@ WINDOW w AS (PARTITION BY sensor_id, ts::date ORDER BY ts ROWS BETWEEN UNBOUNDED
 
   // ── expert ───────────────────────────────────────────────────────────────
   {
-    id: 'iot-dedupe', dataset: 'iot', level: 'expert', topic: 'DDL & data cleanup',
+    id: 'iot-dedupe', dataset: 'iot', level: 'expert', topic: 'data changes',
     title: 'Remove duplicates, then forbid them',
     task: 'Delete duplicate readings so that each `(sensor_id, ts)` appears once (the duplicates are exact copies), then add a **primary key** on `(sensor_id, ts)`. The check returns `total_rows`, `distinct_keys` and `pk_columns` (the primary key columns as text).',
     hint: 'Exact duplicates are told apart by their physical row id, `ctid`.',

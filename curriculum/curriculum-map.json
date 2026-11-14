@@ -44,7 +44,7 @@
        },
        {
         "label": "List my tables",
-        "lookFor": "The database describes itself with ordinary tables you can query. `stock` is the only nullable column."
+        "lookFor": "The database describes itself with ordinary tables you can query. `stock` is the only nullable column. `WHERE` keeps only the matching rows and `ORDER BY` sorts them; both are covered in [Filtering and sorting](/f1/filter-and-sort)."
        }
       ]
      },
@@ -56,7 +56,7 @@
      "pitfalls": [
       {
        "title": "Assuming rows come back in insert order",
-       "fix": "Add `ORDER BY` whenever order matters, for example `ORDER BY id`. The next lesson covers sorting."
+       "fix": "Add `ORDER BY` whenever order matters, for example `ORDER BY id`. [Filtering and sorting](/f1/filter-and-sort) covers sorting."
       },
       {
        "title": "SELECT * in application code",
@@ -86,14 +86,14 @@
      "tldr": "`CREATE TABLE` defines a table once (its columns, their types and the rules each row must obey), and `INSERT` adds rows that PostgreSQL checks against those rules. Types and constraints such as `NOT NULL`, `PRIMARY KEY` and `DEFAULT` let the database itself reject bad data, so every program that writes to it gets the same protection.",
      "visualizer": {
       "title": "Build a table, one statement at a time",
-      "interaction": "Step through CREATE TABLE and six INSERTs. Watch defaults fill in, bad rows bounce off the constraints, and the identity counter skip a number."
+      "interaction": "Step through CREATE TABLE and seven INSERTs. Watch defaults fill in, bad rows bounce off the constraints, and the identity counter skip a number."
      },
      "playground": {
       "extensions": [],
       "presets": [
        {
         "label": "Create the table",
-        "lookFor": "The second query reads the table definition back. `id` shows no default: identity columns are generated, not defaulted."
+        "lookFor": "The first line removes the copy this lesson starts with, so the ids begin at 1 again. The last query reads the table definition back. `id` shows no default: identity columns are generated, not defaulted."
        },
        {
         "label": "Insert one, RETURNING",
@@ -105,7 +105,7 @@
        },
        {
         "label": "Rules that reject rows",
-        "lookFor": "Four different errors: **23502** NOT NULL, **428C9** identity, **22P02** bad input for a boolean, **42703** unknown column. Eve then gets id **5**: the first failed insert used up 4."
+        "lookFor": "Four different errors: **23502** NOT NULL, **428C9** identity, **22P02** bad input for a boolean, **42703** unknown column. Eve then gets the next id after a gap (**5** if you ran the examples in order, once each): the first failed insert used up a number."
        },
        {
         "label": "INSERT … SELECT",
@@ -133,7 +133,7 @@
       },
       {
        "title": "Typing ids by hand into an identity column",
-       "fix": "For a one-off load, write `OVERRIDING SYSTEM VALUE` after the column list, then move the counter past the highest id. Otherwise omit the column."
+       "fix": "For a one-off load, write `OVERRIDING SYSTEM VALUE` after the column list, then move the counter past the highest id (the counter is a *sequence*; `setval` sets it, see [Views, sequences and identity](/f3/views-and-sequences)). Otherwise omit the column."
       },
       {
        "title": "Money in a float column",
@@ -149,7 +149,7 @@
       "`PRIMARY KEY` = unique + not null. `NOT NULL` forbids missing values. `DEFAULT` fills omitted columns.",
       "`bigint GENERATED ALWAYS AS IDENTITY` numbers rows for you; numbers are unique but can have **gaps**.",
       "`'single quotes'` are values, `\"double quotes\"` are names. `RETURNING` sends the inserted row back.",
-      "**Going deeper:** [Primitive types, alignment and padding](/m2/primitive-types) shows how each type is laid out in bytes on disk."
+      "**Next:** [Constraints and defaults](/f3/constraints-defaults) adds `UNIQUE` and `CHECK`, and [Keys and relationships](/f3/keys-and-relationships) links tables with foreign keys. **Going deeper:** [Primitive types, alignment and padding](/m2/primitive-types) shows how each type is laid out in bytes on disk."
      ]
     },
     {
@@ -210,11 +210,11 @@
       },
       {
        "title": "NOT IN with a NULL in the list",
-       "fix": "Use `NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id)`, or filter NULLs out of the list."
+       "fix": "Use `NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id)`, or filter NULLs out of the list. See [Subqueries](/m3/subqueries)."
       },
       {
        "title": "LIMIT without a full ORDER BY",
-       "fix": "Always sort by a unique tiebreaker last: `ORDER BY price, id LIMIT 20 OFFSET 20`."
+       "fix": "Always sort by a unique tiebreaker last: `ORDER BY price, id LIMIT 20 OFFSET 20`. For deep paging see [Pagination: OFFSET vs keyset](/f4/pagination)."
       }
      ],
      "keyPointers": [
@@ -239,7 +239,7 @@
       "presets": [
        {
         "label": "count(*) vs count(col)",
-        "lookFor": "`count(*)` = 9 rows, `count(stock)` = 7: the two NULL stocks are skipped. `avg` prints 16 decimals (37.8888888888888889); `round(…, 2)` gives 37.89."
+        "lookFor": "`count(*)` = 9 rows, `count(stock)` = 7: the two NULL stocks are skipped. `count(DISTINCT category)` = 3: distinct non-NULL values. `avg` prints 16 decimals (37.8888888888888889); `round(…, 2)` gives 37.89."
        },
        {
         "label": "GROUP BY",
@@ -269,7 +269,7 @@
      },
      "production": {
       "title": "A category summary for a dashboard",
-      "problem": "The first version loaded every product into the app and counted in code. It sent every row over the network on each page view, and the \"units\" tile was wrong because the code added NULL stock as 0 and counted those products as stocked.",
+      "problem": "The first version loaded every product into the app and counted in code. It sent every row over the network on each page view, and the \"units\" tile silently treated uncounted products as having 0 units, so nobody could see that some had never been counted.",
       "outcome": "The app receives 3 rows instead of 9 (and the saving grows with the catalog: always one row per category). Kitchen and office each show 1 product as \"not counted\" (Teapot and Pen set) instead of hiding it."
      },
      "pitfalls": [
@@ -292,9 +292,9 @@
      ],
      "keyPointers": [
       "`count(*)` counts rows; `count(col)` counts non-NULL values; `sum`, `avg`, `min`, `max` skip NULLs and return NULL on zero rows.",
-      "With GROUP BY, every selected column must be in the GROUP BY or inside an aggregate.",
+      "With GROUP BY, every selected column must be in the GROUP BY or inside an aggregate (or the primary key of its table is in the GROUP BY).",
       "WHERE filters **rows** before grouping. HAVING filters **groups** after. Aggregates belong in HAVING.",
-      "Run order: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. WHERE and HAVING cannot use SELECT aliases; ORDER BY can.",
+      "Run order: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. WHERE and HAVING cannot use SELECT aliases; ORDER BY can. PostgreSQL also lets `GROUP BY` name an output column or its position: `GROUP BY pricey`, `GROUP BY 1`.",
       "**Going deeper:** [Aggregates, FILTER and GROUPING SETS](/m3/aggregates-grouping) adds subtotals and conditional counts; [From SQL text to rows](/m4/query-pipeline) shows the plan that runs a query."
      ]
     },
@@ -316,7 +316,7 @@
        },
        {
         "label": "2. Try it, then ROLLBACK",
-        "lookFor": "RETURNING shows 10.45, 49.50 and 19.80. After ROLLBACK the last query shows the original 9.50, 45.00 and 18.00 again."
+        "lookFor": "RETURNING shows 10.45, 49.50 and 19.80 next to the prices they replace: PostgreSQL 18 can return `old.` and `new.` values side by side. After ROLLBACK the last query shows the original 9.50, 45.00 and 18.00 again."
        },
        {
         "label": "3. Do it, then COMMIT",
@@ -331,8 +331,8 @@
         "lookFor": "Preview finds Chef knife; DELETE removes exactly that row and lists it. 8 products remain."
        },
        {
-        "label": "6. An error aborts the transaction",
-        "lookFor": "Here the helper catches the error, so the transaction survives. In psql, after a real error every later statement fails with **25P02** (\"current transaction is aborted\") until you run ROLLBACK."
+        "label": "6. Errors inside a transaction",
+        "lookFor": "A real error would abort the transaction. Here the helper catches it, so the transaction survives and you can see both statements. In psql, after a real error every later statement fails with **25P02** (\"current transaction is aborted\") until you run ROLLBACK."
        },
        {
         "label": "7. TRUNCATE inside a transaction",
@@ -360,7 +360,7 @@
       },
       {
        "title": "TRUNCATE where DELETE was needed",
-       "fix": "Use `DELETE … WHERE` to remove some rows or when triggers must run. Use `TRUNCATE` (with `RESTART IDENTITY` to reset ids) only to empty a table nobody is using."
+       "fix": "Use `DELETE … WHERE` to remove some rows or when triggers must run (see [Triggers](/m6/triggers)). Use `TRUNCATE` (with `RESTART IDENTITY` to reset ids) only to empty a table nobody is using."
       }
      ],
      "keyPointers": [
@@ -420,7 +420,7 @@
        },
        {
         "label": "Case-insensitive matching",
-        "lookFor": "Plain `=` finds 1 row; normalising with `lower(trim(...))` finds both Ann rows. `ILIKE`, the `citext` type and a **nondeterministic collation** are three more ways to ignore case."
+        "lookFor": "Plain `=` finds 1 row; normalising with `lower(trim(...))` finds both Ann rows. `ILIKE`, the `citext` type and a **nondeterministic collation** are three more ways to ignore case. On PostgreSQL 18 `LIKE` works with such a collation, and `casefold()` is the Unicode-aware alternative to `lower()` for comparisons."
        }
       ]
      },
@@ -440,7 +440,7 @@
       },
       {
        "title": "regexp_matches silently drops rows",
-       "fix": "Use `regexp_match` (one result or NULL) when you want the first match, or wrap it: `(SELECT regexp_matches(col, pat))`."
+       "fix": "Use `regexp_match` (one result or NULL) when you want the first match, or, without the `g` flag, wrap it: `(SELECT regexp_matches(col, pat))`."
       },
       {
        "title": "Case-insensitive search that scans the whole table",
@@ -469,7 +469,7 @@
       "presets": [
        {
         "label": "Integer division",
-        "lookFor": "`7 / 2` is **3** and `-7 / 2` is **-3**: integer division truncates toward zero. One decimal operand (`7.0`) switches to numeric division."
+        "lookFor": "`7 / 2` is **3** and `-7 / 2` is **-3**: integer division truncates toward zero. `mod(a, b)` is the function form of `a % b`. One decimal operand (`7.0`) switches to numeric division."
        },
        {
         "label": "What type is this?",
@@ -477,7 +477,7 @@
        },
        {
         "label": "Float vs numeric",
-        "lookFor": "Floats are binary, so `0.1 + 0.2` is `0.30000000000000004` and ten 0.1s make `0.9999999999999999`. A `real` keeps about 6 digits: widening its sum shows `3.3000000193715096`."
+        "lookFor": "`generate_series(1, 10)` returns the rows 1 to 10. Floats are binary, so `0.1 + 0.2` is `0.30000000000000004` and ten 0.1s make `0.9999999999999999`. A `real` keeps about 6 digits: widening its sum shows `3.3000000193715096`."
        },
        {
         "label": "Rounding family",
@@ -509,7 +509,7 @@
       },
       {
        "title": "Storing money in float",
-       "fix": "Use `numeric(12,2)` (or integer cents) for money. Keep `real`/`double precision` for measurements where tiny errors do not matter."
+       "fix": "Use `numeric(12,2)` (or integer cents) for money. Keep `real`/`double precision` for measurements where tiny errors do not matter. Avoid the `money` type too: its precision and output depend on the `lc_monetary` setting."
       },
       {
        "title": "Integer overflow on a growing counter",
@@ -566,7 +566,7 @@
        },
        {
         "label": "Daily report, half-open",
-        "lookFor": "Each day is `[start, start + 1 day)`: every event lands in exactly one bucket. Grouped by New York days the counts shift, and the 2026-03-08 bucket starts at 05:00 UTC but the next at 04:00 UTC (a 23-hour day)."
+        "lookFor": "`generate_series` makes one row per day and `LEFT JOIN` ([Joins, visualized](/m3/joins)) attaches that day's events, so a day with no events still shows 0. Each day is `[start, start + 1 day)`: every event lands in exactly one bucket. Grouped by New York days the counts shift, and the 2026-03-08 bucket starts at 05:00 UTC but the next at 04:00 UTC (a 23-hour day)."
        }
       ]
      },
@@ -597,7 +597,7 @@
       "**timestamptz** stores an instant (in UTC) and displays it in the session **TimeZone**. **timestamp** is wall-clock digits only.",
       "`AT TIME ZONE` flips the type: timestamptz → timestamp (read a clock), timestamp → timestamptz (pin to a zone).",
       "`+ interval '1 day'` keeps the local time of day; `+ interval '24 hours'` adds elapsed time. They differ across DST.",
-      "Filter time with **half-open ranges** `>= start AND < end`, and pass the business zone to `date_trunc`.",
+      "Filter time with **half-open ranges** `>= start AND < end`, and pass the business zone to `date_trunc`. A `tstzrange` stores such a period as one value: [Ranges and other special types](/f2/ranges-and-special-types).",
       "Going deeper: the Internals lesson [Declarative partitioning and pruning](/m7/partitioning) uses the same half-open bounds to split tables by time."
      ]
     },
@@ -623,7 +623,7 @@
        },
        {
         "label": "COALESCE, GREATEST, LEAST",
-        "lookFor": "COALESCE returns the first non-NULL argument. GREATEST and LEAST **ignore NULLs**, so Ann's best offer is 5.00, and they return NULL only when every argument is NULL."
+        "lookFor": "COALESCE returns the first non-NULL argument. GREATEST and LEAST **ignore NULLs**, so Ann's best offer is 5.00, and they return NULL only when every argument is NULL. For the same reason Cy's `capped_total` is 100, not NULL. If unknown must stay unknown, write `CASE WHEN total IS NOT NULL THEN LEAST(total, 100) END`."
        },
        {
         "label": "Safe division with NULLIF",
@@ -670,7 +670,7 @@
       "Searched **CASE** returns the first **true** branch. NULL is not true. No ELSE means NULL.",
       "**COALESCE** picks the first non-NULL argument and stops there. **NULLIF(a, b)** turns a chosen value into NULL.",
       "`x / NULLIF(y, 0)` is the standard guard against division by zero.",
-      "`count(*) FILTER (WHERE …)` computes many conditional metrics in one pass. Sums over no rows are NULL.",
+      "`count(*) FILTER (WHERE …)` computes many conditional metrics in one pass. Sums over no rows are NULL. More on FILTER: [Aggregates, FILTER and GROUPING SETS](/m3/aggregates-grouping) and [Pivots and reports](/f4/pivot-reporting).",
       "Going deeper: the Internals lesson [From SQL text to rows](/m4/query-pipeline) follows a query through parsing, rewriting and planning, the stages that run before the executor evaluates CASE row by row."
      ]
     },
@@ -692,7 +692,7 @@
        },
        {
         "label": "Literals adapt, columns do not",
-        "lookFor": "A quoted literal starts as type `unknown` and takes whatever type its neighbour needs. Two texts compare character by character, so `'10' < '9'` is true and text numbers sort 1, 10, 2, 9."
+        "lookFor": "A quoted literal starts as type `unknown` and takes whatever type its neighbour needs. Two texts compare character by character, so `'10' < '9'` is true and text numbers sort 1, 10, 2, 9. Typed values convert on their own (an **implicit** cast) only where nothing is lost, such as integer to numeric. Integer to text is not automatic: `length(42)` fails with \"function length(integer) does not exist\" until you write the **explicit** cast `42::text`."
        },
        {
         "label": "What would fail?",
@@ -744,7 +744,7 @@
       "Text → number accepts spaces but not decimal points (for integers), commas or empty strings. Out of range is an error, never a wrap.",
       "Number → integer **rounds**: ties away from zero from numeric, to even from double precision. Be explicit with `trunc`/`round`.",
       "Check input with `pg_input_is_valid` and `pg_input_error_info` before casting; use `to_char`/`to_number`/`to_date` for custom formats.",
-      "Going deeper: the Internals lesson [JSON vs JSONB](/m2/json-jsonb) shows how JSON values are stored and why `->>` hands you text."
+      "Going deeper: the Internals lesson [JSON vs JSONB](/m2/json-jsonb) shows how JSON values are stored and why `->>` hands you text, [Arrays](/m2/arrays) does the same for `int[]`, and [Working with JSON](/f2/working-with-json) is the practical guide."
      ]
     },
     {
@@ -768,16 +768,20 @@
         "lookFor": "Dara has no orders. Plain `jsonb_agg` gives `[null]`, `FILTER` gives SQL NULL, and `COALESCE(…, '[]')` gives an empty array. `jsonb_agg_strict` skips NULL values but not an object full of nulls. A NULL **key** in `jsonb_object_agg` is an error; a NULL value is kept unless you use the `_strict` form."
        },
        {
+        "label": "Operators: reach into a document",
+        "lookFor": "`->` returns jsonb, `->>` and `#>>` return text, and a subscript returns jsonb (`\"mug\"` keeps its quotes). `@>` tests containment and `?` tests for a top-level key. Row 2 has no items, so its first three columns are NULL."
+       },
+       {
         "label": "SQL/JSON standard functions",
         "lookFor": "The standard constructors return `json` unless you say `RETURNING jsonb`. `JSON_OBJECT` keeps NULLs by default, `JSON_ARRAY` drops them. Inbox row 2 has `13/11/2026`, which is not a valid date: `JSON_VALUE … RETURNING date` quietly returns NULL, unless you give a `DEFAULT … ON ERROR`."
        },
        {
         "label": "Shred JSON into rows and load it",
-        "lookFor": "`jsonb_to_recordset` maps each array element to a typed row: the string `\"3\"` becomes the integer 3 and a missing `qty` becomes NULL. `WITH ORDINALITY` numbers the elements from 1. The `LEFT JOIN LATERAL … ON true` keeps inbox row 2, whose array is empty."
+        "lookFor": "`jsonb_to_recordset` maps each array element to a typed row: the string `\"3\"` becomes the integer 3 and a missing `qty` becomes NULL. `JSON_TABLE` is the SQL-standard form: one path for the rows, one per column, and `DEFAULT … ON EMPTY` for missing keys. `WITH ORDINALITY` numbers the elements from 1. The `LEFT JOIN LATERAL … ON true` keeps inbox row 2, whose array is empty."
        },
        {
         "label": "Update toolkit",
-        "lookFor": "`||` adds or replaces top-level keys, `-` removes a key, `#-` removes whatever sits at a path. `jsonb_insert` inserts into arrays (and refuses to overwrite an existing object key). `jsonb_set` with a missing **parent** returns the document unchanged, with no error. Mind the parentheses: `-` binds tighter than `||`."
+        "lookFor": "`||` adds or replaces top-level keys, `-` removes a key, `#-` removes whatever sits at a path. `jsonb_insert` inserts into arrays (and refuses to overwrite an existing object key). `jsonb_set` with a missing **parent** returns the document unchanged, with no error. A SQL NULL as the new value makes the whole result NULL; pass `'null'::jsonb` or use `jsonb_set_lax`. Mind the parentheses: `-` binds tighter than `||`."
        },
        {
         "label": "Validate documents",
@@ -785,7 +789,7 @@
        },
        {
         "label": "Index decision guide",
-        "lookFor": "Containment and `?` use the GIN indexes; `->>` equality, the numeric range and top-N need the B-tree expression indexes; the jsonpath range stays a Seq Scan. In the last two plans compare the `rows=` estimate: a guess of 100 for `->>` against 50 (the true count) for the promoted column."
+        "lookFor": "A GIN index is built with an operator class (opclass) that decides which operators it serves. Containment and `?` use the GIN indexes; `->>` equality, the numeric range and top-N need the B-tree expression indexes; the jsonpath range stays a Seq Scan. In the last two plans compare the `rows=` estimate: a guess of 100 for `->>` against 50 (the true count) for the promoted column."
        }
       ]
      },
@@ -817,7 +821,7 @@
       "Query: `JSON_VALUE` for one scalar (`RETURNING` a type), `JSON_QUERY` for objects, arrays or several items (`WITH WRAPPER`), `JSON_EXISTS` for a yes/no. `JSON_VALUE` and `JSON_QUERY` return NULL on error and `JSON_EXISTS` returns false, unless told otherwise.",
       "Shred with `jsonb_to_recordset` or `jsonb_array_elements … WITH ORDINALITY`; update with `||`, `-`, `#-`, `jsonb_insert`, `jsonb_set`; validate with `IS JSON` and CHECK constraints.",
       "Index guide: GIN for `@>`, `?` and jsonpath equality; B-tree on the expression for `->>`, ranges and sorting; a stored generated column for keys you filter, join or group on all the time.",
-      "Going deeper: [JSON vs JSONB](/m2/json-jsonb) shows how jsonb is stored and the `jsonb_set` NULL trap, and [GIN indexes](/m4/gin) shows what the GIN opclasses actually store."
+      "Going deeper: [JSON vs JSONB](/m2/json-jsonb) shows how jsonb is stored and the `jsonb_set` NULL trap, and [GIN indexes](/m4/gin) shows what the GIN opclasses actually store. Background: [Joins, visualized](/m3/joins), [LATERAL joins](/m3/lateral), [Indexes for beginners](/f3/indexes-101), [Reading EXPLAIN](/m4/explain-analyze)."
      ]
     },
     {
@@ -848,7 +852,7 @@
        },
        {
         "label": "No double bookings",
-        "lookFor": "The two touching or other-room bookings are accepted; `sync` overlaps `review` in room 1 and the exclusion constraint rejects it (see the notice, SQLSTATE 23P01). `WITHOUT OVERLAPS` builds the same kind of GiST-backed rule into a primary key. The constraint's GiST index also serves `&&` searches."
+        "lookFor": "The two touching or other-room bookings are accepted; `sync` overlaps `review` in room 1 and the exclusion constraint rejects it (see the notice, SQLSTATE 23P01). `WITHOUT OVERLAPS` builds the same kind of rule into a primary key, backed by GiST (an index type built for overlap, containment and distance searches); its violation is reported as the same 23P01, against `room_slots_pkey`. The constraint's GiST index also serves `&&` searches, and a range column can be indexed with `USING spgist` as well."
        },
        {
         "label": "Network types: inet and cidr",
@@ -908,7 +912,7 @@
      "order": 1,
      "slug": "keys-and-relationships",
      "title": "Keys and relationships",
-     "tldr": "A **primary key** gives every row a unique, never-NULL identity, and a **foreign key** is a column whose value must match the primary key of the table it references. Together they let you split data into focused tables and still connect them reliably, because PostgreSQL refuses any row that would point at nothing.",
+     "tldr": "A **primary key** gives every row a unique, never-NULL identity, and a **foreign key** is a column whose value must match the primary key (or another `UNIQUE` column) of the table it references. Together they let you split data into focused tables and still connect them reliably, because PostgreSQL refuses any row that would point at nothing.",
      "visualizer": {
       "title": "Four ways tables relate",
       "interaction": "Switch between the shapes, click rows to follow the links, then use the lab buttons. In one-to-many, pick an **ON DELETE** action and delete an author."
@@ -962,14 +966,14 @@
       },
       {
        "title": "Using a value that changes as the primary key",
-       "fix": "Use a **surrogate key** (`bigint GENERATED ALWAYS AS IDENTITY` or `uuidv7()`) as the primary key, and keep the natural value as a separate `UNIQUE` column."
+       "fix": "Use a **surrogate key** (`bigint GENERATED ALWAYS AS IDENTITY` or `uuidv7()`) as the primary key, and keep the natural value as a separate `UNIQUE` column. [UUIDv4 vs UUIDv7](/m2/uuid-v4-v7) compares the two kinds of UUID key."
       }
      ],
      "keyPointers": [
       "A **primary key** is UNIQUE plus NOT NULL, one per table, and it creates a unique index automatically.",
       "The table on the **many** side holds the **foreign key**. Many-to-many needs a **junction table** with two foreign keys and a composite primary key.",
       "One-to-one is a foreign key that is also **UNIQUE** (or the primary key). A self-reference points a column at its own table.",
-      "`ON DELETE` decides what happens to children: **NO ACTION** (default) or **RESTRICT** refuse, **CASCADE** deletes them, **SET NULL** detaches them. Index the foreign-key column yourself.",
+      "`ON DELETE` decides what happens to children: **NO ACTION** (default, checked at the end of the statement, can be deferred to commit) or **RESTRICT** (checked at once) refuse, **CASCADE** deletes them, **SET NULL** detaches them. Index the foreign-key column yourself.",
       "**Going deeper:** [Modelling data: normalization and constraints](/m1/normalization-constraints) shows how to decide which tables you need in the first place."
      ]
     },
@@ -986,31 +990,31 @@
       "extensions": [],
       "presets": [
        {
-        "label": "Defaults fill the gaps",
+        "label": "1. Defaults fill the gaps",
         "lookFor": "Only `email` was given. `plan` became **free**, `seats` became **1**, `created_at` got the current time, and `username` is NULL because it has no default."
        },
        {
-        "label": "One rejection per gate",
+        "label": "2. One rejection per gate",
         "lookFor": "Each column shows a different SQLSTATE: **23502**, **23514**, **23505**, **23503**. The constraint name in each message tells you exactly which rule fired."
        },
        {
-        "label": "Failed inserts still use ids",
-        "lookFor": "The four failed attempts each drew a value from the identity sequence. Expect **id 7**, not 3. Gaps are normal and harmless."
+        "label": "3. Failed inserts still use ids",
+        "lookFor": "The error shows the id the rejected row had already drawn (`Failing row contains (N, …)`), and the next insert gets **N + 1**: that number is never reused. After presets 1 and 2 this insert gets **id 8**, not 3. Gaps are normal and harmless."
        },
        {
-        "label": "NULLs and UNIQUE",
+        "label": "4. NULLs and UNIQUE",
         "lookFor": "A plain `UNIQUE` column accepts many NULLs, because NULL is never equal to NULL. `NULLS NOT DISTINCT` treats them as equal and rejects the second one."
        },
        {
-        "label": "CHECK lets NULL through",
+        "label": "5. CHECK lets NULL through",
         "lookFor": "A CHECK passes when its expression is **true or NULL**. NULL BETWEEN 0 AND 100 is NULL, so the NULL row is stored. Add `NOT NULL` if the value is required."
        },
        {
-        "label": "Enum, domain, exclusion",
+        "label": "6. Enum, domain, exclusion",
         "lookFor": "An enum rejects unknown labels (**22P02**). A domain is a reusable type with its own CHECK (**23514**). An exclusion constraint rejects overlapping time ranges (**23P01**)."
        },
        {
-        "label": "See every constraint",
+        "label": "7. See every constraint",
         "lookFor": "In PostgreSQL 18, `NOT NULL` constraints are catalog entries with names too, such as `accounts_email_not_null`."
        }
       ]
@@ -1040,7 +1044,7 @@
      ],
      "keyPointers": [
       "Order of checks on INSERT: **defaults** fill missing columns, then **NOT NULL**, **CHECK**, **UNIQUE**, and finally the **foreign key**.",
-      "SQLSTATEs to know: **23502** not null, **23514** check, **23505** unique, **23503** foreign key, **23P01** exclusion.",
+      "SQLSTATEs to know: **23502** not null, **23514** check, **23505** unique, **23503** foreign key, **23P01** exclusion (exclusion constraints at work: [Gaps and islands](/f4/gaps-and-islands)).",
       "`CHECK` passes on NULL. Plain `UNIQUE` allows many NULLs unless you add `NULLS NOT DISTINCT`.",
       "Fixed set of values: **enum** (compact, cannot drop labels), **lookup table + FK** (flexible, can carry extra columns) or **CHECK … IN** (simple). A **domain** packages a type with its rules for reuse.",
       "**Going deeper:** [Modelling data: normalization and constraints](/m1/normalization-constraints) covers deferrable, temporal and not-enforced constraints."
@@ -1081,6 +1085,10 @@
        {
         "label": "6. What the indexes cost",
         "lookFor": "The five indexes together are bigger than the table itself. Every one of them must be updated on each INSERT, so add indexes for the queries you actually run."
+       },
+       {
+        "label": "7. Where is an index missing?",
+        "lookFor": "`seq_scan` counts full reads of the table and `seq_tup_read` the rows those reads went through. A large table where both keep climbing is being read end to end again and again: find the query and check whether an index would serve it."
        }
       ]
      },
@@ -1096,7 +1104,7 @@
       },
       {
        "title": "A function or cast on the indexed column",
-       "fix": "Rewrite the condition to leave the column bare (`created_at >= $1 AND created_at < $1 + 1`) or create an index on the exact expression."
+       "fix": "Rewrite the condition to leave the column bare (`created_at >= $1::date AND created_at < $1::date + 1`) or create an index on the exact expression."
       },
       {
        "title": "Expecting the index to always be used",
@@ -1128,31 +1136,31 @@
       "extensions": [],
       "presets": [
        {
-        "label": "Identity: RETURNING the new id",
-        "lookFor": "The new row gets **id 5**. `RETURNING` gives it back without a second query. The identity column is filled from a sequence named `products_id_seq`."
+        "label": "1. Identity: RETURNING the new id",
+        "lookFor": "The new row gets the next id (**5** on a fresh database). `RETURNING` gives it back without a second query. The identity column is filled from a sequence named `products_id_seq`."
        },
        {
-        "label": "Gaps: rollbacks and failures",
-        "lookFor": "The rolled-back insert used **6** and the failed one used **7**, so Rug gets **8**. Sequence values are never handed back."
+        "label": "2. Gaps: rollbacks and failures",
+        "lookFor": "The rolled-back insert used one id and the failed one used the next, so Rug lands **two above** Shelf (6, 7, then 8 if you ran preset 1 first). Sequence values are never handed back."
        },
        {
-        "label": "serial vs GENERATED ALWAYS",
+        "label": "3. serial vs GENERATED ALWAYS",
         "lookFor": "Identity ALWAYS refuses a hand-typed id (**428C9**). `serial` accepts it, then the sequence later hands out the same 1 and collides (**23505**). The retry gets 2."
        },
        {
-        "label": "A view is a saved query",
+        "label": "4. A view is a saved query",
         "lookFor": "The view has no data of its own. The UPDATE through it changed the row in `products`, because a view over one table with plain columns is **automatically updatable**."
        },
        {
-        "label": "WITH CHECK OPTION",
+        "label": "5. WITH CHECK OPTION",
         "lookFor": "The first Sofa was stored in `products` but the view cannot show it (count 0). The checked view refuses it with **44000**."
        },
        {
-        "label": "Not every view is updatable",
+        "label": "6. Not every view is updatable",
         "lookFor": "Aggregates, `DISTINCT`, `GROUP BY`, joins and `LIMIT` make a view read-only (**55000**). It is still perfectly good for reading."
        },
        {
-        "label": "Materialized view: a stored copy",
+        "label": "7. Materialized view: a stored copy",
         "lookFor": "A materialized view saves the result when created. It stays the same until `REFRESH MATERIALIZED VIEW` re-runs the query."
        }
       ]
@@ -1181,7 +1189,7 @@
       }
      ],
      "keyPointers": [
-      "New tables: `id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY`. `serial` is the older shorthand and lets manual ids collide with the sequence.",
+      "New tables: `id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY`. `serial` is the older shorthand and lets manual ids collide with the sequence, and so does `GENERATED BY DEFAULT AS IDENTITY`.",
       "`nextval()` is **never rolled back**, so ids have gaps. Use `INSERT … RETURNING id` to get the new id in one round trip.",
       "A **view** stores a query, not data. Simple single-table views are **updatable**; add `WITH CHECK OPTION` to reject rows the view could not show.",
       "A **materialized view** stores the result and needs `REFRESH MATERIALIZED VIEW` to catch up.",
@@ -1232,7 +1240,7 @@
      },
      "production": {
       "title": "A one-line migration that took the API down",
-      "problem": "A nightly analytics query was still reading `orders`. The ALTER waited for it, and every API request touching `orders` queued behind the waiting ALTER. For four minutes the connection pool was exhausted and the API returned errors.",
+      "problem": "A long-running analytics query was still reading `orders`. The ALTER waited for it, and every API request touching `orders` queued behind the waiting ALTER. For four minutes the connection pool was exhausted and the API returned errors.",
       "outcome": "Later migrations sometimes needed two or three attempts, but none stalled traffic for more than the 2-second timeout."
      },
      "pitfalls": [
@@ -1256,7 +1264,7 @@
      "keyPointers": [
       "Most `ALTER TABLE` forms take **ACCESS EXCLUSIVE**, which blocks even SELECT. The danger is how *long* it is held, and how long it *waits*.",
       "Instant (catalog only): add a nullable column, add a column with a **constant** default, widen `varchar`, drop or rename a column. Rewrites: **volatile** defaults, identity columns, most type changes.",
-      "For constraints on big tables: `ADD … NOT VALID`, then `VALIDATE CONSTRAINT` (reads and writes continue). For indexes: `CREATE INDEX CONCURRENTLY`.",
+      "For constraints on big tables: `ADD … NOT VALID`, then `VALIDATE CONSTRAINT` (reads and writes continue). For indexes: `CREATE INDEX CONCURRENTLY`. For UNIQUE and PRIMARY KEY: build the unique index concurrently, then `ADD CONSTRAINT … USING INDEX`.",
       "Start every migration with `SET lock_timeout`, keep each step small, and retry on SQLSTATE 55P03.",
       "**Going deeper:** [Heavyweight locks and the conflict matrix](/m5/table-locks) explains every lock mode and which ones conflict."
      ]
@@ -1342,7 +1350,7 @@
       },
       {
        "title": "Get-or-create with a no-op DO UPDATE",
-       "fix": "Use `DO NOTHING RETURNING id` and fall back to a SELECT when nothing came back. Under concurrency the fallback SELECT can miss a row committed after the statement's snapshot, so retry once."
+       "fix": "Use `DO NOTHING RETURNING id` and fall back to a SELECT when nothing came back. Under concurrency the fallback SELECT can miss a row committed after the statement's snapshot, so retry once. `DO NOTHING` still consumes one sequence value per call (the default is computed before the conflict check), so on a hot path SELECT first and INSERT only on a miss, or use a `bigint` key."
       },
       {
        "title": "Treating MERGE as a concurrency-safe upsert",
@@ -1350,11 +1358,11 @@
       }
      ],
      "keyPointers": [
-      "INSERT writes a tuple, DELETE sets its **xmax**, UPDATE does both: the old version stays until VACUUM.",
+      "INSERT writes a tuple, DELETE sets its **xmax**, UPDATE does both: the old version stays until VACUUM ([snapshots and visibility](/m5/snapshots-visibility)).",
       "`RETURNING` works on all four commands; PostgreSQL 18 adds `old.*` and `new.*` (old is NULL for INSERT, new is NULL for DELETE).",
       "`ON CONFLICT (cols)` infers its **arbiter** unique index; `EXCLUDED` is the proposed row; DO UPDATE never touches one row twice.",
       "MERGE gives each candidate row one status and runs the **first** matching WHEN clause; `merge_action()` tells you which.",
-      "Sequences are **not gapless**: upserts, failed inserts and rollbacks all burn values."
+      "Sequences are **not gapless**: upserts, failed inserts and rollbacks all burn values. For bulk loads, `COPY` moves many rows in one command and one transaction, far faster than row-by-row INSERTs; it has no `ON CONFLICT`, so load a staging table and [upsert](/f4/upsert-dedup) from there."
      ]
     },
     {
@@ -1419,7 +1427,7 @@
       },
       {
        "title": "Expecting NULL keys to match",
-       "fix": "Use `a.region IS NOT DISTINCT FROM b.region` if NULLs should pair up, knowing it cannot use a plain hash or merge join as efficiently."
+       "fix": "Use `a.region IS NOT DISTINCT FROM b.region` if NULLs should pair up, knowing that it is not hash- or merge-joinable: the planner falls back to a nested loop, which is slow on large inputs."
       },
       {
        "title": "Set operators without parentheses",
@@ -1435,7 +1443,7 @@
       "ON decides *matching*; WHERE filters *after* the join. They differ only for outer joins.",
       "`NULL = NULL` is NULL, so NULL keys never join. Use `IS NOT DISTINCT FROM` deliberately.",
       "`EXISTS` / `NOT EXISTS` are **semi- and anti-joins**: they never duplicate the left row.",
-      "Prefer `USING` or `ON` over `NATURAL`; join algorithms (nested loop, hash, merge) are covered in m4."
+      "Prefer `USING` or `ON` over `NATURAL`; the join algorithms (nested loop, hash, merge) are in [Reading EXPLAIN (ANALYZE, BUFFERS)](/m4/explain-analyze)."
      ]
     },
     {
@@ -1512,7 +1520,7 @@
       "`IN` = `= ANY`, `NOT IN` = `<> ALL`. With a NULL in the list and no match, both give **NULL**.",
       "Empty subquery: `IN`/`ANY` → false, `NOT IN`/`ALL` → true.",
       "A scalar subquery with 0 rows is NULL; with 2+ rows it is an **error**.",
-      "IN/EXISTS plan as **semi-joins**, NOT EXISTS as an **anti-join**; NOT IN stays a SubPlan filter."
+      "IN/EXISTS plan as [semi-joins](/m3/joins), NOT EXISTS as an **anti-join**; NOT IN stays a SubPlan filter."
      ]
     },
     {
@@ -1585,7 +1593,7 @@
       "`AS MATERIALIZED` forces a fence; `AS NOT MATERIALIZED` forces inlining of every reference.",
       "Volatile functions, data-modifying statements and recursion always materialize.",
       "Data-modifying CTEs run once, to completion, on the **same snapshot**; use RETURNING to pass rows on.",
-      "In EXPLAIN, a `CTE Scan` node means materialized; no CTE node means inlined."
+      "In [EXPLAIN](/m4/explain-analyze), a `CTE Scan` node means materialized; no CTE node means inlined."
      ]
     },
     {
@@ -1602,7 +1610,7 @@
       "presets": [
        {
         "label": "Everyone under Raj",
-        "lookFor": "6 rows in four passes: Raj (depth 0), Omar and Ivy, Zoe and Kai, then Noor. The fifth pass finds nobody and the loop stops."
+        "lookFor": "6 rows: the anchor returns Raj (depth 0), then three iterations add Omar and Ivy, Zoe and Kai, then Noor. The fourth iteration finds nobody and the loop stops."
        },
        {
         "label": "Self-join: one level per join",
@@ -1657,7 +1665,7 @@
       "Shape: **non-recursive term** `UNION [ALL]` **recursive term**; only the recursive term may reference the CTE, once.",
       "Each pass reads only the **working table** (last pass's new rows); recursion ends when a pass produces nothing.",
       "UNION drops rows that duplicate **any earlier row**; UNION ALL keeps everything.",
-      "`CYCLE col SET is_cycle USING path` stops loops; `SEARCH DEPTH|BREADTH FIRST BY col SET ord` gives a sortable order.",
+      "`CYCLE col SET is_cycle USING path` stops loops; `SEARCH DEPTH|BREADTH FIRST BY col SET ord` gives a sortable order. More tree models: [trees and graphs](/f4/hierarchies).",
       "Recursive CTEs are always materialized; data-modifying statements cannot be recursive."
      ]
     },
@@ -1739,7 +1747,7 @@
       }
      ],
      "keyPointers": [
-      "Window functions run **after** WHERE/GROUP BY/HAVING and never collapse rows.",
+      "Window functions run **after** WHERE/GROUP BY/HAVING and never collapse rows. For top-N per group compare [LATERAL](/m3/lateral); for runs and sessions see [gaps and islands](/f4/gaps-and-islands).",
       "**Peers** are rows equal under the window ORDER BY; rank functions give peers the same value.",
       "Default frame with ORDER BY: `RANGE UNBOUNDED PRECEDING` to the current row's **last peer**; without ORDER BY: the whole partition.",
       "`ROWS` counts rows, `RANGE` compares values (one ORDER BY column for offsets), `GROUPS` counts peer groups; `EXCLUDE` trims the result.",
@@ -1815,8 +1823,8 @@
       "`LATERAL` lets a FROM subquery reference columns of FROM items **to its left**; it runs once per outer row.",
       "Set-returning functions in FROM are **implicitly lateral**; the keyword is optional there.",
       "CROSS JOIN / comma LATERAL drops rows with an empty result; `LEFT JOIN LATERAL … ON true` keeps them.",
-      "Top-N per group: LATERAL + `ORDER BY … LIMIT n` + index on `(key, sort DESC)` → Nested Loop with Index Scan.",
-      "`WITH ORDINALITY` numbers the rows of a function in FROM (bigint, from 1)."
+      "Top-N per group: LATERAL + `ORDER BY … LIMIT n` + index on `(key, sort DESC)` → Nested Loop with Index Scan (the [window-function](/m3/window-functions) form ranks every row first).",
+      "`WITH ORDINALITY` numbers the rows of a function in FROM (bigint, from 1). A spatial use of LATERAL: [nearest neighbour per row](/e4/nearest-neighbour)."
      ]
     },
     {
@@ -1853,7 +1861,7 @@
        },
        {
         "label": "Median and mode",
-        "lookFor": "Ordered-set aggregates sort their input. `percentile_cont` interpolates between the two middle values; `percentile_disc` returns an actual input value. There is no separate `median()`: `percentile_cont(0.5)` is the median."
+        "lookFor": "Ordered-set aggregates sort their input. `percentile_cont` interpolates between the two middle values; `percentile_disc` returns an actual input value. On the four sales 5, 10, 15, 20 the continuous median is 12.5, the discrete one 10 (in `orders` the two middle values happen to be equal). There is no separate `median()`: `percentile_cont(0.5)` is the median."
        },
        {
         "label": "WHERE vs HAVING",
@@ -1898,7 +1906,7 @@
      ],
      "keyPointers": [
       "`count(*)` counts rows; `count(col)` counts non-NULL values; every other aggregate returns **NULL** on no rows.",
-      "`agg(...) FILTER (WHERE ...)` restricts one aggregate's input; WHERE restricts all rows; HAVING filters groups.",
+      "`agg(...) FILTER (WHERE ...)` restricts one aggregate's input; WHERE restricts all rows; HAVING filters groups. More in [pivots and reports](/f4/pivot-reporting).",
       "`ROLLUP (a, b)` = (a,b), (a), (); `CUBE (a, b)` = all 4 subsets; all sets run in one scan.",
       "`grouping(a, b)` is a bitmask: bit = 1 when that column is **not** grouped in the current row's set.",
       "Ordered-set aggregates: `percentile_cont` interpolates, `percentile_disc` picks a value, `mode()` returns the most frequent."
@@ -1983,7 +1991,7 @@
       "Keyset = **unique sort key** + **row comparison** `(a, b) < ($1, $2)` + an **index in the same order**.",
       "Offsets drift when rows are inserted or deleted between requests. A keyset cursor names a row and cannot drift.",
       "Use `LIMIT n + 1` for \"has next page\", and `reltuples` for an approximate total.",
-      "Going deeper: [Index design](/m4/index-design) covers multicolumn order and why the index must match the ORDER BY."
+      "**Going deeper:** [Index design](/m4/index-design) covers multicolumn order and why the index must match the ORDER BY."
      ]
     },
     {
@@ -2056,7 +2064,7 @@
       "`excluded` is the proposed row. A `DO UPDATE … WHERE` that is false skips the update but still locks the row.",
       "A batch with the same key twice fails with **cannot affect row a second time**. De-duplicate with `DISTINCT ON` first.",
       "Clean duplicates with `row_number() OVER (PARTITION BY key ORDER BY keep_first)` and delete `rn > 1` by primary key (or `ctid` within one statement).",
-      "Going deeper: [INSERT, UPDATE, DELETE, MERGE: what really happens](/m3/dml-lifecycle) shows the row versions each of these writes."
+      "**Going deeper:** [INSERT, UPDATE, DELETE, MERGE: what really happens](/m3/dml-lifecycle) shows the row versions each of these writes."
      ]
     },
     {
@@ -2091,7 +2099,7 @@
        },
        {
         "label": "5. Percent of the month",
-        "lookFor": "Window aggregates compute the denominators without collapsing rows: `PARTITION BY month` for the month share, an empty `OVER ()` for the share of everything. Web is about 50% each month."
+        "lookFor": "Window aggregates compute the denominators without collapsing rows: `PARTITION BY month` for the month share, an empty `OVER ()` for the share of everything. Web is about 50% in each month shown; remove the `LIMIT` and April jumps to 66%, because the store sold nothing."
        },
        {
         "label": "6. Month over month: the lag trap",
@@ -2127,7 +2135,7 @@
       "Build a **date spine** with `generate_series`, cross join the dimensions, LEFT JOIN the facts, `coalesce` to 0.",
       "`lag()` means the previous **row**. It is only \"the previous period\" over a complete spine.",
       "Shares come from window aggregates: `x / sum(x) OVER (PARTITION BY period)`. Subtotals come from `ROLLUP` in the same pass.",
-      "Going deeper: [Aggregates, FILTER and GROUPING SETS](/m3/aggregates-grouping) and [Window functions and frames](/m3/window-functions)."
+      "**Going deeper:** [Aggregates, FILTER and GROUPING SETS](/m3/aggregates-grouping) and [Window functions and frames](/m3/window-functions)."
      ]
     },
     {
@@ -2202,14 +2210,14 @@
       "Sessions: flag rows where `lag()` is NULL or too far back, then a running `sum(flag)` numbers the groups.",
       "Gaps: `lead(value)` minus value > 1, or a `generate_series` EXCEPT the values present.",
       "Intervals: `range_agg` fuses overlapping and adjacent ranges, and `EXCLUDE … WITH &&` forbids overlaps.",
-      "Going deeper: [Window functions and frames](/m3/window-functions) explains partitions, ordering and the running-sum frame."
+      "**Going deeper:** [Window functions and frames](/m3/window-functions) explains partitions, ordering and the running-sum frame."
      ]
     },
     {
      "order": 5,
      "slug": "hierarchies",
      "title": "Trees and graphs",
-     "tldr": "A tree can be stored as an **adjacency list** (each row points to its parent), a **materialized path** (`ltree`: each row stores its whole path) or a **closure table** (one row per ancestor and descendant pair). They trade read cost against write cost: the adjacency list is trivial to change but needs a recursive query per level, while paths and closure rows answer \"the whole subtree\" with one index scan and must be rewritten when a subtree moves.",
+     "tldr": "A tree can be stored as an **adjacency list** (each row points to its parent), a **materialized path** (`ltree`: each row stores its whole path) or a **closure table** (one row per ancestor and descendant pair). They trade read cost against write cost: the adjacency list is trivial to change but needs a recursive query that takes one step per level, while paths and closure rows answer \"the whole subtree\" with one index scan and must be rewritten when a subtree moves.",
      "visualizer": {
       "title": "One org chart, three storage models",
       "interaction": "Click any node to fetch its subtree. In **Adjacency list** press Next iteration to watch the recursive CTE descend one level at a time. Switch models to compare one index scan, and the rows each model must rewrite to move the subtree."
@@ -2275,9 +2283,9 @@
      "keyPointers": [
       "**Adjacency list**: one `parent_id` column, cheap writes, a recursive CTE per read (index `parent_id`).",
       "**ltree**: `path <@ x` = subtree, `path @> x` = ancestors, GiST index, rewrite the subtree on a move.",
-      "**Closure table**: every ancestor/descendant pair with depth, B-tree lookups both ways, the most rows and the costliest moves.",
+      "**Closure table**: every ancestor/descendant pair with depth, B-tree lookups both ways, the most rows and the costliest moves. **Nested sets** (a left and a right number per row, subtree = `lft BETWEEN x AND y`) read as fast, but one insert renumbers about half the table.",
       "For graphs with loops use the **CYCLE** clause, and `SEARCH DEPTH FIRST` for outline order.",
-      "Going deeper: [Recursive CTEs](/m3/recursive-ctes) shows the working table and termination rules step by step."
+      "**Going deeper:** [Recursive CTEs](/m3/recursive-ctes) shows the working table and termination rules step by step."
      ]
     },
     {
@@ -2348,7 +2356,7 @@
       "**Substring, ILIKE, regex**: `gin_trgm_ops`. Patterns need at least one full trigram to be selective.",
       "**Typos**: `similarity()`, `%` (threshold 0.3) and `<->`. Distance ordering needs **GiST**.",
       "**Words**: a stored `tsvector` with a GIN index, `@@ websearch_to_tsquery`, ranked by `ts_rank`.",
-      "Going deeper: [Full-text search](/m6/full-text-search) covers parsers, dictionaries and ranking."
+      "**Going deeper:** [Full-text search](/m6/full-text-search) covers parsers, dictionaries and ranking."
      ]
     },
     {
@@ -2405,7 +2413,7 @@
       },
       {
        "title": "Jobs that are never retried",
-       "fix": "Let the claim query also take `running` rows whose lease has expired, count `attempts`, and move rows over a limit to `failed` for inspection."
+       "fix": "Let the claim query also take `running` rows whose lease has expired, count `attempts`, and move rows over a limit to `failed` for inspection. Make the lease longer than the slowest job (or extend it with a heartbeat UPDATE), and finish with `WHERE id = $1 AND attempts = $2` so a worker that lost its lease changes nothing."
       },
       {
        "title": "Retries that repeat side effects",
@@ -2414,6 +2422,10 @@
       {
        "title": "Ignoring the row count of an optimistic update",
        "fix": "Check the affected row count in the application. On 0, reload, re-apply the change and retry, or show a conflict to the user."
+      },
+      {
+       "title": "Advisory locks and LISTEN behind a pooler",
+       "fix": "Use `pg_advisory_xact_lock` inside a single transaction, and give listeners a direct session connection. See [Connection pooling](/m7/connection-pooling)."
       }
      ],
      "keyPointers": [
@@ -2421,7 +2433,7 @@
       "Index only open jobs with a **partial index**, use a **lease** for crashes and an **idempotency key** for retries.",
       "Optimistic concurrency: `WHERE version = $read_version`; `UPDATE 0` means someone else won.",
       "Advisory locks lock an idea: `pg_try_advisory_lock(key)` for singleton jobs; session locks stack, `xact` locks free themselves at commit.",
-      "Going deeper: [Row locks, SKIP LOCKED and advisory locks](/m5/row-locks-skip-locked) shows how row locks are stored and which modes conflict."
+      "**Going deeper:** [Row locks, SKIP LOCKED and advisory locks](/m5/row-locks-skip-locked) shows how row locks are stored and which modes conflict."
      ]
     },
     {
@@ -2464,7 +2476,7 @@
        },
        {
         "label": "7. Indexes that never get used",
-        "lookFor": "Indexes with `idx_scan = 0` after a representative workload cost writes and space for nothing (here `users_email`, made redundant by the `lower(email)` index). A primary key or unique index at 0 still enforces its constraint, so keep it. Check replicas too before dropping one."
+        "lookFor": "Indexes with `idx_scan = 0` after a representative workload cost writes and space for nothing (here `users_email`: every lookup in this lesson goes through `lower(email)`, so nothing reads the plain index). A primary key or unique index at 0 still enforces its constraint, so keep it. Check replicas too before dropping one."
        }
       ]
      },
@@ -2489,6 +2501,10 @@
       {
        "title": "Indexing every column",
        "fix": "Index for the queries you actually run (check `pg_stat_statements`), and drop indexes that stay at `idx_scan = 0`."
+      },
+      {
+       "title": "Hundreds of open connections",
+       "fix": "Reuse a small pool of connections, keep transactions short, and set `idle_in_transaction_session_timeout`. See [Connection pooling](/m7/connection-pooling)."
       }
      ],
      "keyPointers": [
@@ -2496,7 +2512,7 @@
       "Read: estimated vs **actual rows × loops**, **Rows Removed by Filter**, buffers, **external merge**.",
       "Fix: expression index or half-open range for wrapped columns, matching parameter types, `ANALYZE` after loads, batch N+1.",
       "Measure: compare **shared buffers** before and after; timings vary, buffer counts are stable.",
-      "Going deeper: [EXPLAIN ANALYZE](/m4/explain-analyze) and [Planner statistics](/m4/statistics) explain every number in a plan."
+      "**Going deeper:** [EXPLAIN ANALYZE](/m4/explain-analyze) and [Planner statistics](/m4/statistics) explain every number in a plan."
      ]
     }
    ]
@@ -2556,7 +2572,7 @@
      },
      "production": {
       "title": "The migration that ran against the wrong database",
-      "problem": "A migration created its tables in database `postgres` instead of `app_staging`. The connection string had no database name, and libpq defaults the database to the user name. A later run then failed with `relation does not exist` in the right database.",
+      "problem": "A migration created its tables in database `postgres` instead of `app_staging`. The connection string had no database name, and libpq defaults the database to the user name: the CI job connected as `postgres`, so it landed in database `postgres`. A later run then failed with `relation does not exist` in the right database.",
       "outcome": "Misrouted runs now stop on the first statement with a clear message, before any DDL. The stray objects in `postgres` were found with `\\dt` and dropped."
      },
      "pitfalls": [
@@ -2566,7 +2582,7 @@
       },
       {
        "title": "Leaving trust authentication after initdb",
-       "fix": "Initialize with `initdb -A scram-sha-256 -W`, or edit `pg_hba.conf` before the first start and reload. Check the result in `pg_hba_file_rules`."
+       "fix": "Initialize with `initdb -A scram-sha-256 -W`, or edit `pg_hba.conf` before the first start (on a running server, edit and reload). Check the result in `pg_hba_file_rules`."
       },
       {
        "title": "Remote clients cannot connect",
@@ -2615,7 +2631,7 @@
        },
        {
         "label": "Idle in transaction",
-        "lookFor": "Between statements the session is **idle in transaction**: it holds an xid and a `RowExclusiveLock` on `accounts` until COMMIT. Any other session that wants this row waits for it."
+        "lookFor": "The row says `active` because the session is running this very SELECT; between statements another session would see **idle in transaction**. It holds an xid (`backend_xid`) and a `RowExclusiveLock` on `accounts` until COMMIT. Any other session that wants this row waits for it."
        },
        {
         "label": "What a backend costs",
@@ -2643,7 +2659,7 @@
      "pitfalls": [
       {
        "title": "Raising max_connections into the thousands",
-       "fix": "Keep `max_connections` in the low hundreds and use a connection pooler. Size pools to the number of CPU cores and disks, not to the number of app threads."
+       "fix": "Keep `max_connections` in the low hundreds and use a [connection pooler](/m7/connection-pooling). Size pools to the number of CPU cores and disks, not to the number of app threads."
       },
       {
        "title": "Sessions left idle in transaction",
@@ -2664,7 +2680,7 @@
      ],
      "keyPointers": [
       "**Postmaster** = first process. It forks a **backend** per connection and supervises the **auxiliary** processes.",
-      "`max_connections` (default 100) is fixed at start; `superuser_reserved_connections` (3) keeps slots for emergencies.",
+      "`max_connections` (default 100) is fixed at start; `superuser_reserved_connections` (3) keeps slots for emergencies, and `reserved_connections` (0) does the same for members of `pg_use_reserved_connections`.",
       "`pg_stat_activity.state`: **active**, **idle**, **idle in transaction**. The last one holds locks and blocks cleanup.",
       "One backend crash makes the postmaster **terminate everyone and run crash recovery**.",
       "Shutdown modes: **smart** (SIGTERM, wait), **fast** (SIGINT, abort transactions), **immediate** (SIGQUIT, recovery on next start). `pg_ctl restart` = fast stop + start."
@@ -2714,7 +2730,7 @@
        },
        {
         "label": "Shared memory map",
-        "lookFor": "`Buffer Blocks` is the page pool. `XLOG Ctl` holds the 4 MB of WAL buffers (auto = 1/32 of shared_buffers). `transaction` is the pg_xact commit-log cache."
+        "lookFor": "`Buffer Blocks` is the page pool. `XLOG Ctl` holds the 4 MB of WAL buffers (auto = 1/32 of shared_buffers). The second list shows the SLRU caches: `transaction` (517 kB) is the pg_xact commit-log cache."
        }
       ]
      },
@@ -2748,9 +2764,9 @@
      "keyPointers": [
       "`shared_buffers` (default 128MB) is a pool of 8 kB pages shared by all processes. Start at **25% of RAM**.",
       "Each buffer has a descriptor: **tag, refcount (pins), usage_count 0–5, dirty flag**.",
-      "**Clock sweep**: skip pinned buffers, decrement usage counts, evict the first unpinned buffer at 0. A dirty victim must be written first.",
+      "**Clock sweep**: skip pinned buffers, decrement usage counts, evict the first unpinned buffer at 0. A dirty victim must be written first, which [the background crew](/m1/background-processes) tries to prevent.",
       "Large scans, VACUUM and COPY use a small **buffer access strategy ring** so they cannot flush the cache.",
-      "Also in shared memory: **WAL buffers** (1/32 of shared_buffers, max 16 MB) and **SLRU caches** such as `pg_xact`. `work_mem` is per backend, not shared."
+      "Also in shared memory: **WAL buffers** (1/32 of shared_buffers, max 16 MB) and **SLRU caches** such as `pg_xact`, the commit log: 2 bits per transaction (in progress, committed, aborted, sub-committed), read by visibility checks that find no hint bit. `work_mem` is per backend, not shared."
      ]
     },
     {
@@ -2771,7 +2787,7 @@
        },
        {
         "label": "I/O by process type",
-        "lookFor": "`pg_stat_io` splits I/O by **process type**, object (relation, temp relation, wal) and context (normal, bulkread, bulkwrite, vacuum). Here one standalone backend does every job. The `wal` rows are new in 18."
+        "lookFor": "`pg_stat_io` splits I/O by **process type**, object (relation, temp relation, wal) and context (normal, bulkread, bulkwrite, vacuum). Here a single process does every job, and its I/O is filed under both `client backend` and `standalone backend`. The `wal` rows are new in 18."
        },
        {
         "label": "Who is doing I/O right now?",
@@ -2791,7 +2807,7 @@
        },
        {
         "label": "WAL written so far",
-        "lookFor": "`wal_fpi` counts full-page images: the first change to a page after a checkpoint logs the whole page. `wal_buffers_full` > 0 would mean WAL buffers are too small."
+        "lookFor": "`wal_fpi` counts full-page images: the first change to a page after a checkpoint logs the whole page. `wal_buffers_full` counts WAL written out early because the 4 MB of WAL buffers filled up. It is non-zero here because the setup's 50,000-row INSERT produced about 16 MB of WAL in one statement; on a busy server a steadily growing value suggests raising `wal_buffers`."
        },
        {
         "label": "Vacuum by hand",
@@ -2815,7 +2831,7 @@
       },
       {
        "title": "A failing archive_command fills the disk",
-       "fix": "Monitor `pg_stat_archiver.failed_count` and `last_failed_wal`, fix the command, and make sure it returns non-zero exit status only on real failure."
+       "fix": "Monitor `pg_stat_archiver.failed_count` and `last_failed_wal`, fix the command, and make sure it returns zero **only** when the segment is safely stored (and never overwrites an existing archive file)."
       },
       {
        "title": "Expecting asynchronous I/O to speed up writes",
@@ -2827,10 +2843,10 @@
       }
      ],
      "keyPointers": [
-      "Auxiliary processes: **checkpointer, background writer, walwriter, autovacuum launcher, archiver, logger, startup, walreceiver, walsummarizer**; plus PG18 **io workers**.",
+      "Auxiliary processes: **checkpointer, background writer, walwriter, autovacuum launcher, archiver, logger, startup, walreceiver, walsummarizer**; plus PG18 **io workers**. The **logical replication launcher** (a background worker) also runs by default.",
       "A COMMIT waits only for its **WAL flush**. Data pages are written later by the **bgwriter** and the **checkpointer**.",
-      "Checkpoints run every `checkpoint_timeout` (5min) or at `max_wal_size` (1GB), spread over `checkpoint_completion_target` (0.9).",
-      "Autovacuum: launcher every `autovacuum_naptime` (1min); VACUUM when dead tuples > **50 + 0.2 × reltuples**.",
+      "Checkpoints run every `checkpoint_timeout` (5min) or at `max_wal_size` (1GB), spread over `checkpoint_completion_target` (0.9): see [checkpoints and full page writes](/m7/checkpoints-fpw).",
+      "Autovacuum: launcher every `autovacuum_naptime` (1min); VACUUM when dead tuples > **50 + 0.2 × reltuples** ([tuning autovacuum](/m7/autovacuum-tuning)).",
       "Watch them with `pg_stat_activity.backend_type`, `pg_stat_io`, `pg_stat_bgwriter`, `pg_stat_checkpointer`, `pg_stat_archiver`."
      ]
     },
@@ -2848,7 +2864,7 @@
       "presets": [
        {
         "label": "Databases, templates, per-database settings",
-        "lookFor": "`CREATE DATABASE` is a file-level copy of `template1` unless told otherwise; `template0` stays pristine and refuses connections. `ALTER DATABASE … SET` stores a default that every **new** session in `shop` picks up. A connection cannot see into `shop` from here."
+        "lookFor": "`CREATE DATABASE` physically copies `template1` unless told otherwise (block by block through WAL by default since 15; `STRATEGY = file_copy` copies the directories instead); `template0` stays pristine and refuses connections. `ALTER DATABASE … SET` stores a default that every **new** session in `shop` picks up. A connection cannot see into `shop` from here."
        },
        {
         "label": "search_path as alice",
@@ -2883,7 +2899,7 @@
      "production": {
       "title": "A read-only reporting role that stays read-only",
       "problem": "One mistaken `UPDATE` from a notebook changed live data. The application role also owns the tables, so per-table GRANTs drifted every time a migration created a new table.",
-      "outcome": "New tables are readable without any GRANT, writes fail with SQLSTATE 25006 (read-only transaction) or 42501, and the reload-time `pg_hba_file_rules` check showed the `+analysts` line matched before the catch-all reject."
+      "outcome": "New tables are readable without any GRANT, writes fail with SQLSTATE 25006 (read-only transaction) or 42501, and `pg_hba_file_rules` showed the `+analysts` line parsed without error and sitting above the catch-all reject."
      },
      "pitfalls": [
       {
@@ -2892,7 +2908,7 @@
       },
       {
        "title": "search_path in SECURITY DEFINER functions",
-       "fix": "Pin the path on the function and schema-qualify names: `ALTER FUNCTION f() SET search_path = pg_catalog, app;`."
+       "fix": "Pin the path on the function, with `pg_temp` **last** so a temp table cannot shadow a real one, and schema-qualify names: `ALTER FUNCTION f() SET search_path = pg_catalog, app, pg_temp;`."
       },
       {
        "title": "pg_hba.conf lines in the wrong order",
@@ -2913,10 +2929,10 @@
      ],
      "keyPointers": [
       "Cluster → **databases** (isolated, one per connection) → **schemas** (namespaces) → objects. **Roles** are cluster-wide.",
-      "`CREATE DATABASE` is a file copy of **template1** (no other session may be connected to the source); use **template0** for a new encoding or locale.",
+      "`CREATE DATABASE` is a physical copy of **template1** (`WAL_LOG` strategy by default; no other session may be connected to the source); use **template0** for a new encoding or locale.",
       "`search_path` default `\"$user\", public`. `pg_temp` (relations only) and `pg_catalog` are searched implicitly first; schemas without USAGE are **silently skipped**.",
       "Since 15, PUBLIC has **no CREATE on public**. Membership has **INHERIT**, **SET** and **ADMIN** options; LOGIN, SUPERUSER, CREATEDB, CREATEROLE are never inherited.",
-      "`pg_hba.conf`: **first matching line wins**, no fall-through, no match = rejected; a reload applies edits. Gates for a query: CONNECT on the database, **USAGE** on the schema, then the object privilege."
+      "`pg_hba.conf`: **first matching line wins**, no fall-through, no match = rejected; a reload applies edits. Gates for a query: CONNECT on the database, **USAGE** on the schema, then the object privilege; per-row rules come from [row-level security](/m6/row-level-security)."
      ]
     },
     {
@@ -2959,7 +2975,7 @@
        },
        {
         "label": "PG18: virtual columns and temporal keys",
-        "lookFor": "`attgenerated = v`: **virtual**, the default in 18, recomputed on every read and stored nowhere, so it cannot be written or indexed (**0A000**). The temporal key accepts back-to-back periods (`[)` bounds) and rejects an overlap with **23P01**, enforced by a GiST index."
+        "lookFor": "`attgenerated = v`: **virtual**, the default in 18, recomputed on every read and stored nowhere, so it cannot be written (**428C9**) or indexed (**0A000**). The temporal key accepts back-to-back periods (`[)` bounds) and rejects an overlap with **23P01**, enforced by a GiST index. `WITHOUT OVERLAPS` is shorthand for an **EXCLUDE** constraint like the one on `bookings`: no two rows may be equal on `room` and overlap on `during` ([GiST](/m4/gist-spgist))."
        },
        {
         "label": "Adding rules to live data: NOT VALID",
@@ -2975,7 +2991,7 @@
      "pitfalls": [
       {
        "title": "Foreign keys without an index on the referencing side",
-       "fix": "Index foreign key columns that are not already the leading column of an index. Find candidates in the catalog."
+       "fix": "Index foreign key columns that are not already the leading column of an index ([index design](/m4/index-design)). Find candidates in the catalog."
       },
       {
        "title": "CHECK constraints that let NULL through",
@@ -3090,7 +3106,7 @@
        "fix": "Use `timestamptz` for anything that happened at an instant. Render in the user's zone with `AT TIME ZONE`, and keep plain `timestamp` for wall-clock values such as \"opening hour 09:00\"."
       },
       {
-       "title": "Integer and numeric arithmetic in generated columns",
+       "title": "Assuming / truncates: EXTRACT returns numeric",
        "fix": "Use `EXTRACT(quarter FROM d)`, or cast before dividing: `(EXTRACT(month FROM d)::int - 1) / 3 + 1`. Check `pg_typeof()` of any expression feeding an integer column."
       }
      ],
@@ -3179,7 +3195,7 @@
       "Header: **vl_len, ndim, dataoffset, elemtype** (16 bytes), then 8 bytes per dimension, then an optional null bitmap and the aligned elements.",
       "`dataoffset = 0` means no NULLs. NULL elements cost **one bit**, no data bytes.",
       "Arrays are **1-based**, out-of-range reads return NULL, and declared sizes like `int[3]` are not enforced.",
-      "GIN `array_ops` indexes `@>`, `<@`, `&&` and `=`. Rewrite `x = ANY(col)` as `col @> ARRAY[x]`.",
+      "GIN `array_ops` indexes `@>`, `<@`, `&&` and `=`. Rewrite `x = ANY(col)` as `col @> ARRAY[x]`. See [GIN: inverted indexes](/m4/gin).",
       "Any change rewrites the whole array, so keep growing lists in a child table."
      ]
     },
@@ -3225,7 +3241,7 @@
        },
        {
         "label": "jsonpath & JSON_TABLE",
-        "lookFor": "Lax mode (the default) treats a scalar as a one-element array, so `plan[0]` works; strict mode raises an error there, which `silent => true` turns into an empty result. JSON_TABLE turns documents into rows, one per `NESTED PATH` element."
+        "lookFor": "Lax mode (the default) treats a scalar as a one-element array, so `plan[0]` works; strict mode raises an error there, which `silent => true` turns into an empty result. `JSON_EXISTS` tests a path, `JSON_VALUE` returns one scalar as an SQL type (an array is an error, handled by `ON ERROR`) and `JSON_QUERY` returns jsonb. JSON_TABLE turns documents into rows, one per `NESTED PATH` element."
        }
       ]
      },
@@ -3264,7 +3280,7 @@
       "**json** = exact text, reparsed on every use, no GIN support. **jsonb** = parsed binary tree: no whitespace, keys sorted shorter-first, last duplicate wins.",
       "jsonb is not smaller: small documents are often **larger** than json. Its advantage is speed and indexing.",
       "`->` returns jsonb, `->>` returns **text** (cast before comparing numbers), `#>` / `#>>` take a path, `?` tests top-level keys, `@>` tests containment.",
-      "GIN **jsonb_ops** indexes keys and values (supports `?`); **jsonb_path_ops** hashes paths (only `@>`, `@?`, `@@`, smaller).",
+      "GIN **jsonb_ops** indexes keys and values (supports `?`); **jsonb_path_ops** hashes paths (only `@>`, `@?`, `@@`, smaller). See [GIN: inverted indexes](/m4/gin); large documents are stored through [TOAST](/m2/toast).",
       "jsonpath runs in **lax** mode by default (auto-wraps and unwraps arrays); **strict** raises structural errors."
      ]
     },
@@ -3288,7 +3304,7 @@
        },
        {
         "label": "v7 is ordered",
-        "lookFor": "Within one millisecond the 4th group counts up (`7000`, `7001`, …): the sub-millisecond field keeps values increasing. Zero of 50,000 neighbours are out of order."
+        "lookFor": "Within one millisecond the 3rd group counts up (`7000`, `7001`, …): the sub-millisecond field keeps values increasing. Zero of 50,000 neighbours are out of order."
        },
        {
         "label": "Storage size & input forms",
@@ -3340,7 +3356,7 @@
       "`gen_random_uuid()` = `uuidv4()` (random); `uuidv7([shift])` puts a **48-bit Unix-ms timestamp** first.",
       "Decode with `uuid_extract_version()` and `uuid_extract_timestamp()` (v1 and v7 only).",
       "Random keys scatter writes (more dirty pages, more full-page images in WAL) and leave B-tree leaves about **2/3 full**; v7 keys append at the right edge and fill leaves to **90%**.",
-      "v7 still takes **twice the space of bigint** per key: choose UUIDs for distributed id generation, not by default."
+      "v7 still takes **twice the space of bigint** per key: choose UUIDs for distributed id generation, not by default. See [B-Tree internals](/m4/btree) and [Checkpoints and full page writes](/m7/checkpoints-fpw)."
      ]
     },
     {
@@ -3379,7 +3395,7 @@
        },
        {
         "label": "Fill a page",
-        "lookFor": "Each 61-byte row needs 64 bytes plus a 4-byte line pointer, so about **120 rows fit per page**. Files grow in whole pages, so even a one-row table takes 8192 bytes."
+        "lookFor": "Each 61-byte row needs 64 bytes plus a 4-byte line pointer, so about **120 rows fit per page**. Files grow in whole pages, so even a one-row table takes 8192 bytes. The file here is 16 pages although only 9 hold rows: a bulk load extends the file several pages at a time."
        },
        {
         "label": "Heap order is not id order",
@@ -3419,7 +3435,7 @@
       "Free space is exactly **`pd_upper - pd_lower`**. The page is full when they would meet.",
       "A **ctid `(block, lp)`** names a line pointer, not a byte offset, so tuples can move inside the page without breaking index entries.",
       "Each tuple carries a **23-byte header** (`t_xmin`, `t_xmax`, `t_cid`, `t_ctid`, `t_infomask2`, `t_infomask`, `t_hoff`), padded to 24 before the row data.",
-      "Line pointer states: **NORMAL**, **REDIRECT** (HOT chain root), **DEAD** (waiting for index cleanup), **UNUSED** (free for reuse)."
+      "Line pointer states: **NORMAL**, **REDIRECT** (HOT chain root), **DEAD** (waiting for index cleanup), **UNUSED** (free for reuse). See [HOT updates and fillfactor](/m5/hot-fillfactor) and [VACUUM vs VACUUM FULL](/m7/vacuum)."
      ]
     },
     {
@@ -3466,13 +3482,13 @@
        },
        {
         "label": "Freeze",
-        "lookFor": "Dead versions are gone. The survivors (alice and carol) show `HEAP_XMIN_FROZEN` in `combined_flags`: XMIN_COMMITTED and XMIN_INVALID set together."
+        "lookFor": "Dead versions are gone. Every surviving row (alice, plus carol if you ran the upsert preset) shows `HEAP_XMIN_FROZEN` in `combined_flags`: XMIN_COMMITTED and XMIN_INVALID set together."
        }
       ]
      },
      "production": {
       "title": "A full-table read that writes gigabytes",
-      "problem": "The first read after the load ran far longer than later identical reads, generated heavy write I/O and WAL on a server with checksums enabled, and the replica lagged behind. Nobody expected a SELECT to write.",
+      "problem": "The first read after the load ran far longer than later identical reads, generated heavy write I/O and WAL (data checksums are on by default since PostgreSQL 18), and the replica lagged behind. Nobody expected a SELECT to write.",
       "outcome": "The playground shows the mechanism directly: one SELECT changes `t_infomask` from 2051 to 2307. Moving that write to a planned VACUUM makes first-read latency match later reads, and `COPY … FREEZE` skips the extra rewrite entirely."
      },
      "pitfalls": [
@@ -3498,7 +3514,7 @@
       "**Hint bits** `XMIN_COMMITTED`, `XMIN_INVALID`, `XMAX_COMMITTED`, `XMAX_INVALID` cache commit-log answers; readers set them, so a SELECT can write.",
       "`t_xmax` means \"deleted\" only without `XMAX_LOCK_ONLY`; row locks live in the tuple itself.",
       "`t_infomask2` = attribute count (11 bits) + `HOT_UPDATED`, `HEAP_ONLY_TUPLE`, `KEYS_UPDATED`.",
-      "**Frozen** = `XMIN_COMMITTED | XMIN_INVALID`: visible to all, safe from xid wraparound."
+      "**Frozen** = `XMIN_COMMITTED | XMIN_INVALID`: visible to all, safe from xid wraparound. See [Snapshots and tuple visibility](/m5/snapshots-visibility) and [XID wraparound, freezing and MultiXacts](/m7/xid-wraparound)."
      ]
     },
     {
@@ -3533,7 +3549,7 @@
        },
        {
         "label": "Where the bytes live",
-        "lookFor": "The main heap is a single 8 kB page even though it \"holds\" 1.2 MB of text. `pg_relation_size` counts only the main fork; `pg_table_size` adds TOAST and the FSM/VM forks; `pg_total_relation_size` adds every index, including the TOAST table's own index."
+        "lookFor": "The main heap is a single 8 kB page even though it \"holds\" 1.2 MB of text. `pg_relation_size` counts only the main fork; `pg_table_size` adds the FSM/VM forks and the whole TOAST table, **including the TOAST table's own index**; `pg_total_relation_size` then adds the table's indexes (here `docs_pkey`)."
        },
        {
         "label": "bytea vs large objects",
@@ -3557,7 +3573,7 @@
      "pitfalls": [
       {
        "title": "Changing the strategy and expecting old rows to move",
-       "fix": "Rewrite the affected rows (`UPDATE t SET col = col || ''` in batches) or the table (`VACUUM FULL`, `pg_repack`) when you need the new format everywhere."
+       "fix": "Rewrite the affected values with an UPDATE that builds a new value (`UPDATE t SET col = col || ''` in batches), or dump and restore the table. `VACUUM FULL`, `CLUSTER` and `pg_repack` copy existing values in their current format, so they do **not** apply the new setting."
       },
       {
        "title": "Updating a large value in place, frequently",
@@ -3580,7 +3596,7 @@
       "TOAST starts when a row exceeds **~2 kB** (2032 bytes) and works until it is under `toast_tuple_target` (default 2032).",
       "Strategies: **PLAIN** (never), **EXTENDED** (compress, then out of line; default), **EXTERNAL** (out of line, no compression), **MAIN** (compress; out of line last).",
       "Out-of-line values become **1996-byte chunks**, 4 per TOAST page, keyed by `(chunk_id, chunk_seq)`; the row keeps an **18-byte pointer**.",
-      "UPDATEs that do not change a TOASTed column **reuse** its chunks.",
+      "UPDATEs that do not change a TOASTed column **reuse** its chunks. See [JSON vs JSONB](/m2/json-jsonb) for the commonest TOASTed type.",
       "Inspect with `pg_column_size`, `pg_column_compression` and `pg_column_toast_chunk_id`. Max value size is **1 GB**."
      ]
     },
@@ -3602,7 +3618,7 @@
       "presets": [
        {
         "label": "Where is the file?",
-        "lookFor": "The path is `base/<database OID>/<relfilenode>`. The FSM fork already exists; the VM does not, because nothing has been vacuumed."
+        "lookFor": "The data directory holds `base/` (one sub-directory per database), `global/` (cluster-wide catalogs), `pg_wal/` (WAL segments), `pg_xact/` (commit status) and `pg_tblspc/` (tablespace links). A table's path is `base/<database OID>/<relfilenode>`. The FSM fork already exists; the VM does not, because nothing has been vacuumed."
        },
        {
         "label": "VACUUM builds the VM",
@@ -3661,7 +3677,7 @@
       "Path = `base/<db OID>/<relfilenode>`, plus `_fsm`, `_vm`, `_init` forks and `.1`, `.2` segments every **1 GB**. Look it up with `pg_relation_filepath()`.",
       "**FSM**: one byte per page (free space / 32), organised as max-trees so a search is a short descent. Updated mainly by **VACUUM**.",
       "**VM**: two bits per heap page, **all-visible** and **all-frozen**; set only by VACUUM, cleared by any change to the page. Indexes have no VM.",
-      "All-visible pages let **index-only scans** skip the heap; all-frozen pages let anti-wraparound VACUUM skip them.",
+      "All-visible pages let **index-only scans** skip the heap; all-frozen pages let anti-wraparound VACUUM skip them. See [Reading EXPLAIN (ANALYZE, BUFFERS)](/m4/explain-analyze) for Heap Fetches and [Tuning autovacuum](/m7/autovacuum-tuning).",
       "TRUNCATE and VACUUM FULL write a **new relfilenode**; unlogged tables restore from the **init fork** after a crash."
      ]
     }
@@ -3708,7 +3724,11 @@
        },
        {
         "label": "CTE: inlined or materialized",
-        "lookFor": "A plain CTE used once is **inlined**: the outer filter joins it, and a BitmapAnd of two indexes finds 1 row (cost about 21). `MATERIALIZED` computes all 1027 pending rows first, then filters a `CTE Scan` (cost about 155)."
+        "lookFor": "A plain CTE used once is **inlined**: the outer filter joins it, and a BitmapAnd of two indexes finds 1 row (cost about 21). `MATERIALIZED` computes all 1,000 pending rows first (the estimate is close to that), then filters a `CTE Scan` (cost about 135)."
+       },
+       {
+        "label": "PostgreSQL 18 rewrites",
+        "lookFor": "Two planner transformations new in PostgreSQL 18. A join of a table to itself on its unique key is removed, leaving one scan (`enable_self_join_elimination`). An OR list on one column becomes a single `= ANY` index condition."
        },
        {
         "label": "Custom → generic",
@@ -3750,7 +3770,7 @@
      "keyPointers": [
       "Stages: **parser** (grammar only, no catalogs) → **analysis** (names, types, operators) → **rewriter** (views, rules) → **planner** (paths, costs) → **executor**.",
       "The rewriter turns query trees into query trees. A view is a `_RETURN` rule expanded like a macro, then usually flattened into the outer query.",
-      "The planner costs **paths** for each relation, then join pairs, keeping the cheapest. Above `geqo_threshold` = 12 FROM items it switches to GEQO.",
+      "The planner costs **paths** for each relation, then join pairs, keeping the cheapest. From `geqo_threshold` = 12 FROM items upward it switches to GEQO. See [The cost model](/m4/cost-model) and [Planner statistics](/m4/statistics).",
       "The executor is **demand-pull**: each node returns one row per call, or NULL when done. Hash and Sort must drain their input first.",
       "**PREPARE** caches the analyzed tree. Five custom plans, then a generic plan if its cost is not much higher (`plan_cache_mode`)."
      ]
@@ -3825,7 +3845,7 @@
       "Seq scan = **pages × seq_page_cost + rows × cpu_tuple_cost**, plus `cpu_operator_cost` per qual per row. It does not depend on selectivity.",
       "Index scans cost heap fetches between \"sequential\" and \"random\" depending on **correlation**. Bitmap scans read each heap page once, in physical order.",
       "Every plan shows **startup..total** cost. LIMIT and EXISTS favour low startup cost.",
-      "`enable_*` flags only discourage a node (`Disabled: true`). `effective_cache_size` is a costing hint, not an allocation."
+      "`enable_*` flags only discourage a node (`Disabled: true`). `effective_cache_size` is a costing hint, not an allocation. See [Planner statistics](/m4/statistics) and [Reading EXPLAIN (ANALYZE, BUFFERS)](/m4/explain-analyze)."
      ]
     },
     {
@@ -3858,7 +3878,7 @@
        },
        {
         "label": "Range: MCV + histogram",
-        "lookFor": "MCVs 7, 3, 12 and 40 contribute 0.4753 exactly. The histogram adds one full bucket plus 9/54 of bucket 51–105, times the non-MCV share 0.515. Estimate **10686**, actual 10706."
+        "lookFor": "MCVs 7, 3, 12 and 40 contribute 0.4753 exactly. The histogram adds one full bucket plus 9/54 of bucket 51–105, times the non-MCV share 0.515, minus the 21 rows estimated to equal 60 (they do not satisfy `<`). Estimate **10686**, actual 10706."
        },
        {
         "label": "Independence assumption",
@@ -3866,7 +3886,7 @@
        },
        {
         "label": "Extended statistics",
-        "lookFor": "`{\"4 => 5\": 1.000000}`: column 4 (zip) fully determines column 5 (city). Estimates become 100 rows and 200 groups. CREATE STATISTICS collects nothing until ANALYZE runs."
+        "lookFor": "`{\"4 => 5\": 1.000000}`: column 4 (zip) fully determines column 5 (city). Estimates become 100 rows and 200 groups. CREATE STATISTICS collects nothing until ANALYZE runs. A dependency assumes the values are compatible, so the impossible pair is also estimated at 100 rows (actual 0). The `mcv` kind stores real value combinations and brings it back down to 5."
        },
        {
         "label": "Statistics target",
@@ -3882,7 +3902,7 @@
      "pitfalls": [
       {
        "title": "No statistics after a bulk load",
-       "fix": "Run `ANALYZE` as the last step of every bulk load or migration, and after creating an **expression index** (its expression gets its own statistics)."
+       "fix": "Run `ANALYZE` as the last step of every bulk load or migration, and after creating an **expression index** (its expression gets its own statistics). After a major upgrade, PostgreSQL 18's `pg_upgrade` carries per-column statistics over, but not extended statistics: run `vacuumdb --all --analyze-in-stages --missing-stats-only` to fill in the rest."
       },
       {
        "title": "Correlated columns",
@@ -3898,7 +3918,7 @@
       "`=` on an MCV uses its frequency. Otherwise **(1 − Σ mcv freqs − null_frac) / (n_distinct − #MCVs)**.",
       "`<` sums matching MCV freqs exactly, then adds histogram buckets (linear inside a bucket) scaled by the non-MCV fraction.",
       "ANDed predicates are **multiplied**. Correlated columns need `CREATE STATISTICS` (dependencies, ndistinct, mcv) plus ANALYZE.",
-      "`default_statistics_target` = **100** caps MCVs and histogram buckets. ANALYZE samples 300 × the largest target rows."
+      "`default_statistics_target` = **100** caps MCVs and histogram buckets. ANALYZE samples 300 × the largest target rows. See [Reading EXPLAIN (ANALYZE, BUFFERS)](/m4/explain-analyze) to spot a misestimate."
      ]
     },
     {
@@ -3938,12 +3958,16 @@
        {
         "label": "Index scan buffers",
         "lookFor": "An equality lookup touches only a handful of buffers (metapage, root, leaf, heap page). `Index Searches: 1` (new in 18) counts descents of the tree."
+       },
+       {
+        "label": "Deduplication: posting lists",
+        "lookFor": "Only 5 distinct values in 20,000 rows. Equal keys are merged into one index tuple holding a **posting list** of heap TIDs (132 per tuple here; item 1 is the high key), so the index is 160 kB instead of 456 kB."
        }
       ]
      },
      "production": {
       "title": "Switching primary keys from UUIDv4 to UUIDv7",
-      "problem": "Every insert landed on a **random leaf**. With the index larger than cache, most inserts first had to read a cold leaf from disk, and full leaves split down the middle, leaving pages about 65% full at scale. Checkpoints also had to write a full-page image for every scattered leaf they touched.",
+      "problem": "Every insert landed on a **random leaf**. With the index larger than cache, most inserts first had to read a cold leaf from disk, and full leaves split down the middle, leaving pages about 65% full at scale. After every checkpoint, the first insert into each scattered leaf also wrote a full-page image of it to WAL.",
       "outcome": "UUIDv4 needs 23% more index pages than UUIDv7 at 20k rows and 39% more at 100k rows (64.7% vs 89.8% leaf fill). In production the bigger win is locality: inserts touch one hot leaf instead of thousands of cold ones, so fewer reads and less full-page-image WAL."
      },
      "pitfalls": [
@@ -3965,7 +3989,7 @@
       "Every non-rightmost page stores a **high key**. If a reader's key is greater than it, the reader follows the **right-link**: that is the Lehman & Yao move-right rule.",
       "When a page is full: try **deleting dead entries**, then **deduplicate** into posting lists, and only then **split**. Splits cascade upward, and a root split adds a level.",
       "Appending new largest keys fills leaves to **fillfactor 90**; random keys split pages in half, leaving leaves only about 65–72% full.",
-      "Entries max out at about **1/3 page** (2704 bytes); index a hash or prefix of big values."
+      "Entries max out at about **1/3 page** (2704 bytes); index a hash or prefix of big values. See [UUIDv4 vs UUIDv7](/m2/uuid-v4-v7) and [Designing indexes](/m4/index-design)."
      ]
     },
     {
@@ -3996,11 +4020,11 @@
        },
        {
         "label": "Only the hash is stored",
-        "lookFor": "Each item is a heap `ctid` plus a 32-bit hash code, sorted by hash within the page. The key itself is not stored, so every match is rechecked against the heap."
+        "lookFor": "Each item is a heap `ctid` plus a 32-bit hash code, sorted by hash within the page. The URL itself is not stored: recomputing `hashtext(url)` for the first item's row gives the same code. That is why every match is rechecked against the heap."
        },
        {
         "label": "Duplicates → overflow",
-        "lookFor": "800 copies of one key all land in one bucket. Its primary page overflows into a chain of 2 overflow pages, and the Bitmap Index Scan reads all 3 pages of that bucket."
+        "lookFor": "800 copies of one key all land in one bucket. Its primary page overflows into a chain of overflow pages (one on an empty table, two if the split preset ran first), and the Bitmap Index Scan reads every page of that bucket."
        },
        {
         "label": "Long keys: hash vs B-tree",
@@ -4032,7 +4056,7 @@
       "bucket = **hash & highmask**, folded with **lowmask** if above `maxbucket`. The masks live in the metapage, cached by each backend.",
       "Growth is **linear hashing**: when `ntuples > ffactor × buckets`, exactly one bucket splits, in the foreground.",
       "Page kinds: **metapage**, **bucket**, **overflow** (chained duplicates), **bitmap** (free overflow pages).",
-      "`=` only, single column, no UNIQUE, never shrinks without REINDEX. Best for long, nearly unique keys."
+      "`=` only, single column, no UNIQUE, never shrinks without REINDEX. Best for long, nearly unique keys. Compare with [B-Tree internals](/m4/btree)."
      ]
     },
     {
@@ -4064,7 +4088,7 @@
        },
        {
         "label": "Flush the pending list",
-        "lookFor": "`gin_clean_pending_list` (or VACUUM, or autovacuum's analyze) moves pending entries into the main structure in one bulk pass and returns the number of pages flushed."
+        "lookFor": "300 more rows wait in the pending list. `gin_clean_pending_list` (or VACUUM, or autovacuum's analyze) moves pending entries into the main structure in one bulk pass and returns the number of pages flushed."
        },
        {
         "label": "jsonb_ops vs jsonb_path_ops",
@@ -4072,7 +4096,7 @@
        },
        {
         "label": "Fix ->> with a B-tree",
-        "lookFor": "Three ways to ask for one SKU. `->> =` is a Seq Scan (cost 172.50). Rewritten as containment it uses the GIN index (about 17). A **B-tree expression index** on `attrs ->> 'sku'` serves the original query as an Index Scan (8.30), and at 128 kB it is less than half the size of the `jsonb_path_ops` index."
+        "lookFor": "Three ways to ask for one SKU. `->> =` is a Seq Scan (cost 165.00). Rewritten as containment it uses the GIN index (about 17). A **B-tree expression index** on `attrs ->> 'sku'` serves the original query as an Index Scan (8.30), and at 128 kB it is less than half the size of the `jsonb_path_ops` index."
        },
        {
         "label": "Substring search with trigrams",
@@ -4100,7 +4124,7 @@
       },
       {
        "title": "Building GIN indexes slowly",
-       "fix": "Raise `maintenance_work_mem` for the build session. For bulk loads, drop the GIN index, load, then recreate it."
+       "fix": "Raise `maintenance_work_mem` for the build session. For bulk loads, drop the GIN index, load, then recreate it. PostgreSQL 18 can also build GIN indexes in parallel (`max_parallel_maintenance_workers`)."
       }
      ],
      "keyPointers": [
@@ -4108,7 +4132,7 @@
       "Each key is stored **once**, so repeated elements compress well. GIN supports only **bitmap scans** and never index-only scans.",
       "**fastupdate** (default on) appends new entries to an unsorted **pending list**. VACUUM, autoanalyze, `gin_clean_pending_list()` or exceeding `gin_pending_list_limit` (4MB) merges it.",
       "Every search also scans the pending list. A big list slows reads, and the insert that overflows it pays for the merge.",
-      "Opclasses decide the keys: `array_ops`, `jsonb_ops` (default), `jsonb_path_ops` (smaller, `@>` only), `tsvector_ops`, `gin_trgm_ops`."
+      "Opclasses decide the keys: `array_ops`, `jsonb_ops` (default), `jsonb_path_ops` (smaller; `@>`, `@?`, `@@` but no `?`), `tsvector_ops`, `gin_trgm_ops`. The opclass's `consistent` function (or the ternary `triConsistent`, which lets GIN rule rows out before reading every posting list) decides matches, and prefix searches such as `to_tsquery('post:*')` use **partial match** over a range of keys. See [Arrays](/m2/arrays), [JSON vs JSONB](/m2/json-jsonb) and [Full-text search](/m6/full-text-search)."
      ]
     },
     {
@@ -4135,7 +4159,7 @@
        },
        {
         "label": "SP-GiST quad-tree",
-        "lookFor": "`quad_point_ops` is the default SP-GiST opclass for `point`. Same KNN plan shape; here it reads about 14 buffers, and the index is smaller (about 2.3 MB vs 3.3 MB for GiST)."
+        "lookFor": "`quad_point_ops` is the default SP-GiST opclass for `point`. Same KNN plan shape; here it reads about 14 buffers, and the index is smaller (about 2.3 MB vs 3.2 MB for GiST)."
        },
        {
         "label": "Exclusion constraint",
@@ -4179,7 +4203,7 @@
       "**SP-GiST**: unbalanced space partitioning (quad-tree, k-d tree, radix tree). Regions never overlap. `quad_point_ops` is the default for point.",
       "KNN: `ORDER BY col <-> value LIMIT k` walks the tree best-first with lower-bound distances, so it never sorts the table.",
       "Exclusion constraints (`EXCLUDE USING gist (… WITH &&)`) generalise UNIQUE to \"no two rows overlap\". `btree_gist` adds `=` for scalars.",
-      "Both are lossy per opclass: `Recheck Cond` and `Rows Removed by Index Recheck` show rows re-tested against the heap."
+      "Both are lossy per opclass: `Recheck Cond` and `Rows Removed by Index Recheck` show rows re-tested against the heap. For geometry at scale see [Spatial indexes](/e4/spatial-indexes)."
      ]
     },
     {
@@ -4246,7 +4270,7 @@
       "BRIN scans are always **bitmap** and always **lossy**: every page of a matching range is read and every row rechecked.",
       "Useful only when values follow **physical order** (`pg_stats.correlation` near ±1): append-only logs, time series, IoT.",
       "Opclass kinds: **minmax**, **minmax-multi** (outliers), **inclusion** (ranges, boxes, inet), **bloom** (equality).",
-      "New ranges stay unsummarized until VACUUM, `autosummarize = on` (default off) or `brin_summarize_new_values()`."
+      "New ranges stay unsummarized until VACUUM, `autosummarize = on` (default off) or `brin_summarize_new_values()`. BRIN pairs well with [Declarative partitioning](/m7/partitioning) by time."
      ]
     },
     {
@@ -4264,6 +4288,10 @@
        {
         "label": "Equality first, range last",
         "lookFor": "Both conditions appear in `Index Cond`, and the scan reads only user 42's February entries: about 5 buffers."
+       },
+       {
+        "label": "Index order must match ORDER BY",
+        "lookFor": "A B-tree can be read forwards or backwards, so one index serves `ORDER BY a, b` and `ORDER BY a DESC, b DESC` (`Index Scan Backward`). A **mixed** direction needs its own index `(tenant_id, created_at DESC)`: without it the plan runs an Incremental Sort over 5,001 rows (about 1,050 buffers) instead of reading 10 entries."
        },
        {
         "label": "Skip scan (18)",
@@ -4331,7 +4359,7 @@
       "**Partial** indexes need the query to imply the predicate at plan time. Great for queues, soft deletes and rare states.",
       "**Expression** indexes match only the identical expression. Run ANALYZE after creating one.",
       "**INCLUDE** columns enable index-only scans (needs all-visible pages, i.e. VACUUM). INCLUDE indexes are never deduplicated.",
-      "Unique indexes treat NULLs as distinct unless `NULLS NOT DISTINCT`. Build with `CREATE INDEX CONCURRENTLY` and check for INVALID leftovers."
+      "Unique indexes treat NULLs as distinct unless `NULLS NOT DISTINCT`. Build with `CREATE INDEX CONCURRENTLY` and check for INVALID leftovers. See [B-Tree internals](/m4/btree) and [HOT updates and fillfactor](/m5/hot-fillfactor)."
      ]
     },
     {
@@ -4409,7 +4437,7 @@
      ],
      "keyPointers": [
       "Each node: `(cost=startup..total rows= width=)` estimated, then `(actual time=first..last rows= loops=)` measured. **Compare the two rows values first.**",
-      "Actual rows and time are **per loop**; multiply by `loops`. A node's time includes its children.",
+      "Actual rows and time are **per loop**; multiply by `loops`. A node's time includes its children. A gap between estimated and actual rows leads to [Planner statistics](/m4/statistics).",
       "**Buffers** (default with ANALYZE in 18): shared hit = cached, read = from OS, temp = spills. They include child nodes.",
       "Red flags: `external merge Disk`, `Batches` > 1, `Heap Fetches` > 0, big `Rows Removed by Filter`, `lossy` heap blocks.",
       "Not shown in the playground but common in production: `Gather` with `Workers Planned/Launched` for parallel query, and a `JIT:` block when the plan cost exceeds `jit_above_cost`."
@@ -4448,7 +4476,7 @@
        },
        {
         "label": "Transfer: all or nothing",
-        "lookFor": "The first CALL commits inside the procedure: alice **70**, bob **80**. The negative transfer fails on the credit (**23514**) and alice's debit vanishes with it. Inside a transaction block the procedure may not COMMIT, so CALL fails with **2D000** `invalid transaction termination`."
+        "lookFor": "The first CALL commits inside the procedure: alice **70**, bob **80**. The negative transfer fails on the credit (**23514**) and alice's debit vanishes with it. A procedure may COMMIT only when CALL is the top-level statement of its own transaction: reached through a function (as `try_sql` does here) or inside an explicit `BEGIN` block, it fails with **2D000** `invalid transaction termination`."
        },
        {
         "label": "Transactional DDL",
@@ -4456,7 +4484,7 @@
        },
        {
         "label": "Read the commit log",
-        "lookFor": "Every version ever written is still on the page. `pg_xact_status` reads `pg_xact`: versions whose xmin is **aborted** are invisible forever, and an aborted xmax deletes nothing."
+        "lookFor": "The rolled-back transaction left its work on the page: every version ever written is still there. `pg_xact_status` reads `pg_xact`: versions whose xmin is **aborted** are invisible forever, and an aborted xmax deletes nothing."
        },
        {
         "label": "Sequences ignore ROLLBACK",
@@ -4464,7 +4492,7 @@
        },
        {
         "label": "Cost of subtransactions",
-        "lookFor": "Each `BEGIN … EXCEPTION` block is a subtransaction, and each one that writes burns a **subxid**: the 500-row loop advances the counter by about 500. The set-based UPDATE uses one xid."
+        "lookFor": "Each `BEGIN … EXCEPTION` block is a subtransaction, and each one that writes burns a **subxid**: the 500-row loop advances the counter by about 500. The set-based UPDATE uses one xid. Each `pg_current_xact_id()` probe also takes one."
        },
        {
         "label": "Implicit transactions & 2PC",
@@ -4475,7 +4503,7 @@
      "production": {
       "title": "A nightly job that burned half a million xids",
       "problem": "Every exception block is a **subtransaction**, and every one that writes gets its own subxid. One run over 500 k accounts assigns about 500 k subxids inside one top-level transaction. Past **64 cached subxids** per backend, other sessions' visibility checks must consult `pg_subtrans`, and the xid counter races toward the freeze thresholds.",
-      "outcome": "On 500 rows the per-row exception loop advances the xid counter by **502**, the set-based UPDATE by **1**. The subxid cache can no longer overflow, and xid consumption drops by the row count."
+      "outcome": "On 500 rows the per-row exception loop consumes **501** xids (one for the transaction, one subxid per row), the set-based UPDATE **1**. The subxid cache can no longer overflow, and xid consumption drops by the row count."
      },
      "pitfalls": [
       {
@@ -4515,7 +4543,7 @@
      "order": 2,
      "slug": "snapshots-visibility",
      "title": "Snapshots and tuple visibility",
-     "tldr": "A **snapshot** is three numbers, `xmin:xmax:xip`, that classify every xid as finished, in progress, or not yet started, and a row version is visible when its inserting xid counts and its deleting xid does not. Snapshots let readers and writers work on the same rows at once without blocking, because each reader just ignores the versions its snapshot cannot see.",
+     "tldr": "A **snapshot** is three numbers, `xmin:xmax:xip`, that say for every xid whether it had already finished when the snapshot was taken, and a row version is visible when its inserting xid counts and its deleting xid does not. Snapshots let readers and writers work on the same rows at once without blocking, because each reader just ignores the versions its snapshot cannot see.",
      "visualizer": {
       "title": "Two sessions, one row, two isolation levels",
       "interaction": "Step the timeline, then flip A to Repeatable Read and replay it. Below, edit a snapshot and click xids to see the visibility rule decide."
@@ -4583,7 +4611,7 @@
       }
      ],
      "keyPointers": [
-      "Snapshot `xmin:xmax:xip`: below xmin = finished, at or above xmax = not started, xip = in progress.",
+      "Snapshot `xmin:xmax:xip`: below xmin = finished, at or above xmax = not finished yet (running or not started), xip = in progress in between.",
       "A version is visible if its **xmin** committed before the snapshot and its **xmax** is 0, aborted, or not yet visible.",
       "**Read Committed**: one snapshot per statement. **Repeatable Read** and Serializable: one per transaction, taken at the first statement.",
       "**Hint bits** cache commit status on the tuple, so the first reader after a write may dirty the page.",
@@ -4626,7 +4654,7 @@
        },
        {
         "label": "An index on the hot column",
-        "lookFor": "Free space no longer helps: `qty` is now indexed, so `n_tup_hot_upd` does not move. A BRIN index would not block HOT, because BRIN is a *summarizing* index."
+        "lookFor": "Free space no longer helps: `qty` is now indexed, so none of these 2,000 updates is HOT and `n_tup_hot_upd` does not move (0 on a fresh table, still 2000 after the previous preset). A BRIN index would not block HOT, because BRIN is a *summarizing* index."
        },
        {
         "label": "No-op updates are real writes",
@@ -4683,7 +4711,7 @@
       "presets": [
        {
         "label": "Levels you can ask for",
-        "lookFor": "You may request READ UNCOMMITTED, and it is reported back, but PostgreSQL runs it as **Read Committed**: dirty reads are never possible."
+        "lookFor": "You may request READ UNCOMMITTED, and it is reported back, but PostgreSQL runs it as **Read Committed**: dirty reads are never possible. The full picture: non-repeatable reads and phantoms are possible in Read Committed only; serialization anomalies (write skew) are possible in Read Committed and Repeatable Read, never in Serializable."
        },
        {
         "label": "Hits example, run serially",
@@ -4731,7 +4759,7 @@
       },
       {
        "title": "Serializable with sequential scans",
-       "fix": "Index the predicates serializable transactions filter on, keep them short, mark read-only ones `READ ONLY`, and raise `max_pred_locks_per_transaction` if promotion is frequent."
+       "fix": "Index the predicates serializable transactions filter on, keep them short, mark read-only ones `READ ONLY`, and raise `max_pred_locks_per_transaction` (pool size) or `max_pred_locks_per_relation` / `max_pred_locks_per_page` (promotion thresholds) if promotion is frequent."
       }
      ],
      "keyPointers": [
@@ -4739,7 +4767,7 @@
       "**Read Committed**: snapshot per statement; a blocked UPDATE/DELETE re-checks its WHERE on the newest row version.",
       "**Repeatable Read**: changing a row updated after your snapshot raises `40001` *could not serialize access due to concurrent update*.",
       "**Serializable** (SSI): SIRead locks never block; a cycle of rw-conflicts aborts one transaction with `40001`.",
-      "Always retry the **whole transaction** on 40001 (and 40P01). Read-only transactions under RR never need to."
+      "Always retry the **whole transaction** on 40001 (and 40P01, see [deadlock detection](/m5/lwlocks-deadlocks)). Read-only transactions under RR never need to."
      ]
     },
     {
@@ -4772,7 +4800,7 @@
        },
        {
         "label": "TRUNCATE vs DELETE",
-        "lookFor": "DELETE takes **RowExclusive** and stamps `xmax` on each row, so readers and other writers carry on. TRUNCATE takes **AccessExclusive**, which blocks even SELECT, and points the table at a brand-new empty file. It is still transactional: after ROLLBACK the old file and all 1,000 rows are back."
+        "lookFor": "DELETE takes **RowExclusive** and stamps `xmax` on each row, so readers and other writers carry on. TRUNCATE takes **AccessExclusive**, which blocks even SELECT, and points the table at a brand-new empty file. It is still transactional: after ROLLBACK the old file and all 1,000 rows are back. (The extra ShareLock row comes from rebuilding the table's indexes inside TRUNCATE.)"
        },
        {
         "label": "A transaction never blocks itself",
@@ -4808,7 +4836,7 @@
       },
       {
        "title": "SET NOT NULL on a big table",
-       "fix": "In PostgreSQL 18, add the constraint as `NOT NULL … NOT VALID` (instant), backfill in batches, then `VALIDATE CONSTRAINT`, which scans under SHARE UPDATE EXCLUSIVE while writes continue."
+       "fix": "In PostgreSQL 18, add the constraint as `NOT NULL … NOT VALID` (instant), backfill in batches, then `VALIDATE CONSTRAINT`, which scans under SHARE UPDATE EXCLUSIVE while writes continue. Before 18: add `CHECK (email IS NOT NULL) NOT VALID`, `VALIDATE CONSTRAINT` it, then `SET NOT NULL` (which skips its scan because the valid CHECK proves it), then drop the CHECK."
       },
       {
        "title": "Running out of lock table space",
@@ -4839,7 +4867,7 @@
       "presets": [
        {
         "label": "Claim a job",
-        "lookFor": "Only job 1 gets `xmax` = our xid. `pg_locks` shows a **RowShareLock** on the table and nothing per row: the row lock lives in the tuple."
+        "lookFor": "Only job 1 gets `xmax` = our xid. `pg_locks` shows **RowShareLock** on `jobs` and `jobs_pkey` (next to the AccessShare locks of the plain SELECTs) and nothing per row: the row lock lives in the tuple."
        },
        {
         "label": "Lock bits in the tuple",
@@ -4936,7 +4964,7 @@
        },
        {
         "label": "A transfer procedure that cannot deadlock",
-        "lookFor": "Without the `PERFORM … FOR UPDATE`, two opposite transfers running at once lock their sender first and deadlock. With it, both lock 11111 before 22222, so the second simply waits. Balances end at **630** and **370**."
+        "lookFor": "Without the `PERFORM … FOR UPDATE`, two opposite transfers running at once lock their sender first and deadlock. With it, both lock 11111 before 22222, so the second simply waits. Balances end at **530** and **470**."
        },
        {
         "label": "Tune detection for a session",
@@ -4952,7 +4980,7 @@
      "pitfalls": [
       {
        "title": "Opposite lock order in different code paths",
-       "fix": "Sort keys before locking, take the strongest lock first, and retry on 40P01. The DETAIL line names both processes and lock targets."
+       "fix": "Sort keys before locking, take the strongest lock first, and retry on 40P01. The DETAIL line names both processes and lock targets. See [row locks](/m5/row-locks-skip-locked) for what each transaction holds."
       },
       {
        "title": "Raising deadlock_timeout to \"fix\" deadlocks",
@@ -5058,7 +5086,7 @@
       }
      ],
      "keyPointers": [
-      "A view is `relkind = v` plus a `_RETURN` rule in `pg_rewrite`. The rewriter substitutes it as a subquery before planning, and the planner usually flattens it away.",
+      "A view is `relkind = v` plus a `_RETURN` rule in `pg_rewrite`. The rewriter substitutes it as a subquery before planning, and the planner usually flattens it away. See [The rule system](/m6/rule-system).",
       "Auto-updatable views: **one FROM item**, no aggregates, DISTINCT, GROUP BY, LIMIT or set operations. Add `WITH CHECK OPTION` (CASCADED by default; LOCAL checks only the top view) so writes stay visible through the view.",
       "A **materialized view** is a real heap filled by its query. It is stale until you REFRESH it.",
       "**REFRESH** rewrites the whole file under ACCESS EXCLUSIVE. **REFRESH CONCURRENTLY** needs a unique index, diffs rows, and lets readers continue.",
@@ -5106,6 +5134,10 @@
         "lookFor": "The `stock_moves.sku` foreign key is enforced by four internal **RI_ConstraintTrigger** rows (`tgisinternal = true`), two on each table. `ALTER TABLE … DISABLE TRIGGER ALL` switches those off too; `DISABLE TRIGGER USER` leaves them on. `information_schema.triggers` has one row per event and does not list TRUNCATE triggers at all."
        },
        {
+        "label": "Deferred constraint trigger",
+        "lookFor": "A **constraint trigger** is an AFTER ROW trigger whose firing can be postponed to COMMIT. Deferred, the transfer commits (7 and 13) although the total was 17 in between. Switched to IMMEDIATE with `SET CONSTRAINTS`, the first unbalanced UPDATE fails at once. Foreign keys are enforced by internal triggers of this kind, which is why `DEFERRABLE` works on them."
+       },
+       {
         "label": "Event trigger on DDL",
         "lookFor": "Event triggers are per database and fire on **DDL**, not DML. `ddl_command_end` sees the finished command through `pg_event_trigger_ddl_commands()`."
        }
@@ -5127,7 +5159,7 @@
       },
       {
        "title": "Relying on creation order",
-       "fix": "Encode the order in the names, for example `10_normalize`, `20_validate`, `90_audit`."
+       "fix": "Encode the order in the names, for example `t10_normalize`, `t20_validate`, `t90_audit` (an unquoted name cannot start with a digit)."
       },
       {
        "title": "Row triggers on bulk loads",
@@ -5190,11 +5222,11 @@
        },
        {
         "label": "Dynamic SQL done safely",
-        "lookFor": "`regclass` validates the table name, `%I` quotes identifiers, `%L` quotes literals, and `USING` passes values as parameters. EXECUTE is re-planned on every call."
+        "lookFor": "`regclass` validates the table name, `%I` quotes identifiers, `%L` quotes literals, and `USING` passes values as parameters. EXECUTE is re-planned on every call. `RETURN QUERY` (static or `EXECUTE`) and `RETURN NEXT` append rows to the result: alice from the first query, bob from the second. The whole set is collected before the function returns, so very large results are better served by a plain SQL function or a cursor."
        },
        {
         "label": "STABLE now() vs VOLATILE clock",
-        "lookFor": "`now()` is **STABLE**: one value for the whole statement (in fact the whole transaction). `clock_timestamp()` is **VOLATILE** and changes per row. `provolatile` is `i`, `s` or `v`."
+        "lookFor": "`now()` is **STABLE**: one value for the whole statement (in fact the whole transaction). `clock_timestamp()` is **VOLATILE** and changes per row (the 5 ms `pg_sleep` makes the gap visible). `provolatile` is `i`, `s` or `v`."
        }
       ]
      },
@@ -5300,10 +5332,10 @@
      ],
      "keyPointers": [
       "The rewriter runs **between parser and planner** and returns **zero or more** query trees. Views are `_RETURN` rules.",
-      "A rule action is a template: **NEW** becomes the original target-list expression (or OLD for unassigned UPDATE columns, NULL for INSERT), **OLD** becomes the result relation.",
+      "A rule action is a template: **NEW** becomes the original target-list expression (or OLD for unassigned UPDATE columns; for INSERT the column default, or NULL if there is none), **OLD** becomes the result relation.",
       "**ALSO** keeps the original query; **INSTEAD** replaces it; a qualified INSTEAD also adds the original with the negated qual.",
       "For **ON UPDATE/DELETE** the actions run **before** the original; for **ON INSERT** after it.",
-      "Prefer **triggers** for data changes: rules re-evaluate volatile expressions, cannot raise errors, and skip COPY."
+      "Prefer **triggers** for data changes: rules re-evaluate volatile expressions, cannot raise errors, and skip COPY. See [Triggers](/m6/triggers)."
      ]
     },
     {
@@ -5369,7 +5401,7 @@
      ],
      "keyPointers": [
       "SQL/MED chain: **wrapper** (handler + validator) → **server** (where) → **user mapping** (who) → **foreign table** (what).",
-      "The handler returns an **FdwRoutine** of callbacks: plan with GetForeignRelSize/Paths/Plan, execute with Begin/Iterate/ReScan/EndForeignScan.",
+      "The handler returns an **FdwRoutine** of callbacks: plan with GetForeignRelSize/Paths/Plan, execute with Begin/Iterate/ReScan/EndForeignScan. `file_fdw` is the simplest wrapper: a read-only foreign table over a server-side file or program output (`OPTIONS (filename '/path/x.csv', format 'csv')`), parsed by the COPY code and limited to superusers and members of `pg_read_server_files` or `pg_execute_server_program`.",
       "postgres_fdw ships WHERE clauses only with **built-in, IMMUTABLE** functions and operators; joins only between tables on the **same server**.",
       "Read pushdown in `EXPLAIN VERBOSE`: the `Remote SQL:` line is what the other server actually runs.",
       "Remote transactions run at **REPEATABLE READ** or SERIALIZABLE, without two-phase commit."
@@ -5414,6 +5446,10 @@
         "lookFor": "`<=>` is cosine distance (`<->` is L2, `<#>` negative inner product). The plan is an **Index Scan … Order By**: an approximate nearest-neighbour search, not a sort of all 2000 rows."
        },
        {
+        "label": "pgvector: IVFFlat and probes",
+        "lookFor": "**IVFFlat** clusters the vectors into `lists` and scans only `ivfflat.probes` of them. It builds faster and is smaller than HNSW (176 kB against 632 kB here), but with one probe the query asks for 200 rows and gets **fewer** (somewhere between 100 and 170; the clustering is random, so the count changes with each build): only the rows of the nearest list. Probing all 20 lists returns 200, at the cost of reading the whole index."
+       },
+       {
         "label": "pg_stat_statements",
         "lookFor": "Constants are replaced by `$1`, so both LIKE queries collapse into **one** normalized entry with `calls = 2`. The ranking query puts `pg_sleep($1)` on top with almost all of the execution time, while it used no CPU at all: `total_exec_time` is wall time, waits included. On a server the module must be in `shared_preload_libraries`."
        },
@@ -5435,7 +5471,7 @@
      "pitfalls": [
       {
        "title": "pg_stat_statements created but empty",
-       "fix": "Add it to `shared_preload_libraries` and restart, then check that `compute_query_id` is `auto` or `on`."
+       "fix": "Add it to `shared_preload_libraries` (append to the existing list, do not overwrite it) and restart, then check that `compute_query_id` is `auto` or `on`."
       },
       {
        "title": "Trigram search on very short patterns",
@@ -5455,11 +5491,11 @@
       }
      ],
      "keyPointers": [
-      "An extension is a **control file + versioned SQL scripts** (+ shared library). Members are tracked in `pg_depend` with deptype `e`, and pg_dump emits only `CREATE EXTENSION`.",
+      "An extension is a **control file + versioned SQL scripts** (+ shared library). Members are tracked in `pg_depend` with deptype `e`, and pg_dump emits only `CREATE EXTENSION`. PostgreSQL 18 adds `extension_control_path`, so control files and scripts can live outside the server's own share directory.",
       "**Trusted** extensions can be installed by non-superusers with CREATE on the database. Check with `pg_available_extension_versions`.",
-      "**pg_stat_statements** needs `shared_preload_libraries`; it groups queries by normalized text into one row per query id, user and database.",
+      "**pg_stat_statements** needs `shared_preload_libraries`; it groups queries by normalized text into one row per query id, user and database. `auto_explain` (also preloaded) logs the plans of slow statements, and `pg_buffercache` shows what sits in [shared buffers](/m1/shared-memory).",
       "**pg_trgm**: similarity = shared trigrams / union, threshold 0.3. GIN or GiST `*_trgm_ops` indexes speed up `%`, `LIKE`, `ILIKE` and regex, even unanchored.",
-      "**pgvector**: `<->` L2, `<=>` cosine, `<#>` inner product. HNSW (m=16, ef_construction=64, ef_search=40) gives approximate nearest neighbours."
+      "**pgvector**: `<->` L2, `<=>` cosine, `<#>` negative inner product. HNSW (m=16, ef_construction=64, ef_search=40) gives approximate nearest neighbours; IVFFlat (lists, probes) builds faster and recalls less."
      ]
     },
     {
@@ -5542,7 +5578,7 @@
      "keyPointers": [
       "Pipeline: **parser** splits tokens → **dictionaries** normalize to lexemes and drop stop words → **tsvector** of sorted lexemes with positions.",
       "Build queries with `websearch_to_tsquery` for user input: quotes → `<->`, `or` → `|`, `-` → `!`, no syntax errors.",
-      "Index with **GIN** (one entry per lexeme, posting lists) on a **stored generated tsvector column**, or on `to_tsvector('config', col)` with the same expression in queries.",
+      "Index with **GIN** (one entry per lexeme, posting lists) on a **stored generated tsvector column**, or on `to_tsvector('config', col)` with the same expression in queries. **GiST** also works (`USING gist (tsv)`): a lossy signature per row that is cheaper to update, but every match is rechecked and it slows down as distinct lexemes grow, so GIN is the usual choice.",
       "**Weights** A–D (default 1.0, 0.4, 0.2, 0.1) let titles outrank bodies in `ts_rank` and `ts_rank_cd`.",
       "Phrase (`<->`) and weighted queries need the row's tsvector, so GIN results are **rechecked**."
      ]
@@ -5681,7 +5717,7 @@
        },
        {
         "label": "Sequences log 32 values ahead",
-        "lookFor": "100 `nextval` calls wrote only **4** `Sequence LOG` records (at 1, 33, 65 and 97). Each record reserves the next 32 values, and `log_cnt` counts how many are left. After a crash the sequence restarts after the last reserved value, so up to 32 numbers are skipped."
+        "lookFor": "100 `nextval` calls wrote only **4** `Sequence LOG` records (at calls 1, 34, 67 and 100). Each record covers the value handed out plus the next 32, and `log_cnt` counts how many of those are left, which is why it reads 32 here. After a crash the sequence restarts after the last reserved value, so up to 32 numbers are skipped."
        },
        {
         "label": "What skips the WAL: UNLOGGED and TEMP",
@@ -5717,7 +5753,7 @@
       }
      ],
      "keyPointers": [
-      "**WAL rule**: the WAL record must be flushed before the data page it describes may be written.",
+      "**WAL rule**: the WAL record must be flushed before the data page it describes may be written; see [checkpoints](/m7/checkpoints-fpw).",
       "An **LSN** is a byte position; `lsn_a - lsn_b` is bytes; segment files are **16 MB**, named timeline + segment number.",
       "COMMIT costs **one sequential flush**, and concurrent commits share it (**group commit**).",
       "`synchronous_commit` is **per transaction**: `off` risks losing recent commits after a crash, never corruption.",
@@ -5752,7 +5788,7 @@
        },
        {
         "label": "Same page, next change",
-        "lookFor": "id 11 is on block 0, already imaged since the checkpoint: about 77 bytes. id 500 is on block 5: a new image of about 6.6 kB."
+        "lookFor": "id 11 is on block 0, already imaged since the checkpoint: about 77 bytes. id 500 is on block 5: a new image of about 6.6 kB. The small `PRUNE_ON_ACCESS` record is page cleanup done on the way."
        },
        {
         "label": "Compress the page images",
@@ -5856,7 +5892,7 @@
       },
       {
        "title": "Expecting plain VACUUM to shrink the file",
-       "fix": "That is usually what you want. If the table will stay small, rewrite it once in a maintenance window, or partition so you can drop whole chunks."
+       "fix": "That is usually what you want. If the table will stay small, rewrite it once in a maintenance window, or [partition](/m7/partitioning) so you can drop whole chunks."
       },
       {
        "title": "VACUUM from application code fails",
@@ -5868,7 +5904,7 @@
       }
      ],
      "keyPointers": [
-      "Plain VACUUM: **SHARE UPDATE EXCLUSIVE**, runs online, space is **reused**, only the empty tail goes back to the OS.",
+      "Plain VACUUM: **SHARE UPDATE EXCLUSIVE**, runs online, space is **reused**, only the empty tail goes back to the OS; see [autovacuum tuning](/m7/autovacuum-tuning) for when it runs.",
       "Phases: **scan heap (prune, collect dead TIDs) → vacuum indexes → vacuum heap → clean up indexes → truncate → final cleanup**.",
       "Dead TIDs must fit in **`maintenance_work_mem`**, or indexes are scanned more than once.",
       "VACUUM sets **all-visible / all-frozen** bits and fills the **FSM**; DELETE does neither.",
@@ -5989,7 +6025,7 @@
        },
        {
         "label": "The freeze settings",
-        "lookFor": "50 M, 150 M, 200 M and 1.6 B for XIDs; multixacts have their own, larger limits (5 M, 150 M, 400 M)."
+        "lookFor": "50 M, 150 M, 200 M and 1.6 B for XIDs; multixacts have their own limits (5 M, 150 M, 400 M)."
        },
        {
         "label": "Make a MultiXact",
@@ -5999,7 +6035,7 @@
      },
      "production": {
       "title": "A forgotten replication slot and the wraparound countdown",
-      "problem": "Monitoring showed `age(datfrozenxid)` climbing past 1 billion although autovacuum ran constantly. The slot's `catalog_xmin` pinned the oldest XID that VACUUM could freeze past. At 3,000 XIDs/s, about 1.1 billion remaining XIDs is roughly 4 days until the 40 M warning zone.",
+      "problem": "Monitoring showed `age(datfrozenxid)` climbing past 1 billion although autovacuum ran constantly. The slot's `catalog_xmin` stopped VACUUM from freezing the system catalogs, and `datfrozenxid` is the minimum over every table, catalogs included. At 3,000 XIDs/s, about 1.1 billion remaining XIDs is roughly 4 days until the 40 M warning zone.",
       "outcome": "Once the slot was dropped, the next aggressive vacuums advanced `relfrozenxid`, and `age(datfrozenxid)` fell back to around the 200 M `autovacuum_freeze_max_age` range. An alert on `age(datfrozenxid) > 500 M` and on inactive slots now catches this weeks earlier."
      },
      "pitfalls": [
@@ -6024,7 +6060,7 @@
       "XIDs are **32-bit, compared modulo 2^32**: 2 billion in the past, 2 billion in the future.",
       "**Freezing** marks a row older than every XID; `relfrozenxid` / `datfrozenxid` track the oldest unfrozen XID.",
       "Ladder: **150 M** aggressive · **200 M** forced autovacuum · **1.6 B** failsafe · **40 M before wrap** warnings · **3 M before wrap** no new XIDs.",
-      "Recovery: end prepared/long transactions, drop stale slots, plain **VACUUM** as superuser; never single-user mode, FULL or FREEZE.",
+      "Recovery: end [prepared](/e3/distributed-transactions)/long transactions, drop stale slots, plain **VACUUM** as superuser; never single-user mode, FULL or FREEZE.",
       "**MultiXacts** (several lockers in one `xmax`) age and wrap the same way: watch `mxid_age(relminmxid)`."
      ]
     },
@@ -6074,7 +6110,7 @@
      "pitfalls": [
       {
        "title": "An inactive slot fills pg_wal",
-       "fix": "Alert on inactive slots and retained bytes, drop slots you no longer need, and set `max_slot_wal_keep_size` so a dead standby is invalidated instead of taking the primary down."
+       "fix": "Alert on inactive slots and retained bytes, drop slots you no longer need, and set `max_slot_wal_keep_size` so a dead standby is invalidated instead of taking the primary down. In 18, `idle_replication_slot_timeout` (for example `'2d'`) invalidates a slot that nobody has used for that long, at the next checkpoint."
       },
       {
        "title": "Standby queries cancelled with \"conflict with recovery\"",
@@ -6082,7 +6118,7 @@
       },
       {
        "title": "Both nodes think they are primary",
-       "fix": "Fence the old primary (STONITH) before promoting, and use a cluster manager. Rejoin the old primary as a standby with `pg_rewind` instead of a full re-clone."
+       "fix": "Fence the old primary (STONITH) before promoting, and use a cluster manager ([HA clusters](/e3/ha-clusters)). Rejoin the old primary as a standby with `pg_rewind` instead of a full re-clone."
       }
      ],
      "keyPointers": [
@@ -6129,11 +6165,11 @@
        },
        {
         "label": "DDL is not replicated",
-        "lookFor": "The new column joins publications without a column list automatically, but the ALTER itself is not sent: the subscriber must add `coupon` first, or apply errors start."
+        "lookFor": "The new column joins publications without a column list automatically: `pub_all_cols` gains `coupon`, `pub_some_cols` does not. The ALTER itself is not sent: the subscriber must add `coupon` first, or apply errors start."
        },
        {
         "label": "The WAL is the source",
-        "lookFor": "Logical decoding reads the same WAL as everything else; `pg_logical_emit_message` writes a record decoders pass through. Creating a logical slot needs `wal_level = logical`, which this playground runs without (it reports `replica`)."
+        "lookFor": "Logical decoding reads the same WAL as everything else; `pg_logical_emit_message` writes a record decoders pass through. `test_decoding` is the contrib output plugin that prints decoded changes as text through `pg_logical_slot_get_changes()`. Creating a logical slot needs `wal_level = logical`, which this playground runs without (it reports `replica`)."
        }
       ]
      },
@@ -6156,6 +6192,10 @@
        "fix": "Check `pg_replication_slots` on the publisher and drop orphaned slots; cap retention with `max_slot_wal_keep_size`."
       },
       {
+       "title": "Logical slots vanish at failover",
+       "fix": "Create the subscription `WITH (failover = true)`. On the standby set `sync_replication_slots = on`, `hot_standby_feedback = on`, a `primary_slot_name`, and a `dbname` in `primary_conninfo`. On the primary list that physical slot in `synchronized_standby_slots`, so subscribers never get ahead of the standby."
+      },
+      {
        "title": "Sequences and DDL silently drift",
        "fix": "Apply schema changes to the subscriber first (additive changes), and run `setval` for every sequence before a switchover."
       },
@@ -6169,7 +6209,7 @@
       "Decoding is in **commit order**; rolled-back transactions are **never sent**.",
       "**Replica identity** (default: primary key) identifies old rows; without one, published UPDATE/DELETE fail on the publisher.",
       "**Row filters** turn UPDATEs into INSERT/DELETE when rows cross the filter; **column lists** limit columns but are not security.",
-      "Not replicated: **DDL, sequences, large objects**. Initial data is copied by table-sync workers, then changes stream."
+      "Not replicated: **DDL, sequences, large objects**. Initial data is copied by table-sync workers, then changes stream. Active-active setups build on this: [multi-master](/e3/distributed-sql-multimaster)."
      ]
     },
     {
@@ -6205,6 +6245,10 @@
         "lookFor": "Each partition enforces uniqueness only inside itself, so a primary key on `id` alone is rejected. With `created_at` added it works, and the parent's key creates one index per partition."
        },
        {
+        "label": "Partition-wise aggregate and HASH",
+        "lookFor": "Partition-wise aggregation is off by default because it costs planning time. On, each partition is aggregated separately (`Partial HashAggregate`) and the results are combined; `enable_partitionwise_join` does the same for joins between identically partitioned tables. HASH partitions spread rows by the remainder of the key's hash and prune on equality only: `user_id = 7` reads one partition."
+       },
+       {
         "label": "Retention: DELETE vs DROP",
         "lookFor": "DELETE logged every row (about 1.2 MB) and left 22,320 dead rows for VACUUM. DROP removed a month in a few kB of WAL and left nothing to clean."
        },
@@ -6221,7 +6265,7 @@
      "production": {
       "title": "Monthly partitions for a 3-year event log",
       "problem": "The monthly `DELETE` produced tens of GB of WAL, saturated the replica link, and left a month of dead rows that autovacuum took days to clear. Recent-data queries still walked indexes covering three years.",
-      "outcome": "Retention became a metadata operation of a few kB of WAL (dropping a 22,000-row month writes about 6 kB, deleting it about 1.2 MB), with no dead rows. Recent-data queries touch one month instead of 36, so their indexes are 36 times smaller and stay in cache."
+      "outcome": "Retention became a metadata operation of a few kB of WAL (dropping a 22,000-row month writes about 5 kB, deleting it about 1.2 MB), with no dead rows. Recent-data queries touch one month instead of 36, so their indexes are 36 times smaller and stay in cache."
      },
      "pitfalls": [
       {
@@ -6256,7 +6300,7 @@
      "tldr": "PostgreSQL backs up either **logically** with `pg_dump` (SQL or an archive of one database) or **physically** with a base backup of the whole cluster plus the continuous stream of archived WAL. Physical backups enable **point-in-time recovery**: restore the base backup and replay archived WAL up to any moment after it, such as one second before a destructive mistake.",
      "visualizer": {
       "title": "Recover to one minute before the mistake",
-      "interaction": "Step through a day with a base backup, archived WAL and a bad DROP, then recovery. Drag `recovery_target_time` to before 01:20, before 14:05, or after it and step again."
+      "interaction": "Step through a day with a base backup, archived WAL and a bad DROP, then recovery. Drag `recovery_target_time` to before 01:20, before 14:05, after it, or past the end of WAL at 16:00, and step again."
      },
      "playground": {
       "extensions": [
@@ -6313,7 +6357,7 @@
       },
       {
        "title": "pg_restore refuses the dump file",
-       "fix": "Dump with `-Fc` or `-Fd` for anything you may restore selectively. Repeat `-t` / `-n` once per object (they do not take comma lists), use `-O` (`--no-owner`) when roles differ, and dump roles and tablespaces separately with `pg_dumpall --globals-only`, because `pg_dump` never includes them."
+       "fix": "Dump with `-Fc` or `-Fd` for anything you may restore selectively. Repeat `-t` / `-n` once per object (they do not take comma lists), use `-O` (`--no-owner`) when roles differ, and dump roles and tablespaces separately with `pg_dumpall --globals-only`, because `pg_dump` never includes them. In 18, add `--statistics` to carry planner statistics in the dump; without it, run `ANALYZE` after restoring."
       },
       {
        "title": "A long pg_dump blocks a migration and VACUUM",
@@ -6322,7 +6366,7 @@
      ],
      "keyPointers": [
       "**pg_dump**: one database in one snapshot; plain SQL goes to **psql**, custom/directory archives to **pg_restore** (`-j`, `-L`); roles need **pg_dumpall --globals-only**.",
-      "**Base backup + archived WAL** = PITR; replay must start at the backup's `START WAL LOCATION`.",
+      "**Base backup + archived WAL** = PITR; replay of the [WAL](/m7/wal-lsn) must start at the backup's `START WAL LOCATION`.",
       "`restore_command` + `recovery.signal` + one **recovery_target_*** (time, name, lsn, xid, immediate).",
       "Ending recovery starts a **new timeline**; `.history` files record branch points.",
       "Incremental backups (17+) need **`summarize_wal`** and are rebuilt with **`pg_combinebackup`**."
@@ -6402,7 +6446,7 @@
       }
      ],
      "keyPointers": [
-      "One connection = **one backend process** with private memory; `max_connections` (100) sizes shared memory and slots.",
+      "One connection = **one backend process** ([process model](/m1/process-model)) with private memory; `max_connections` (100) sizes shared memory and slots.",
       "**Session** mode: safe but no multiplexing. **Transaction** mode: multiplexes, breaks session state. **Statement** mode: autocommit only.",
       "Session state lives in the backend: **SET, PREPARE, session advisory locks, LISTEN, temp tables**; `DISCARD ALL` resets it.",
       "Transaction-safe forms: **`SET LOCAL`**, **`pg_advisory_xact_lock`**, schema-qualified names.",
@@ -6442,7 +6486,7 @@
        },
        {
         "label": "Bytes per type",
-        "lookFor": "20 = 4·3 + 8, 6152 = 4·1536 + 8, 3080 = 2·1536 + 8, 200 = 1536/8 + 8, and 32 = 8·2 + 16. The formulas are exact."
+        "lookFor": "20 = 4·3 + 8, 14 = 2·3 + 8, 6152 = 4·1536 + 8, 3080 = 2·1536 + 8, 200 = 1536/8 + 8, and 32 = 8·2 + 16. The formulas are exact."
        },
        {
         "label": "Errors you will meet",
@@ -6458,7 +6502,7 @@
        },
        {
         "label": "Big vectors live in TOAST",
-        "lookFor": "Storage `e` (EXTERNAL) means out-of-line and uncompressed. A 6 KB vector is above the 2 KB TOAST threshold, so the main heap holds only small pointers (8 kB for 100 rows) and the vectors sit in the TOAST table."
+        "lookFor": "Storage `e` (EXTERNAL) means out-of-line and uncompressed. A 6 KB vector is above the 2 KB TOAST threshold, so the main heap holds only small pointers (one 8192-byte page for 100 rows) and the vectors sit in the 800 kB TOAST table."
        }
       ]
      },
@@ -6486,7 +6530,7 @@
       "`vector(n)`: 4-byte floats, **4·n + 8** bytes, up to 16 000 dims stored and 2000 dims indexed.",
       "`halfvec(n)`: **2·n + 8** bytes, about 3 significant digits, max value 65504, indexable to 4000 dims.",
       "`sparsevec`: `{index:value,…}/dims`, 1-based, **8·nnz + 16** bytes. `bit(n)`: **n/8 + 8** bytes, from `binary_quantize()`.",
-      "Large vectors are stored out of line in TOAST without compression; random floats do not compress anyway."
+      "Large vectors are stored out of line in [TOAST](/m2/toast) without compression; random floats do not compress anyway."
      ]
     },
     {
@@ -6553,7 +6597,7 @@
       "Similarity: `1 - (a <=> b)` for cosine, `(a <#> b) * -1` for inner product.",
       "Unit-length vectors rank identically under L2, cosine and inner product; prefer `<#>` for them.",
       "Exact search = Seq Scan + top-N heapsort: perfect recall, cost linear in rows × dimensions.",
-      "Use the distance your embedding model was trained for; the model card says which."
+      "Use the distance your embedding model was trained for; the model card says which. For distances on a map rather than between embeddings, see [nearest-neighbour search with PostGIS](/e4/nearest-neighbour)."
      ]
     },
     {
@@ -6584,7 +6628,7 @@
        },
        {
         "label": "A thinner graph: m = 4",
-        "lookFor": "Fewer links and a narrow build beam make a smaller, faster-to-build index, but recall drops to about 0.4–0.5 at ef_search 10 and stays near 0.6 even at 100: a larger ef_search cannot fix it. The links are fixed at build time; ef_search only widens the walk over them."
+        "lookFor": "Fewer links and a narrow build beam make a smaller, faster-to-build index, but recall drops to about 0.3–0.45 at ef_search 10 and stays around 0.45–0.65 even at 100 (it varies by build): a larger ef_search cannot fix it. The links are fixed at build time; ef_search only widens the walk over them."
        },
        {
         "label": "When the index is NOT used",
@@ -6679,7 +6723,7 @@
       },
       {
        "title": "probes left at 1",
-       "fix": "Start at probes ≈ √lists and measure. Set it per query with `SET LOCAL`, or per database."
+       "fix": "Start at probes ≈ √lists and measure. Set it per query with `SET LOCAL`, or per database. `ALTER DATABASE … SET` only works once pgvector is loaded in your session (run any vector query first); otherwise a non-superuser gets `permission denied to set parameter \"ivfflat.probes\"`."
       },
       {
        "title": "Expecting IVFFlat to track new data",
@@ -6690,7 +6734,7 @@
       "Build: k-means picks `lists` centroids (default 100); each row goes to its nearest list.",
       "Sizing: lists ≈ rows/1000 up to 1M rows, √rows above; probes ≈ √lists to start.",
       "`ivfflat.probes` (default 1) trades speed for recall; probes = lists makes the planner fall back to exact search.",
-      "Versus HNSW: faster, smaller build; worse speed/recall trade-off; needs data first; goes stale.",
+      "Versus [HNSW](/e1/hnsw): faster, smaller build; worse speed/recall trade-off; needs data first; goes stale.",
       "IVFFlat supports L2, inner product, cosine and Hamming, for `vector`, `halfvec` and `bit` (no `sparsevec`, no L1)."
      ]
     },
@@ -6768,9 +6812,9 @@
      "keyPointers": [
       "Approximate indexes filter **after** the scan; with HNSW the result count is at most ef_search before filtering.",
       "`hnsw.iterative_scan = strict_order | relaxed_order` (HNSW) and `ivfflat.iterative_scan = relaxed_order` keep scanning until LIMIT is met.",
-      "Selective filter: B-tree exact path. Few hot values: partial index. Many tenants: `PARTITION BY LIST`.",
+      "Selective filter: B-tree exact path. Few hot values: [partial index](/m4/index-design). Many tenants: [`PARTITION BY LIST`](/m7/partitioning).",
       "Re-sort relaxed results with a `MATERIALIZED` CTE and `ORDER BY distance + 0`.",
-      "RRF: score = Σ 1/(60 + rank) across lists, joined with `FULL OUTER JOIN`. For exact codes, a learned **sparsevec** gives each term its own weighted dimension, scored with `<#>` (HNSW indexes at most 1000 non-zeros per row)."
+      "RRF: score = Σ 1/(60 + rank) across lists (the keyword list comes from [full-text search](/m6/full-text-search)), joined with `FULL OUTER JOIN`. For exact codes, a learned **sparsevec** gives each term its own weighted dimension, scored with `<#>` (HNSW indexes at most 1000 non-zeros per row)."
      ]
     },
     {
@@ -6797,7 +6841,7 @@
        },
        {
         "label": "Half-precision index",
-        "lookFor": "The table keeps full precision; only the index is float16. The query must repeat the **same expression** (`::halfvec(256)`) or the index is ignored. Recall is unchanged at about 60% of the index size. (Building the float16 index is slower than the full-precision one in this in-browser database; build speed on a native server can differ, so measure on your own hardware.)"
+        "lookFor": "The table keeps full precision; only the index is float16. The query must repeat the **same expression** (`::halfvec(256)`) or the index is ignored. Recall is unchanged at about 60% of the index size. (Here the float16 index builds more slowly than the full-precision one; build speed depends on the CPU, so measure on your own hardware.)"
        },
        {
         "label": "Binary quantization",
@@ -6809,7 +6853,7 @@
        },
        {
         "label": "Build memory",
-        "lookFor": "Watch the messages: `hnsw graph no longer fits into maintenance_work_mem after … tuples`, and compare the run time with the \"Full-precision HNSW\" preset: roughly three to four times slower. This in-browser server has no parallel workers (0); a real server defaults to 2."
+        "lookFor": "Watch the messages: `hnsw graph no longer fits into maintenance_work_mem after … tuples`, and compare the run time with the \"Full-precision HNSW\" preset: roughly three to four times slower. The playground has no parallel workers (0); a server defaults to 2."
        },
        {
         "label": "Deletes and REINDEX",
@@ -6844,7 +6888,7 @@
       "Store `vector`, index `halfvec` (same recall, about half the size) or bits (with re-ranking).",
       "Re-rank: inner `LIMIT N` by `<~>` on bits, outer `ORDER BY` exact distance; ef_search ≥ N.",
       "Builds: load first, `maintenance_work_mem` big enough for the graph, `max_parallel_maintenance_workers`, `CREATE INDEX CONCURRENTLY`.",
-      "Maintenance: `REINDEX INDEX CONCURRENTLY` then `VACUUM` after large deletes; stay on 0.8.4+.",
+      "Maintenance: `REINDEX INDEX CONCURRENTLY` then [`VACUUM`](/m7/vacuum) after large deletes; stay on 0.8.4+.",
       "Stay in PostgreSQL while vectors share rows, filters, transactions and backups with the rest of your data; consider a dedicated engine only when one node can no longer hold the index in memory and sharding is not an option."
      ]
     },
@@ -6998,7 +7042,7 @@
       "**BRIN** stores min/max per block range: tiny, and only useful when physical order follows the column (`correlation` near 1). More in [BRIN indexes](/m4/brin).",
       "Partition by time so queries **prune** to a few partitions and retention is a `DROP`, not a `DELETE`.",
       "**TimescaleDB** is an extension loaded through `shared_preload_libraries`. Version 2.32 supports PostgreSQL 16 to 18.",
-      "**Apache 2 edition**: hypertables, `time_bucket`, `drop_chunks`. **Community edition**: continuous aggregates, columnstore, gap filling, policies and jobs. Neon offers only the Apache edition."
+      "**Apache 2 edition**: hypertables, `time_bucket`, `drop_chunks`. **Community edition**: continuous aggregates, columnstore, gap filling, policies and jobs. Some managed services offer only the Apache edition."
      ]
     },
     {
@@ -7051,7 +7095,7 @@
      "pitfalls": [
       {
        "title": "Chunks that are far too small",
-       "fix": "Size by the memory rule, not by query granularity. `set_chunk_time_interval` changes new chunks only, so fix history with a table-swap migration. Raise `max_locks_per_transaction` (restart needed) as a stopgap."
+       "fix": "Size by the memory rule, not by query granularity. `set_chunk_time_interval` changes new chunks only, so fix history with a table-swap migration, or merge adjacent small chunks in place with `CALL merge_chunks('chunk_a', 'chunk_b')`. Raise `max_locks_per_transaction` (restart needed) as a stopgap."
       },
       {
        "title": "Unique key without the time column",
@@ -7059,7 +7103,7 @@
       },
       {
        "title": "A bad clock creates future chunks",
-       "fix": "Validate timestamps at ingest (for example a CHECK against `now() + interval '1 day'` in the application), and clean up with `drop_chunks(newer_than => …)`."
+       "fix": "Reject timestamps later than `now() + interval '1 day'` at ingest (in the application or a `BEFORE INSERT` trigger), and clean up with `drop_chunks(newer_than => …)`."
       },
       {
        "title": "Space partitioning on one disk",
@@ -7168,11 +7212,11 @@
        },
        {
         "label": "Build an incremental engine",
-        "lookFor": "A summary table (the **materialization hypertable**), an invalidation log fed by a statement trigger, and a refresh that handles whole buckets only. The window ends at 05:00, so 5 buckets are computed and the **watermark** moves to 05:00."
+        "lookFor": "A summary table (the **materialization hypertable**), an invalidation log fed by a statement trigger, a refresh that handles whole buckets only, and the real-time view used next. The first lines drop the copy the lesson already loaded, so you can read and rerun the whole engine. The window ends at 05:00, so 5 buckets are computed and the **watermark** moves to 05:00."
        },
        {
         "label": "Real-time view",
-        "lookFor": "This is `materialized_only = false`: stored buckets below the watermark, plus raw rows above it aggregated on the fly. The 05:00 bucket appears with **55, n = 2** (50 and 60) without a refresh."
+        "lookFor": "This is `materialized_only = false`: stored buckets below the watermark, plus raw rows above it aggregated on the fly. The 05:00 bucket, which no refresh has stored, appears with **55, n = 2** (50 and the new 60)."
        },
        {
         "label": "Backfill below the watermark",
@@ -7184,7 +7228,7 @@
        },
        {
         "label": "Rolling up without avg of avgs",
-        "lookFor": "A daily rollup of the hourly table (a **hierarchical** aggregate) must combine sums and counts: device 1 is **35.5**, while averaging the hourly averages gives a wrong 30.33."
+        "lookFor": "A daily rollup of the hourly table (a **hierarchical** aggregate) must combine sums and counts. On the starting data device 1 is **14** (42 / 3 readings), while averaging the hourly averages gives a wrong 15.5; after the backfill example the same columns read 35.5 and 30.33."
        }
       ]
      },
@@ -7214,9 +7258,9 @@
      "keyPointers": [
       "A cagg stores finished buckets in a **materialization hypertable**. The **watermark** marks where materialized data ends.",
       "Writes behind the invalidation threshold log **min and max time per transaction**. A refresh recomputes only new and invalidated whole buckets in its window.",
-      "Policy = `start_offset` / `end_offset` / `schedule_interval`. Leave the open bucket out, and expect data to lag by up to schedule + end_offset.",
+      "Policy = `start_offset` / `end_offset` / `schedule_interval`. Leave the open bucket out, and expect data to lag by up to bucket width + end_offset + schedule_interval.",
       "**Real-time** (`materialized_only = false`) unions live raw data above the watermark. It has been off by default since 2.13.",
-      "Continuous aggregates are **Community edition** only. Natively: a summary table, a trigger-fed invalidation log, a refresh procedure and a UNION view."
+      "Continuous aggregates are **Community edition** only. Natively: a summary table, a [trigger](/m6/triggers)-fed invalidation log, a refresh procedure and a UNION view; a plain [materialized view](/m6/views-matviews) recomputes everything."
      ]
     },
     {
@@ -7314,7 +7358,7 @@
        },
        {
         "label": "A tiny job scheduler",
-        "lookFor": "This mimics TimescaleDB's scheduler and `timescaledb_information.jobs`: job 1001 ran, dropped Nov 7 and Nov 8 (cutoff Nov 9 12:00), and its **next_start** moved one day ahead."
+        "lookFor": "This mimics TimescaleDB's scheduler and `timescaledb_information.jobs`: job 1001 ran, dropped every chunk that ends before its Nov 9 12:00 cutoff (Nov 7 and Nov 8 if the previous example already removed Nov 5 and Nov 6), and its **next_start** moved one day ahead."
        },
        {
         "label": "A failing job backs off",
@@ -7348,9 +7392,9 @@
      "keyPointers": [
       "`drop_chunks` / `add_retention_policy` drop a chunk only when its **whole range** is older than the cutoff. One retention policy per hypertable.",
       "Every policy is a **job**: see `timescaledb_information.jobs` and `job_stats`; change it with `alter_job`, run it with `CALL run_job(id)`.",
-      "Keep raw retention **longer than** any continuous aggregate's `start_offset`, and retain the aggregate separately.",
+      "Keep raw retention **longer than** any [continuous aggregate](/e2/continuous-aggregates)'s `start_offset`, and retain the aggregate separately.",
       "Multi-node was removed in 2.14. Tiering to object storage is Tiger Cloud only; for sharding PostgreSQL see [Citus](/e3/sharding-citus).",
-      "`drop_chunks` is **Apache 2 edition**; retention policies, `add_job` and the scheduler are **Community edition**."
+      "`drop_chunks` is **Apache 2 edition**; retention policies, `add_job` and the scheduler are **Community edition**. Natively the same idea is dropping a [partition](/m7/partitioning)."
      ]
     },
     {
@@ -7423,7 +7467,7 @@
       "`time_weight('LOCF' | 'linear', ts, v)`: the area under the curve divided by elapsed time. One point gives NULL; `interpolated_average` fills bucket edges from neighbours.",
       "`candlestick_agg(ts, price, volume)`: open/close by time, high/low, volume and VWAP = Σ(price·volume) / Σvolume, all mergeable.",
       "UddSketch buckets values at ⌈log_γ x⌉, so merging adds counts and keeps a relative error bound (0.001 for `percentile_agg`, which grows if 200 buckets overflow). Never average percentiles. `counter_agg` treats any drop as a reset to zero.",
-      "`timescaledb_toolkit` 1.27.0 supports PostgreSQL 16–18 under the Timescale License. It comes with Tiger Cloud and the `timescaledb-ha` image; self-hosted servers install it from packages (apt, yum, brew) or from source. Neon does not offer it."
+      "`timescaledb_toolkit` 1.27.0 supports PostgreSQL 16–18 under the Tiger Data License (TSL, formerly the Timescale License), the licence of the Community edition. It comes with Tiger Cloud and the `timescaledb-ha` image; self-hosted servers install it from packages (apt, yum, brew) or from source. Neon does not offer it."
      ]
     }
    ]
@@ -7459,7 +7503,7 @@
        },
        {
         "label": "A slot for a replica",
-        "lookFor": "A replica connects through a slot, so the primary keeps the WAL the replica still needs. `active = false`: no replica is connected to this single node."
+        "lookFor": "A replica that connects through a slot makes the primary keep the WAL it still needs (without a slot, only `wal_keep_size` or the archive protects it). `active = false`: no replica is connected to this single node."
        },
        {
         "label": "Distribution on one machine",
@@ -7503,7 +7547,7 @@
       "A transaction costs **round trips × latency**: 20 ms per transaction caps one session at 50 transactions per second.",
       "Replicas scale reads but are stale; shared storage gives durable quorum writes with one writer; sharding splits data by a key; distributed SQL runs Raft per tablet; multi-master accepts writes everywhere and resolves conflicts later.",
       "**CAP**: under a partition choose consistency or availability. **PACELC**: otherwise choose latency or consistency, which `synchronous_commit` lets you pick per transaction.",
-      "Most workloads fit one large node plus [streaming replicas](/m7/streaming-replication) and an HA manager. Distribute when a measured limit says so."
+      "Most workloads fit one large node plus [streaming replicas](/m7/streaming-replication) and an HA manager. Distribute when a measured limit says so. The models behind these choices: [architectures and classification](/e5/architectures)."
      ]
     },
     {
@@ -7572,7 +7616,7 @@
       "`pg_dist_shard` stores each shard's token range, `pg_dist_placement` its node. The coordinator routes a query that pins the key to one shard.",
       "**Colocated** tables share ranges and placements, so joins and foreign keys on the key stay local. **Reference** tables are copied to every worker and written with 2PC.",
       "Primary keys and unique constraints must **include the distribution column**, the same rule as for [partitioned tables](/m7/partitioning). Foreign keys work between colocated tables on the key, or to reference tables.",
-      "Schema-based sharding (Citus 12+) distributes whole schemas, one per node, for apps with up to thousands of tenants and no tenant column."
+      "Schema-based sharding (Citus 12+) distributes whole schemas, each kept entirely on one node, for apps with up to thousands of tenants and no tenant column. The theory of splitting tables: [fragmentation, allocation and replication](/e5/fragmentation-replication)."
      ]
     },
     {
@@ -7645,7 +7689,7 @@
       "**Multi-shard** query: one task per shard in parallel, merged on the coordinator. Aggregates split into worker parts and a final step (avg → sum + count).",
       "Joins on the distribution column of **colocated** tables push down; other joins need a **repartition** shuffle, which is off by default.",
       "EXPLAIN shows `Custom Scan (Citus Adaptive)` with `Task Count` and one sample task plan from a worker.",
-      "Rebalancing moves whole colocated shard groups, online through logical replication when tables have a replica identity."
+      "Rebalancing moves whole colocated shard groups, online through logical replication when tables have a replica identity. The general theory: [distributed query processing](/e5/distributed-query-processing)."
      ]
     },
     {
@@ -7714,7 +7758,7 @@
       "If the coordinator dies after PREPARE, participants are **in doubt**: they hold locks and xmin until recovery reads the log and finishes. 2PC is a blocking protocol.",
       "`max_prepared_transactions` is 0 by default, which disables 2PC. `pg_prepared_xacts` lists what is prepared, and any session can finish it.",
       "A **hybrid logical clock** (physical, logical) orders causes before effects across nodes with skewed clocks. Commit timestamps decide \"latest\" in multi-master systems.",
-      "Across nodes, sequences, unique keys, foreign keys and [isolation](/m5/isolation-levels) all weaken unless the system adds global machinery for them. Old prepared transactions also block [wraparound protection](/m7/xid-wraparound)."
+      "Across nodes, sequences, unique keys, foreign keys and [isolation](/m5/isolation-levels) all weaken unless the system adds global machinery for them. Old prepared transactions also block [wraparound protection](/m7/xid-wraparound). 3PC, Paxos commit and global deadlock detection: [distributed transactions and consensus](/e5/commit-and-consensus)."
      ]
     },
     {
@@ -7785,9 +7829,9 @@
      "keyPointers": [
       "YugabyteDB: YSQL reuses PostgreSQL's query layer over **DocDB**; tables split into **tablets**, each a **Raft** group with one leader. A write commits on a majority; a lost leader is replaced within seconds (about 3 s with default heartbeat settings).",
       "Hash sharding uses a 16-bit space **0x0000–0xFFFF**, and by default only the first primary key column is hashed. Range sharding (`ASC`/`DESC`) suits range scans but risks hot spots.",
-      "Multi-master (PGD, Spock) commits locally and replicates later, so conflicts are detected on apply, for example (in PostgreSQL 18 terms) insert_exists, update_origin_differs, delete_missing.",
+      "Multi-master (PGD, Spock) commits locally and replicates later, so conflicts are detected on apply, for example (in PostgreSQL 18 terms) insert_exists, update_origin_differs, delete_missing. Stock PostgreSQL can replicate both ways with two subscriptions created `WITH (origin = none)` so changes do not loop back; it detects and logs conflicts (18) but does not resolve them, which is what PGD and Spock add.",
       "Resolution rules (`last_update_wins`, `keep_local`, `apply_remote`, `error`) trade correctness for availability; delta-apply fixes counters; global sequences fix ids. See [logical replication](/m7/logical-replication) for the building block.",
-      "Use multi-master only for simple, partitionable write patterns; use distributed SQL when you need strong consistency across regions and can pay the write latency."
+      "Use multi-master only for simple, partitionable write patterns; use distributed SQL when you need strong consistency across regions and can pay the write latency. Paxos, Raft and their failure cases: [distributed transactions and consensus](/e5/commit-and-consensus)."
      ]
     },
     {
@@ -7852,7 +7896,7 @@
       "Defaults `ttl` 30 / `loop_wait` 10 / `retry_timeout` 10, and the rule **`loop_wait + 2 * retry_timeout <= ttl`**. A crash costs roughly the TTL plus promotion plus proxy checks.",
       "HAProxy routes by HTTP checks against Patroni's REST API: `/primary` for writes, `/replica?lag=` for reads. A pooler such as [PgBouncer](/m7/connection-pooling) sits behind it or beside it.",
       "`synchronous_mode` makes failover lose nothing acknowledged; asynchronous failover can lose the unreplicated tail.",
-      "Switchover is the planned, lossless version: rehearse it regularly. A returning old primary needs `pg_rewind` or a rebuild."
+      "Switchover is the planned, lossless version: rehearse it regularly. A returning old primary needs `pg_rewind` or a rebuild. Failure detection and split brain in general: [operating distributed databases](/e5/operating-distributed)."
      ]
     }
    ]
@@ -7868,7 +7912,7 @@
      "order": 1,
      "slug": "spatial-basics",
      "title": "Geometry, geography and coordinate systems",
-     "tldr": "PostGIS adds two spatial types to PostgreSQL: **geometry**, measured on a flat plane in the units of its coordinate system (its **SRID**), and **geography**, measured on the curved Earth in metres. Every coordinate means nothing without its SRID, so picking the right type and coordinate system up front is what makes distances, areas and joins come out right.",
+     "tldr": "PostGIS adds two spatial types to PostgreSQL: **geometry**, measured on a flat plane in the units of its coordinate system (its **SRID**), and **geography**, measured on the curved Earth in metres. A coordinate means nothing without its SRID, so picking the right type and coordinate system up front is what makes distances, areas and joins come out right.",
      "visualizer": {
       "title": "One pair of cities, three rulers",
       "interaction": "Switch the ruler and watch the grid morph from longitude/latitude to Web Mercator. **Next city pair** moves north and south; the checkbox shows what swapped coordinates do."
@@ -7888,7 +7932,7 @@
        },
        {
         "label": "Three rulers",
-        "lookFor": "geometry in 4326 returns **3.63 degrees**. geography returns **343.9 km**. Web Mercator says 537 km, about 56% too long at this latitude. The local equal-area projection 3035 is within 0.5 km."
+        "lookFor": "geometry in 4326 returns **3.63 degrees**. geography returns **343.9 km**. Web Mercator says 537 km, about 56% too long at this latitude. The local equal-area projection 3035 is within 0.5 km. `ST_Length` of the line between the two cities gives the same 343.9 km; `ST_Area` does the same job for polygons. For a local SRID, look up your country's grid or UTM zone in `spatial_ref_sys`."
        },
        {
         "label": "Swap lat and lon",
@@ -7935,7 +7979,7 @@
       "**geometry**: planar, units of its SRID, the richest function set. **geography**: spheroid, metres, the right default for lon/lat data spread over a wide area.",
       "Coordinates are **(x, y) = (longitude, latitude)**. `ST_Point(lon, lat, 4326)` builds a point with its SRID in one call.",
       "`ST_Transform` changes coordinates; `ST_SetSRID` only changes the label.",
-      "Use typmods such as `geometry(Point, 4326)` so the column rejects the wrong SRID or shape.",
+      "Use typmods such as `geometry(Point, 4326)` so the column rejects the wrong SRID or shape; a typmod is one more column rule next to those in [Constraints and defaults](/f3/constraints-defaults).",
       "Next: how a spatial index answers \"what is near here\" in [Spatial indexes](/e4/spatial-indexes)."
      ]
     },
@@ -7955,11 +7999,15 @@
       "presets": [
        {
         "label": "Box overlap: &&",
-        "lookFor": "`&&` is answered by the GiST index alone: **Bitmap Index Scan**, about 5 index buffers. The long hex string is the query box in WKB."
+        "lookFor": "`&&` needs no exact filter step: a **Bitmap Index Scan** (about 5 index buffers) finds 19 rows, and the heap scan above it has no `Rows Removed by Filter` line. The long hex string is the query box in WKB."
        },
        {
         "label": "ST_DWithin, indexed",
         "lookFor": "Read the **Index Cond**: `geom && st_expand(…, 0.005)`. Two-step filtering in one plan. The radius is **0.005 degrees**, because the column is geometry in 4326."
+       },
+       {
+        "label": "ST_Intersects: both steps",
+        "lookFor": "`Index Cond: geom && …` tests the circle's **box** and finds 19 rows. `Filter: st_intersects` then runs the exact test: **4** rows sat in the corners of the box and are removed, 15 remain. `ST_Contains`, `ST_Within` and `ST_Covers` plan the same way."
        },
        {
         "label": "The geography cast trap",
@@ -7975,7 +8023,7 @@
        },
        {
         "label": "GiST vs SP-GiST vs BRIN",
-        "lookFor": "GiST 864 kB, SP-GiST 968 kB, BRIN **24 kB**. BRIN is tiny because it stores one box per range of 4 pages. Whether it helps depends on row order (next preset)."
+        "lookFor": "GiST 864 kB, SP-GiST 968 kB, BRIN **24 kB**. BRIN is tiny because it stores one box per range of 4 pages. Whether it helps depends on row order (next preset). From now on the planner may choose `places_geom_spgist` instead of the GiST index in the earlier presets; both answer `&&`."
        },
        {
         "label": "BRIN needs sorted rows",
@@ -8010,7 +8058,7 @@
       "Indexes store **boxes**; queries run in two steps: box filter (index) then exact test (recheck).",
       "Index-aware: `&&`, `~`, `@`, `ST_Intersects`, `ST_Contains`, `ST_Within`, `ST_Covers`, `ST_DWithin` and friends. Not `ST_Distance`.",
       "Casting the column (`geom::geography`) needs a matching **expression index** or the plan becomes a Seq Scan.",
-      "GiST is the default; SP-GiST suits points; BRIN is tiny but needs spatially sorted rows. Compare [GiST and SP-GiST](/m4/gist-spgist) and [BRIN](/m4/brin) internals.",
+      "GiST is the default and the only one that also serves nearest-neighbour `<->` ordering; SP-GiST suits points for box tests; BRIN is tiny but needs spatially sorted rows. Compare [GiST and SP-GiST](/m4/gist-spgist) and [BRIN](/m4/brin) internals.",
       "Read the plan for `Index Cond` and `Rows Removed by Filter`, as in [EXPLAIN ANALYZE](/m4/explain-analyze)."
      ]
     },
@@ -8050,7 +8098,7 @@
        },
        {
         "label": "Trap: join without LATERAL",
-        "lookFor": "The distance is between two **columns**, so no index can order it: Seq Scan on `places`, then Sort. Rewrite with LATERAL or a scalar subquery."
+        "lookFor": "In the first plan the distance is between two **columns**, so no index can order it: Seq Scan on `places`, then Sort. The second plan uses a scalar subquery: it runs once (`InitPlan`), and `places` is read by an **Index Scan** with `Order By`. LATERAL (previous preset) does the same for many riders."
        },
        {
         "label": "Radius and order",
@@ -8061,7 +8109,7 @@
      "production": {
       "title": "Assigning the nearest courier",
       "problem": "The first version joined orders to couriers and sorted by `ST_Distance` with a 5 km `ST_DWithin` cap. On busy evenings every order computed distances to hundreds of couriers, and quiet suburbs found nobody inside 5 km.",
-      "outcome": "Each order costs one short index descent instead of a scan. In the playground, 50 riders find their nearest pharmacy with 50 index probes in a few milliseconds. Taking 3 by degrees and re-ranking in metres fixes the degree mis-ranking."
+      "outcome": "Each order costs one short index descent instead of a scan. In the playground, 50 riders find their nearest pharmacy with 50 index probes in a few milliseconds. Taking 3 by degrees and re-ranking in metres removes most of the degree mis-ranking; order by geography when the nearest must be exact."
      },
      "pitfalls": [
       {
@@ -8078,14 +8126,14 @@
       },
       {
        "title": "A selective filter on top of KNN",
-       "fix": "Use a partial index per hot filter value, or a separate table for the rare kind."
+       "fix": "Create a partial GiST index for each filtered value (`WHERE kind = 'rare'`): the scan then walks only matching rows. For many values, use one GiST index on `(kind, geom)` with the `btree_gist` extension."
       }
      ],
      "keyPointers": [
       "`ORDER BY geom <-> constant LIMIT k` is an **index-ordered scan**: rows leave the index already sorted, with no Sort node.",
       "The scan is **best-first** over a priority queue: boxes are keyed by a lower-bound distance, rows by their exact distance.",
       "geometry `<->` uses SRID units (degrees in 4326); geography `<->` gives metres on a sphere and needs a geography index.",
-      "`<#>` orders by **bounding-box** distance; nearest-per-row needs **LATERAL**. The same idea for vectors is in [Distance metrics and exact search](/e1/distance-and-exact-search)."
+      "`<#>` orders by **bounding-box** distance; nearest-per-row needs **LATERAL**, explained in [LATERAL joins](/m3/lateral). The same idea for vectors is in [Distance metrics and exact search](/e1/distance-and-exact-search)."
      ]
     },
     {
@@ -8108,11 +8156,15 @@
        },
        {
         "label": "Contains vs covers",
-        "lookFor": "A point exactly on a zone corner: `ST_Contains` says **0** zones (a polygon does not contain its own boundary), `ST_Covers` and `ST_Intersects` say **2**. Pick the one that matches your counting rule."
+        "lookFor": "A point exactly on a corner where three hexagons meet: `ST_Contains` says **0** zones (a polygon does not contain its own boundary), `ST_Covers` and `ST_Intersects` say **3**. Pick the one that matches your counting rule."
        },
        {
         "label": "Buffer, length, area",
         "lookFor": "The road is **15 097 m** long; its 300 m corridor covers 9.34 km². To count orders near it, `ST_DWithin` (index-aware) beats testing against a buffer polygon."
+       },
+       {
+        "label": "Overlay: road length per zone",
+        "lookFor": "`ST_Intersects` picks the zone–road pairs (through the index); `ST_Intersection` cuts the line at each zone border and returns the piece inside. The 9 pieces run from 2 753 m in Z26 to 140 m in Z25 and add up to the 15 097 m of the road."
        },
        {
         "label": "ST_Union vs ST_Collect",
@@ -8144,7 +8196,7 @@
       },
       {
        "title": "Invalid polygons in, nonsense out",
-       "fix": "Repair once, then enforce."
+       "fix": "Repair once, then enforce. A repaired polygon can become a MultiPolygon, so the column type must allow it."
       },
       {
        "title": "Simplify breaking shapes",
@@ -8158,8 +8210,8 @@
      "keyPointers": [
       "Point-in-polygon join: `JOIN … ON ST_Contains(zone, point)`. The index probe uses the zone box, then the exact test filters.",
       "`ST_Contains` excludes the boundary; `ST_Covers` and `ST_Intersects` include it.",
-      "`ST_Union` dissolves into one shape; `ST_Collect` only bundles. `ST_ClusterDBSCAN` returns NULL for noise; `ST_ClusterKMeans` makes exactly k clusters unless given `max_radius`.",
-      "GeoJSON output is longitude/latitude: `ST_AsGeoJSON(ST_Transform(geom, 4326), 6)`.",
+      "`ST_Union` dissolves into one shape; `ST_Collect` only bundles. `ST_ClusterDBSCAN` returns NULL for noise; `ST_ClusterKMeans` makes exactly k clusters unless given `max_radius`. Both are window functions: see [Window functions and frames](/m3/window-functions).",
+      "GeoJSON output is longitude/latitude: `ST_AsGeoJSON(ST_Transform(geom, 4326), 6)`. `json_agg` and `json_build_object` are covered in [Working with JSON](/f2/working-with-json).",
       "Check `ST_IsValid` on load and enforce it with a constraint. Start again from [Spatial indexes](/e4/spatial-indexes) when a query is slow."
      ]
     }
@@ -8198,7 +8250,7 @@
        },
        {
         "label": "Localization: a predicate that rules out a fragment",
-        "lookFor": "Each fragment carries a CHECK constraint on `region`. The planner proves the US fragment cannot contain `region = 'EU'` rows and drops that branch: the plan is a single scan, and the US site is never asked. This is **data localization** at its simplest."
+        "lookFor": "Each fragment carries a CHECK constraint on `region`. The planner proves the US fragment cannot contain `region = 'EU'` rows and drops that branch: the plan is a single `Seq Scan on eu.orders`, and the US site is never asked. This is **data localization** at its simplest."
        },
        {
         "label": "Replication transparency",
@@ -8231,9 +8283,10 @@
      ],
      "keyPointers": [
       "Architecture = what nodes share: **shared-memory** (memory + disks), **shared-disk** (disks), **shared-nothing** (only the network). Federated systems join **autonomous** databases through export schemas.",
-      "Classify any system along **distribution**, **heterogeneity** and **autonomy**. A federation is high on all three, a distributed SQL cluster is tightly integrated and homogeneous.",
+      "Classify any system along **distribution**, **heterogeneity** and **autonomy**. A federation is high on all three, a distributed SQL cluster is tightly integrated and homogeneous. **Client-server** systems give one site (a coordinator) the global catalog and query planning (Citus); **peer-to-peer** systems let every node accept any query (Cassandra, CockroachDB). **Homogeneous** means the same DBMS on every site; **heterogeneous** means different products behind wrappers.",
       "Transparencies, weakest to strongest: **location** (no site names), **replication** (no copy names), **fragmentation** (only global names), then **failure** transparency through atomic commit and failover.",
-      "NoSQL families trade query flexibility for a fast access path: key-value, document, wide-column, graph. Distributed SQL keeps SQL and ACID on shared-nothing; see [why distribute](/e3/why-distribute) and [foreign data wrappers](/m6/fdw)."
+      "NoSQL families trade query flexibility for a fast access path: key-value, document, wide-column, graph. Distributed SQL keeps SQL and ACID on shared-nothing; see [why distribute](/e3/why-distribute) and [foreign data wrappers](/m6/fdw).",
+      "Next: how the data is split and placed, in [Fragmentation, allocation and replication](/e5/fragmentation-replication). For one concrete coordinator-and-workers system, see [Sharding with Citus](/e3/sharding-citus)."
      ]
     },
     {
@@ -8269,6 +8322,10 @@
         "lookFor": "The hash function and token formula match the visualizer exactly, so the counts agree: with 16 vnodes the ring moves 3,006 keys, modulo moves 7,986, and the minimum is 2,000. The per-node counts show the remaining imbalance."
        },
        {
+        "label": "Allocation: which site stores each fragment",
+        "lookFor": "Allocation is this table: one row per fragment and site. The EU fragment is **partially replicated** (2 copies, on 2 of the 4 sites); the other two are stored once (**partitioned** allocation). A copy on every site would be full replication."
+       },
+       {
         "label": "Snapshot and partial replication",
         "lookFor": "The snapshot lags by exactly the 1,000 added to 10 EU balances until the refresh. The publication defines a partial, column-filtered replica: subscribers receive only EU rows and four columns."
        }
@@ -8300,7 +8357,7 @@
      "keyPointers": [
       "Correctness rules: **completeness** (every item in some fragment), **reconstruction** (union for horizontal, join on the key for vertical), **disjointness** (stored once; vertical fragments repeat only the key).",
       "**Derived horizontal fragmentation** places member rows with their owner: orders_i = orders ⋉ customers_i. The foreign key keeps it complete and disjoint, and makes joins on the key local.",
-      "Allocation is partitioned, partially replicated or fully replicated. Replication is **synchronous** (no acknowledged loss, slower commits) or **asynchronous** (fast, loses the lag on failover); active-active adds write conflicts.",
+      "Allocation is partitioned, partially replicated or fully replicated. Replication is **synchronous** (no acknowledged loss, slower commits) or **asynchronous** (fast, loses the lag on failover); active-active adds write conflicts. In practice: [failover with HA clusters](/e3/ha-clusters) and [conflicts in multi-master](/e3/distributed-sql-multimaster); how copies agree on a commit is in [Distributed transactions and consensus](/e5/commit-and-consensus).",
       "**Consistent hashing** moves about 1/(N+1) of keys when a node joins; modulo moves about N/(N+1). **Virtual nodes** even out the load; **fixed ranges** decouple partitioning from placement, as Citus shards do in [sharding with Citus](/e3/sharding-citus).",
       "In PostgreSQL, fragments are [partitions](/m7/partitioning), and replicas come from [streaming](/m7/streaming-replication) or [logical replication](/m7/logical-replication)."
      ]
@@ -8374,7 +8431,7 @@
       "**2PC** blocks when the coordinator dies after the votes: an uncertain participant can neither commit nor abort. **3PC** adds a committable pre-commit state, which removes blocking for crashes but breaks atomicity under partitions.",
       "**Paxos**: prepare(n) → promises plus the highest accepted proposal; accept(n, v) where v is that proposal's value if any. A majority makes a value chosen; a single leader makes progress. **Raft** builds the same guarantee around terms and one leader.",
       "**Basic TO** aborts any operation that arrives after a conflicting one with a larger timestamp; the **Thomas write rule** skips obsolete writes instead. **Optimistic** schedulers validate at commit.",
-      "A distributed deadlock is a cycle in the **union** of local wait-for graphs; detectors typically cancel the youngest transaction on it and must avoid phantom cycles. Leases need **fencing tokens**.",
+      "A distributed deadlock is a cycle in the **union** of local wait-for graphs; detectors typically cancel the youngest transaction on it and must avoid phantom cycles. Leases need **fencing tokens**; terms play that role during failover in [Operating distributed databases](/e5/operating-distributed).",
       "PostgreSQL pieces: [two-phase commit and HLC](/e3/distributed-transactions), [Raft in distributed SQL](/e3/distributed-sql-multimaster), [local deadlocks](/m5/lwlocks-deadlocks), [row locks and SKIP LOCKED](/m5/row-locks-skip-locked)."
      ]
     },
@@ -8445,7 +8502,7 @@
      ],
      "keyPointers": [
       "**Decomposition** (normalize, analyze, eliminate redundancy, rewrite) produces an algebra tree on global relations, without using distribution information.",
-      "**Localization** replaces each relation by the union (horizontal) or join (vertical) of its fragments, then **reduces**: fragments contradicting a selection go, and joins shrink to matching fragment pairs. In PostgreSQL this is [partition pruning](/m7/partitioning) and partitionwise join.",
+      "**Localization** replaces each relation by the union (horizontal) or join (vertical) of its [fragments](/e5/fragmentation-replication), then **reduces**: fragments contradicting a selection go, and joins shrink to matching fragment pairs. In PostgreSQL this is [partition pruning](/m7/partitioning) and partitionwise join.",
       "A **semijoin** pays iff size(π_A S) + size(R ⋉ S) < size(R). A bit-array filter shrinks the key list at the cost of false positives.",
       "Join strategies by bytes moved: **co-located** 0, **broadcast** small × (N − 1), **repartition** (big + small) × (N − 1) / N. Push filters and partial aggregates to the data. See [distributed queries in Citus](/e3/distributed-queries)."
      ]
@@ -8480,11 +8537,11 @@
        },
        {
         "label": "Routing table and rebalancing",
-        "lookFor": "The router maps hash ranges to nodes, so rebalancing is a metadata change plus copying the moved shards. Moving 3 of 8 shards moves the keys in those shards and nothing else: node-3 receives 3,310 of the 9,000 accounts (36.8%), close to the 3/8 of the hash space it took over."
+        "lookFor": "The router maps hash ranges to nodes, so rebalancing is a metadata change plus copying the moved shards. Moving 3 of 8 shards moves the keys in those shards and nothing else: node-3 receives 3,310 of the 9,000 accounts (36.8%), close to the 3/8 of the hash space it took over. The final `ROLLBACK` undoes the move, so the preset can be run again."
        },
        {
         "label": "TLS and authentication settings",
-        "lookFor": "`pg_hba_file_rules` lists the rules in the order they are tried. A cluster replaces `host` lines for its peers with `hostssl` lines that demand `cert` (or `clientcert=verify-full`), raises `ssl_min_protocol_version` if TLS 1.2 is not enough, and uses `scram-sha-256` for passwords."
+        "lookFor": "`pg_hba_file_rules` lists the rules in the order they are tried. A cluster replaces `host` lines for its peers with `hostssl` lines that demand `cert` (or `clientcert=verify-full`), raises `ssl_min_protocol_version` if TLS 1.2 is not enough, and uses `scram-sha-256` for passwords. This server shows the unsafe starting point: `ssl` is off and every rule is `trust`."
        },
        {
         "label": "Geo-partitioning and a residency check",
@@ -8517,7 +8574,7 @@
      ],
      "keyPointers": [
       "Failure detectors trade speed for false alarms. **φ = −log10(P(next heartbeat still coming))** adapts to the measured jitter; Cassandra convicts at φ = 8 by default.",
-      "A partition looks like a crash from both sides. A **majority quorum** plus **terms** as fencing tokens keeps one leader; without them you get split brain and lost acknowledged writes. See [HA clusters](/e3/ha-clusters).",
+      "A partition looks like a crash from both sides. A **majority quorum** plus **terms** as fencing tokens ([consensus](/e5/commit-and-consensus)) keeps one leader; without them you get split brain and lost acknowledged writes. See [HA clusters](/e3/ha-clusters).",
       "A returning node replays the log from its last applied position; if that log is gone it must be rebuilt. Routing tables map hash ranges to nodes, so rebalancing moves whole ranges ([sharding](/e3/sharding-citus)).",
       "Node-to-node security: `hostssl` + `cert` (or `clientcert=verify-full`), `sslmode=verify-full`, `ssl_min_protocol_version` (default TLSv1.2), `scram-sha-256` for passwords.",
       "Data residency is a placement rule: list-partition by region and pin each partition's replicas to that region; replicate only small reference data everywhere."

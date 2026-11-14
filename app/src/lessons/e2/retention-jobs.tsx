@@ -78,7 +78,7 @@ function LifecycleViz() {
         <Stat label="oldest raw row" value={`${oldest.toFixed(1)} d`} />
         <Stat label="cagg days deleted" value={lost} t={lost ? 'dead' : 'ok'} />
       </div>
-      <Msg id={msg}><p style={unsafe ? { color: tone('dead') } : undefined}><Md>{msg}</Md></p></Msg>
+      <Msg id={msg}><p style={unsafe ? { color: tone.text('dead') } : undefined}><Md>{msg}</Md></p></Msg>
       <Legend items={[['tuple', 'rowstore chunk'], ['ok', 'columnstore chunk'], ['header', 'tiered (object storage)'], ['dead', 'dropped / aggregates lost'], ['accent', 'refresh window'], ['new', 'now']]} />
       <div className="overflow-x-auto rounded-lg border border-line bg-bg p-2 scrollbar-thin">
         <svg viewBox="0 0 640 178" className="w-full min-w-[580px]" role="img" aria-label="Chunk lifecycle timeline">
@@ -127,13 +127,48 @@ function LifecycleViz() {
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-muted"><Md>{'`drop_chunks()` itself is in the Apache 2 edition. Without the scheduler (Apache edition, Neon), call it from pg_cron or an external cron.'}</Md></p>
+        <p className="mt-2 text-xs text-muted"><Md>{'`drop_chunks()` itself is in the Apache 2 edition. Without the scheduler (Apache edition), call it from pg_cron or an external cron.'}</Md></p>
       </Panel>
     </div>
   )
 }
 
 /* ------------------------------------------------------------------------------------------------ */
+
+/* The job procedure, the jobs table and the scheduler are created by the setup AND shown again (CREATE OR REPLACE /
+ * IF NOT EXISTS) in the examples that teach them, so every example runs on a fresh database. */
+const DROP_PROC = `CREATE OR REPLACE PROCEDURE drop_old_chunks(job_id int, config jsonb) LANGUAGE plpgsql AS $$
+DECLARE
+  r record; n int := 0; lsn0 pg_lsn := pg_current_wal_insert_lsn();
+  cutoff timestamptz := (config->>'now')::timestamptz - (config->>'drop_after')::interval;
+BEGIN
+  FOR r IN SELECT * FROM chunks() WHERE range_end <= cutoff LOOP   -- whole chunk older than cutoff
+    EXECUTE format('ALTER TABLE conditions DETACH PARTITION %s', r.chunk);
+    EXECUTE format('DROP TABLE %s', r.chunk);
+    n := n + 1;
+  END LOOP;
+  INSERT INTO job_runs VALUES (job_id, (config->>'now')::timestamptz, cutoff, n,
+                               pg_wal_lsn_diff(pg_current_wal_insert_lsn(), lsn0));
+END $$;`
+const JOBS_TABLE = `CREATE TABLE IF NOT EXISTS jobs (job_id int PRIMARY KEY, proc_name text, schedule_interval interval, config jsonb,
+                   next_start timestamptz, total_runs int DEFAULT 0, total_failures int DEFAULT 0, last_error text);`
+const RUN_PROC = `CREATE OR REPLACE PROCEDURE run_due_jobs(p_now timestamptz) LANGUAGE plpgsql AS $$
+DECLARE j record;
+BEGIN
+  FOR j IN SELECT * FROM jobs WHERE next_start <= p_now ORDER BY next_start LOOP
+    BEGIN
+      EXECUTE format('CALL %I($1, $2)', j.proc_name) USING j.job_id, j.config || jsonb_build_object('now', p_now);
+      -- fixed schedule: next start = previous start + interval
+      UPDATE jobs SET total_runs = total_runs + 1, next_start = j.next_start + j.schedule_interval, last_error = NULL
+      WHERE job_id = j.job_id;
+    EXCEPTION WHEN OTHERS THEN
+      -- back off: failures x retry_period (5 minutes here), capped at 5 x schedule_interval
+      UPDATE jobs SET total_runs = total_runs + 1, total_failures = total_failures + 1, last_error = SQLERRM,
+             next_start = p_now + least((total_failures + 1) * interval '5 minutes', 5 * j.schedule_interval)
+      WHERE job_id = j.job_id;
+    END;
+  END LOOP;
+END $$;`
 
 export const lesson: Lesson = {
   slug: 'retention-jobs',
@@ -175,7 +210,11 @@ LANGUAGE sql AS $$
        LATERAL regexp_match(pg_get_expr(c.relpartbound, c.oid), 'FROM \\(''([^'']+)''\\) TO \\(''([^'']+)''\\)') b
   WHERE i.inhparent = 'conditions'::regclass ORDER BY 2 $$;
 CREATE TABLE wal_mark (lsn pg_lsn);
-CREATE TABLE job_runs (job_id int, ran_at timestamptz, cutoff timestamptz, chunks_dropped int, wal_bytes numeric);`,
+CREATE TABLE job_runs (job_id int, ran_at timestamptz, cutoff timestamptz, chunks_dropped int, wal_bytes numeric);
+-- the job procedure and the scheduler that the examples walk through
+${DROP_PROC}
+${JOBS_TABLE}
+${RUN_PROC}`,
     presets: [
       { label: 'The chunks', sql: `SELECT * FROM chunks();
 SELECT count(*) AS row_count, min(time), max(time) FROM conditions;`,
@@ -188,51 +227,25 @@ SELECT pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_insert_lsn(), (SELECT lsn F
 ROLLBACK;`,
         note: 'Deleting one day writes **about 79 kB of WAL** for 1440 rows and leaves 1440 dead tuples for VACUUM. Rolled back, so the data is still there.' },
       { label: 'A retention job', sql: `-- a job procedure has the signature add_job() expects: (job_id int, config jsonb)
-CREATE PROCEDURE drop_old_chunks(job_id int, config jsonb) LANGUAGE plpgsql AS $$
-DECLARE
-  r record; n int := 0; lsn0 pg_lsn := pg_current_wal_insert_lsn();
-  cutoff timestamptz := (config->>'now')::timestamptz - (config->>'drop_after')::interval;
-BEGIN
-  FOR r IN SELECT * FROM chunks() WHERE range_end <= cutoff LOOP   -- whole chunk older than cutoff
-    EXECUTE format('ALTER TABLE conditions DETACH PARTITION %s', r.chunk);
-    EXECUTE format('DROP TABLE %s', r.chunk);
-    n := n + 1;
-  END LOOP;
-  INSERT INTO job_runs VALUES (job_id, (config->>'now')::timestamptz, cutoff, n,
-                               pg_wal_lsn_diff(pg_current_wal_insert_lsn(), lsn0));
-END $$;
+${DROP_PROC}
 
 CALL drop_old_chunks(1000, '{"now": "2026-11-14 12:00+00", "drop_after": "7 days"}');
 SELECT * FROM job_runs;
 SELECT min(time) AS oldest_row, timestamptz '2026-11-14 12:00' - min(time) AS age FROM conditions;`,
         note: 'The cutoff is Nov 7 12:00, so the Nov 5 and Nov 6 chunks go, using a few kB of WAL for two whole days. Nov 7 stays because part of it is newer than the cutoff: the oldest row is **7 days 12:00** old.' },
-      { label: 'A tiny job scheduler', sql: `CREATE TABLE jobs (job_id int PRIMARY KEY, proc_name text, schedule_interval interval, config jsonb,
-                   next_start timestamptz, total_runs int DEFAULT 0, total_failures int DEFAULT 0, last_error text);
+      { label: 'A tiny job scheduler', sql: `${JOBS_TABLE}
+DELETE FROM jobs;
 INSERT INTO jobs VALUES (1001, 'drop_old_chunks', '1 day', '{"drop_after": "5 days"}', '2026-11-14 12:00+00');
 
-CREATE PROCEDURE run_due_jobs(p_now timestamptz) LANGUAGE plpgsql AS $$
-DECLARE j record;
-BEGIN
-  FOR j IN SELECT * FROM jobs WHERE next_start <= p_now ORDER BY next_start LOOP
-    BEGIN
-      EXECUTE format('CALL %I($1, $2)', j.proc_name) USING j.job_id, j.config || jsonb_build_object('now', p_now);
-      -- fixed schedule: next start = previous start + interval
-      UPDATE jobs SET total_runs = total_runs + 1, next_start = j.next_start + j.schedule_interval, last_error = NULL
-      WHERE job_id = j.job_id;
-    EXCEPTION WHEN OTHERS THEN
-      -- back off: failures x retry_period (5 minutes here), capped at 5 x schedule_interval
-      UPDATE jobs SET total_runs = total_runs + 1, total_failures = total_failures + 1, last_error = SQLERRM,
-             next_start = p_now + least((total_failures + 1) * interval '5 minutes', 5 * j.schedule_interval)
-      WHERE job_id = j.job_id;
-    END;
-  END LOOP;
-END $$;
+${RUN_PROC}
 
 CALL run_due_jobs('2026-11-14 12:00+00');
 SELECT job_id, proc_name, schedule_interval, config, next_start, total_runs FROM jobs;
 SELECT * FROM job_runs ORDER BY ran_at, job_id;`,
-        note: 'This mimics TimescaleDB\'s scheduler and `timescaledb_information.jobs`: job 1001 ran, dropped Nov 7 and Nov 8 (cutoff Nov 9 12:00), and its **next_start** moved one day ahead.' },
-      { label: 'A failing job backs off', sql: `UPDATE jobs SET config = '{"drop_after": "five days"}', next_start = '2026-11-15 12:00+00';
+        note: 'This mimics TimescaleDB\'s scheduler and `timescaledb_information.jobs`: job 1001 ran, dropped every chunk that ends before its Nov 9 12:00 cutoff (Nov 7 and Nov 8 if the previous example already removed Nov 5 and Nov 6), and its **next_start** moved one day ahead.' },
+      { label: 'A failing job backs off', sql: `-- job 1001 with a config the procedure cannot parse
+DELETE FROM jobs;
+INSERT INTO jobs VALUES (1001, 'drop_old_chunks', '1 day', '{"drop_after": "five days"}', '2026-11-15 12:00+00');
 CALL run_due_jobs('2026-11-15 12:00+00');
 CALL run_due_jobs('2026-11-15 12:05+00');
 SELECT job_id, next_start, total_runs, total_failures, last_error FROM jobs;`,
@@ -258,7 +271,7 @@ SELECT job_id, last_run_status, total_failures FROM timescaledb_information.job_
 SELECT alter_job(job_id, config_merge => '{"drop_after": "45 days"}')   -- 2.29+
 FROM timescaledb_information.jobs WHERE proc_name = 'policy_retention' AND hypertable_name = 'telemetry';
 
--- Apache 2 edition alternative (for example on Neon):
+-- Apache 2 edition alternative:
 -- SELECT cron.schedule('0 1 * * *', $$SELECT drop_chunks('telemetry', INTERVAL '30 days')$$);`,
     outcome: 'Retention removes one chunk file per day instead of deleting millions of rows: dropping two daily chunks in the playground takes a few kB of WAL, while deleting one day row by row takes about 79 kB per 1,440 rows. The daily aggregate keeps 13 months of history after the raw data is gone.',
   },
@@ -287,9 +300,9 @@ SELECT add_continuous_aggregate_policy('telemetry_daily', start_offset => INTERV
   pointers: [
     '`drop_chunks` / `add_retention_policy` drop a chunk only when its **whole range** is older than the cutoff. One retention policy per hypertable.',
     'Every policy is a **job**: see `timescaledb_information.jobs` and `job_stats`; change it with `alter_job`, run it with `CALL run_job(id)`.',
-    'Keep raw retention **longer than** any continuous aggregate\'s `start_offset`, and retain the aggregate separately.',
+    'Keep raw retention **longer than** any [continuous aggregate](/e2/continuous-aggregates)\'s `start_offset`, and retain the aggregate separately.',
     'Multi-node was removed in 2.14. Tiering to object storage is Tiger Cloud only; for sharding PostgreSQL see [Citus](/e3/sharding-citus).',
-    '`drop_chunks` is **Apache 2 edition**; retention policies, `add_job` and the scheduler are **Community edition**.',
+    '`drop_chunks` is **Apache 2 edition**; retention policies, `add_job` and the scheduler are **Community edition**. Natively the same idea is dropping a [partition](/m7/partitioning).',
   ],
   sources: ['ddl-partitioning.html', 'sql-droptable.html', 'functions-admin.html', 'plpgsql-control-structures.html', 'bgworker.html',
     'tigerdata.com/docs/reference/timescaledb/data-retention/add_retention_policy', 'tigerdata.com/docs/reference/timescaledb/jobs-automation/add_job'],

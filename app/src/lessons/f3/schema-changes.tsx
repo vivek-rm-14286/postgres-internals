@@ -36,7 +36,7 @@ const OPS: Op[] = [
     why: 'Only the table definition changes. Existing rows simply read the new column as NULL. The strongest lock is taken, but for a moment.' },
   { id: 'adddef', label: 'Add a column with a constant default', rewrite: false, scan: false, ms: '0.7 ms',
     naive: [{ sql: "ALTER TABLE orders ADD COLUMN region text NOT NULL DEFAULT 'eu';", lock: 'ACCESS EXCLUSIVE', work: 'catalog only' }],
-    why: 'A constant default is stored once in the catalog and returned for old rows when they are read. No row is touched, even with `NOT NULL`.' },
+    why: 'A constant default is stored once in the catalog and returned for old rows when they are read. No row is touched, even with `NOT NULL`. The same holds for any non-volatile expression such as `now()`: it is evaluated once, when the ALTER runs.' },
   { id: 'addvol', label: 'Add a column with a volatile default', rewrite: true, scan: true, ms: '85 ms',
     naive: [{ sql: 'ALTER TABLE orders ADD COLUMN seen_at timestamptz DEFAULT clock_timestamp();', lock: 'ACCESS EXCLUSIVE', work: 'rewrites every row and every index', long: true }],
     safe: [
@@ -87,6 +87,14 @@ const OPS: Op[] = [
     safe: [{ sql: 'CREATE INDEX CONCURRENTLY orders_status_idx ON orders (status);', lock: 'SHARE UPDATE EXCLUSIVE', work: 'two scans, slower, writes continue', long: true }],
     why: 'Reads continue, but every INSERT, UPDATE and DELETE waits until the build finishes.',
     safeWhy: '`CONCURRENTLY` lets writes continue. It takes longer, cannot run inside a transaction block, and leaves an INVALID index behind if it fails.' },
+  { id: 'unique', label: 'Add a UNIQUE constraint', rewrite: false, scan: true, ms: '40 ms',
+    naive: [{ sql: 'ALTER TABLE orders ADD CONSTRAINT orders_customer_id_key UNIQUE (customer_id, id);', lock: 'ACCESS EXCLUSIVE', work: 'builds a unique index while everything waits', long: true }],
+    safe: [
+      { sql: 'CREATE UNIQUE INDEX CONCURRENTLY orders_customer_id_key ON orders (customer_id, id);', lock: 'SHARE UPDATE EXCLUSIVE', work: 'two scans, slower, writes continue', long: true },
+      { sql: 'ALTER TABLE orders ADD CONSTRAINT orders_customer_id_key UNIQUE USING INDEX orders_customer_id_key;', lock: 'ACCESS EXCLUSIVE', work: 'catalog only' },
+    ],
+    why: 'A UNIQUE or PRIMARY KEY constraint is enforced by a unique index. The one-statement form builds that index under the strongest lock, so reads and writes both wait for the whole build.',
+    safeWhy: 'Build the unique index first with `CONCURRENTLY`, then attach it as the constraint. The second step only updates the catalog.' },
   { id: 'rename', label: 'Rename a column', rewrite: false, scan: false, ms: '0.4 ms',
     naive: [{ sql: 'ALTER TABLE orders RENAME COLUMN status TO state;', lock: 'ACCESS EXCLUSIVE', work: 'catalog only' }],
     why: 'Instant for the database, but every running application query that says `status` breaks the moment it commits. Deploy code that handles both names first.' },
@@ -105,7 +113,7 @@ function blockFor(phases: Phase[], kind: 'reads' | 'writes') {
 
 function Yes({ on, good }: { on: boolean; good?: boolean }) {
   const t: Tone = on ? (good ? 'ok' : 'dead') : 'ok'
-  return <span className="rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold" style={{ background: toneBg(t, 18), color: tone(t) }}>{on ? (good ? 'allowed' : 'blocked') : 'allowed'}</span>
+  return <span className="rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold" style={{ background: toneBg(t, 18), color: tone.text(t) }}>{on ? (good ? 'allowed' : 'blocked') : 'allowed'}</span>
 }
 
 function PhaseCard({ p, i }: { p: Phase; i: number }) {
@@ -115,7 +123,7 @@ function PhaseCard({ p, i }: { p: Phase; i: number }) {
       className="grid gap-1.5 rounded-lg border-2 p-2.5" style={{ borderColor: tone(t), background: toneBg(t, 8) }}>
       <p className="font-mono text-[12px] break-words">{p.sql}</p>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
-        <span className="rounded px-1.5 py-0.5 font-mono text-[11px] font-bold" style={{ background: toneBg(t, 24), color: tone(t) }}>{p.lock}</span>
+        <span className="rounded px-1.5 py-0.5 font-mono text-[11px] font-bold" style={{ background: toneBg(t, 24), color: tone.text(t) }}>{p.lock}</span>
         <span className="text-muted">SELECT <Yes on={b.reads} /></span>
         <span className="text-muted">INSERT / UPDATE / DELETE <Yes on={b.writes} /></span>
         <span className="text-muted">{p.work}</span>
@@ -143,7 +151,7 @@ function Planner() {
         <Btn primary testid="viz-next" onClick={() => choose((idx + 1) % OPS.length)}>Next change</Btn>
         {op.safe
           ? <Segmented label="Plan" value={plan} onChange={setPlan} options={[['naive', 'One statement'], ['safe', 'Safe recipe']]} />
-          : <span className="rounded px-2 py-1 text-xs font-semibold" style={{ background: toneBg('ok', 16), color: tone('ok') }}>Already safe: catalog-only change</span>}
+          : <span className="rounded px-2 py-1 text-xs font-semibold" style={{ background: toneBg('ok', 16), color: tone.text('ok') }}>Already safe: catalog-only change</span>}
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {([['Rewrites table', plan === 'safe' && op.safe ? 'no' : op.rewrite ? 'yes' : 'no'], ['Blocks SELECT', blockFor(phases, 'reads')], ['Blocks writes', blockFor(phases, 'writes')], ['One statement, 100k rows', op.ms]] as [string, string][]).map(([k, v]) => {
@@ -152,7 +160,7 @@ function Planner() {
           return (
             <div key={k} className="rounded-lg border border-line bg-surface-2 px-3 py-2">
               <p className="text-[11px] tracking-wide text-muted uppercase">{k}</p>
-              <motion.p key={`${op.id}${plan}${v}`} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className="font-mono text-base font-bold" style={{ color: tone(bad ? 'dead' : meh ? 'new' : 'ok') }}>{v}</motion.p>
+              <motion.p key={`${op.id}${plan}${v}`} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className="font-mono text-base font-bold" style={{ color: tone.text(bad ? 'dead' : meh ? 'new' : 'ok') }}>{v}</motion.p>
             </div>
           )
         })}
@@ -175,7 +183,7 @@ const T_MAX = 36
 const NO_TIMEOUT: Lane[] = [
   { who: 'A  report', what: 'SELECT … (30 s)', bars: [{ from: 0, to: 30, kind: 'run' }] },
   { who: 'M  migration', what: 'ALTER TABLE orders ADD COLUMN note text', bars: [{ from: 5, to: 30, kind: 'wait' }, { from: 30, to: 30.6, kind: 'run' }] },
-  { who: 'C  app', what: 'SELECT * FROM orders WHERE id = …', bars: [{ from: 7, to: 30.6, kind: 'wait' }, { from: 30.6, to: 31.2, kind: 'run' }] },
+  { who: 'C  app', what: 'SELECT * FROM orders WHERE id = …', bars: [{ from: 6.4, to: 30.6, kind: 'wait' }, { from: 30.6, to: 31.2, kind: 'run' }] },
   { who: 'D  app', what: 'INSERT INTO orders …', bars: [{ from: 10, to: 30.6, kind: 'wait' }, { from: 30.6, to: 31.4, kind: 'run' }] },
   { who: 'E  app', what: 'SELECT * FROM orders WHERE …', bars: [{ from: 16, to: 30.6, kind: 'wait' }, { from: 30.6, to: 31.2, kind: 'run' }] },
 ]
@@ -192,11 +200,11 @@ const qsteps: Step<QS>[] = [
     state: { now: 4, lanes: NO_TIMEOUT, timeout: false, queue: [], holder: 'A: ACCESS SHARE' } },
   { title: 'The migration has to wait', body: 'Session M runs a "harmless" `ADD COLUMN`. It needs **ACCESS EXCLUSIVE**, which conflicts with A\'s lock, so M joins the **lock queue** and waits.',
     state: { now: 6, lanes: NO_TIMEOUT, timeout: false, queue: ['M wants ACCESS EXCLUSIVE'], holder: 'A: ACCESS SHARE' } },
-  { title: 'Everyone queues behind the migration', body: 'C\'s simple SELECT is compatible with A, but it must not jump ahead of M, which is already waiting. So C waits too. The table is now **unavailable**, even though nothing is running on it.',
+  { title: 'Everyone queues behind the migration', body: 'C\'s simple SELECT is compatible with A, but it must not jump ahead of M, which is already waiting. So C waits too. The table is now **unavailable** to everyone, even though the only thing running on it is one read.',
     state: { now: 12, lanes: NO_TIMEOUT, timeout: false, queue: ['M wants ACCESS EXCLUSIVE', 'C wants ACCESS SHARE', 'D wants ROW EXCLUSIVE'], holder: 'A: ACCESS SHARE' } },
   { title: 'The pile-up grows', body: 'Every new request lands behind M. Connection pools fill up and the application starts timing out, all because of one long report and one quick ALTER.',
     state: { now: 22, lanes: NO_TIMEOUT, timeout: false, queue: ['M wants ACCESS EXCLUSIVE', 'C wants ACCESS SHARE', 'D wants ROW EXCLUSIVE', 'E wants ACCESS SHARE'], holder: 'A: ACCESS SHARE' } },
-  { title: 'A finishes, the queue drains', body: 'At 30 s A commits. M gets its lock, finishes in under a millisecond, and the waiting sessions all run. The ALTER was fast. **The wait was the outage.**',
+  { title: 'A finishes, the queue drains', body: 'At 30 s A commits. M gets its lock, finishes in about a millisecond, and the waiting sessions all run. The ALTER was fast. **The wait was the outage.**',
     state: { now: 32, lanes: NO_TIMEOUT, timeout: false, queue: [], holder: 'none' } },
   { title: 'Replay with lock_timeout = 2s', body: 'M sets `lock_timeout` first. After waiting 2 s it gives up: `ERROR: canceling statement due to lock timeout` (SQLSTATE **55P03**). The queue clears and C, D and E run normally.',
     state: { now: 18, lanes: WITH_TIMEOUT, timeout: true, queue: [], holder: 'A: ACCESS SHARE' } },
@@ -248,7 +256,7 @@ function renderQ(s: QS) {
             {s.queue.length === 0 && <span className="text-xs text-muted">empty</span>}
             {s.queue.map((q, i) => (
               <motion.span key={q} layout initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="rounded px-2 py-0.5 font-mono text-[11.5px]"
-                style={{ background: toneBg(i === 0 ? 'dead' : 'new', 18), color: tone(i === 0 ? 'dead' : 'new') }}>{q}</motion.span>
+                style={{ background: toneBg(i === 0 ? 'dead' : 'new', 18), color: tone.text(i === 0 ? 'dead' : 'new') }}>{q}</motion.span>
             ))}
           </div>
         </div>
@@ -364,7 +372,7 @@ SHOW statement_timeout;`,
   production: {
     title: 'A one-line migration that took the API down',
     context: 'A team deployed `ALTER TABLE orders ADD COLUMN gift_message text;` during business hours. The statement itself takes a millisecond.',
-    problem: 'A nightly analytics query was still reading `orders`. The ALTER waited for it, and every API request touching `orders` queued behind the waiting ALTER. For four minutes the connection pool was exhausted and the API returned errors.',
+    problem: 'A long-running analytics query was still reading `orders`. The ALTER waited for it, and every API request touching `orders` queued behind the waiting ALTER. For four minutes the connection pool was exhausted and the API returned errors.',
     solution: 'Make every migration fail fast instead of waiting, and retry it. Long-running reads were moved to a replica, and risky changes now use two-step recipes.',
     sql: `-- top of every migration
 SET lock_timeout = '2s';
@@ -402,7 +410,7 @@ DROP INDEX CONCURRENTLY orders_status_idx;` },
   pointers: [
     'Most `ALTER TABLE` forms take **ACCESS EXCLUSIVE**, which blocks even SELECT. The danger is how *long* it is held, and how long it *waits*.',
     'Instant (catalog only): add a nullable column, add a column with a **constant** default, widen `varchar`, drop or rename a column. Rewrites: **volatile** defaults, identity columns, most type changes.',
-    'For constraints on big tables: `ADD … NOT VALID`, then `VALIDATE CONSTRAINT` (reads and writes continue). For indexes: `CREATE INDEX CONCURRENTLY`.',
+    'For constraints on big tables: `ADD … NOT VALID`, then `VALIDATE CONSTRAINT` (reads and writes continue). For indexes: `CREATE INDEX CONCURRENTLY`. For UNIQUE and PRIMARY KEY: build the unique index concurrently, then `ADD CONSTRAINT … USING INDEX`.',
     'Start every migration with `SET lock_timeout`, keep each step small, and retry on SQLSTATE 55P03.',
     '**Going deeper:** [Heavyweight locks and the conflict matrix](/m5/table-locks) explains every lock mode and which ones conflict.',
   ],

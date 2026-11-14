@@ -117,7 +117,7 @@ function HashViz() {
       ? `ntuples ${s.ntuples} > ffactor ${FFACTOR} × ${s.maxbucket} buckets, so **one bucket split**: new bucket ${s.split.nw} = maxbucket + 1, and its partner is ${s.split.nw} & lowmask = **bucket ${s.split.old}**. ${s.split.moved} of its tuples now have bit pattern …${bin(s.split.nw, hb)} and moved. Every other bucket was untouched.`
       : L
         ? `key ${L.key}: hashint4 = ${hex(L.h)}. hash & highmask (${bin(s.highmask, hb)}) = ${L.raw}${L.folded ? `, which is above maxbucket ${s.maxbucket}, so fold with lowmask (${bin(s.lowmask, hb - 1)}) → **bucket ${L.b}**` : ` → **bucket ${L.b}**`}.`
-        : 'An empty hash index: a metapage plus 4 primary bucket pages in this demo (8 for a real int4 index). Insert keys and watch where their hash codes send them.'
+        : 'An empty hash index: a metapage plus 4 primary bucket pages in this demo (8 for an int4 index created on an empty table; an index built on existing rows starts with enough buckets for them). Insert keys and watch where their hash codes send them.'
   return (
     <div className="grid min-w-0 grid-cols-1 gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -189,16 +189,18 @@ SELECT ntuples, maxbucket FROM hash_metapage_info(get_raw_page('h_idx', 0));`,
 FROM generate_series(0, (pg_relation_size('h_idx') / 8192 - 1)::int) b;`,
         note: 'Block 0 is the **metapage**, then primary **bucket** pages, a **bitmap** page that tracks free overflow pages, and more buckets added in batches as the index grows.' },
       { label: 'Only the hash is stored', sql: `SELECT itemoffset, ctid, data AS hash_code, to_hex(data) AS hex
-FROM hash_page_items(get_raw_page('h_idx', 1)) LIMIT 5;
+FROM hash_page_items(get_raw_page('links_hash', 1)) LIMIT 5;
 
-SELECT to_hex(hashint4(1)) AS hash_of_1;`,
-        note: 'Each item is a heap `ctid` plus a 32-bit hash code, sorted by hash within the page. The key itself is not stored, so every match is rechecked against the heap.' },
+SELECT to_hex(hashtext(url)) AS hash_of_first_item, length(url) AS url_length
+FROM links
+WHERE ctid = (SELECT ctid FROM hash_page_items(get_raw_page('links_hash', 1)) ORDER BY itemoffset LIMIT 1);`,
+        note: 'Each item is a heap `ctid` plus a 32-bit hash code, sorted by hash within the page. The URL itself is not stored: recomputing `hashtext(url)` for the first item\'s row gives the same code. That is why every match is rechecked against the heap.' },
       { label: 'Duplicates → overflow', sql: `INSERT INTO h SELECT 42 FROM generate_series(1, 800);
 SELECT b AS block, hash_page_type(get_raw_page('h_idx', b)) AS type
 FROM generate_series(0, (pg_relation_size('h_idx') / 8192 - 1)::int) b
 WHERE hash_page_type(get_raw_page('h_idx', b)) = 'overflow';
 EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF) SELECT * FROM h WHERE k = 42;`,
-        note: '800 copies of one key all land in one bucket. Its primary page overflows into a chain of 2 overflow pages, and the Bitmap Index Scan reads all 3 pages of that bucket.' },
+        note: '800 copies of one key all land in one bucket. Its primary page overflows into a chain of overflow pages (one on an empty table, two if the split preset ran first), and the Bitmap Index Scan reads every page of that bucket.' },
       { label: 'Long keys: hash vs B-tree', sql: `SELECT pg_size_pretty(pg_relation_size('links_hash')) AS hash_size,
        pg_size_pretty(pg_relation_size('links_btree')) AS btree_size;
 
@@ -227,8 +229,8 @@ EXPLAIN (ANALYZE, BUFFERS) SELECT 1 FROM urls WHERE url = $1;`,
       cause: 'Bucket pages are allocated in batches and are **never released**. Freed overflow pages are reused, never returned to the OS. Small keys gain nothing from storing a hash instead.',
       fix: 'Rebuild with `REINDEX INDEX CONCURRENTLY`. Measure with `pg_relation_size` before choosing hash over B-tree for short keys.' },
     { title: 'Using it for anything but =',
-      symptom: 'A hash index exists but `ORDER BY`, `<`, `BETWEEN`, `IN` with ranges or a unique constraint still need a B-tree.',
-      cause: 'A hash index supports only the `=` operator, single columns, and no uniqueness checking. Hash order says nothing about value order.',
+      symptom: 'A hash index exists but `ORDER BY`, `<`, `BETWEEN`, a unique constraint or an index-only scan still need a B-tree.',
+      cause: 'A hash index supports only the `=` operator (including `IN` lists), single columns, and no uniqueness checking. Hash order says nothing about value order. The key is not stored, so there are no index-only scans and no INCLUDE columns.',
       fix: 'Keep hash indexes for equality-only access paths. Everything else needs a B-tree.' },
   ],
   pointers: [
@@ -236,7 +238,7 @@ EXPLAIN (ANALYZE, BUFFERS) SELECT 1 FROM urls WHERE url = $1;`,
     'bucket = **hash & highmask**, folded with **lowmask** if above `maxbucket`. The masks live in the metapage, cached by each backend.',
     'Growth is **linear hashing**: when `ntuples > ffactor × buckets`, exactly one bucket splits, in the foreground.',
     'Page kinds: **metapage**, **bucket**, **overflow** (chained duplicates), **bitmap** (free overflow pages).',
-    '`=` only, single column, no UNIQUE, never shrinks without REINDEX. Best for long, nearly unique keys.',
+    '`=` only, single column, no UNIQUE, never shrinks without REINDEX. Best for long, nearly unique keys. Compare with [B-Tree internals](/m4/btree).',
   ],
   sources: ['hash-index.html', 'indexes-types.html', 'sql-createindex.html', 'pageinspect.html'],
 }

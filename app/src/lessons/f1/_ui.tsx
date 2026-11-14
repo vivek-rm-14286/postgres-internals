@@ -63,7 +63,7 @@ export function ResultTable({ fields, rows, empty = '(0 rows)', caption, hiCols 
         <thead>
           <tr className="border-b border-line text-left text-muted">
             {fields.map((f, i) => (
-              <th key={f + i} className="px-2.5 py-1 font-semibold whitespace-nowrap" style={hiCols.includes(i) ? { color: tone('new') } : undefined}>{f}</th>
+              <th key={f + i} className="px-2.5 py-1 font-semibold whitespace-nowrap" style={hiCols.includes(i) ? { color: tone.text('new') } : undefined}>{f}</th>
             ))}
           </tr>
         </thead>
@@ -112,7 +112,7 @@ export function Stat({ label, value, t }: { label: string; value: ReactNode; t?:
   return (
     <div className="rounded-lg border border-line bg-surface-2 px-3 py-2">
       <p className="text-[11px] tracking-wide text-muted uppercase">{label}</p>
-      <motion.p key={String(value)} initial={{ opacity: 0.3, y: 2 }} animate={{ opacity: 1, y: 0 }} className="font-mono text-lg font-bold" style={t ? { color: tone(t) } : undefined}>{value}</motion.p>
+      <motion.p key={String(value)} initial={{ opacity: 0.3, y: 2 }} animate={{ opacity: 1, y: 0 }} className="font-mono text-lg font-bold" style={t ? { color: tone.text(t) } : undefined}>{value}</motion.p>
     </div>
   )
 }
@@ -121,7 +121,7 @@ export function Btn({ children, onClick, primary, testid, disabled, active }: {
   children: ReactNode; onClick: () => void; primary?: boolean; testid?: string; disabled?: boolean; active?: boolean
 }) {
   const cls = primary
-    ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40'
+    ? 'rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-40'
     : `rounded-lg border px-2.5 py-1 font-mono text-[11.5px] transition disabled:opacity-40 ${active ? 'border-accent text-ink' : 'border-line text-muted hover:border-accent hover:text-ink'}`
   return (
     <button type="button" onClick={onClick} data-testid={testid} disabled={disabled} className={cls}
@@ -132,7 +132,7 @@ export function Btn({ children, onClick, primary, testid, disabled, active }: {
 /** Three-valued logic badge: true / false / NULL. */
 export function Tri({ v }: { v: boolean | null }) {
   const t: Tone = v === null ? 'header' : v ? 'ok' : 'dead'
-  return <span className="inline-block min-w-[3.2em] rounded px-1.5 py-0.5 text-center font-mono text-[11px] font-semibold" style={{ background: toneBg(t, 22), color: tone(t) }}>{v === null ? 'NULL' : String(v)}</span>
+  return <span className="inline-block min-w-[3.2em] rounded px-1.5 py-0.5 text-center font-mono text-[11px] font-semibold" style={{ background: toneBg(t, 22), color: tone.text(t) }}>{v === null ? 'NULL' : String(v)}</span>
 }
 
 /** A one-line status message area that cross-fades when its text changes. */

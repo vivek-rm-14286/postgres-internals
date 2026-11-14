@@ -265,13 +265,13 @@ SELECT z.name, count(*) FROM zones z
 JOIN orders o ON ST_Contains(z.geom, o.geom)
 GROUP BY z.name;`,
         note: 'Z25, Z15 and Z07 hold the hubs (about 1 000 orders each). The plan loops over 33 zones and probes the orders index with `Index Cond: (geom @ z.geom)`, then `Filter: st_contains`: **Rows Removed by Filter: 44** per zone on average.' },
-      { label: 'Contains vs covers', sql: `WITH v AS (SELECT ST_PointN(ST_ExteriorRing(geom), 2) AS p FROM zones WHERE id = 12)
+      { label: 'Contains vs covers', sql: `WITH v AS (SELECT ST_PointN(ST_ExteriorRing(geom), 2) AS p FROM zones WHERE id = 15)
 SELECT ST_AsText(p) AS shared_corner,
        (SELECT count(*) FROM zones z WHERE ST_Contains(z.geom, v.p))   AS contains,
        (SELECT count(*) FROM zones z WHERE ST_Covers(z.geom, v.p))     AS covers,
        (SELECT count(*) FROM zones z WHERE ST_Intersects(z.geom, v.p)) AS intersects
 FROM v;`,
-        note: 'A point exactly on a zone corner: `ST_Contains` says **0** zones (a polygon does not contain its own boundary), `ST_Covers` and `ST_Intersects` say **2**. Pick the one that matches your counting rule.' },
+        note: 'A point exactly on a corner where three hexagons meet: `ST_Contains` says **0** zones (a polygon does not contain its own boundary), `ST_Covers` and `ST_Intersects` say **3**. Pick the one that matches your counting rule.' },
       { label: 'Buffer, length, area', sql: `SELECT r.name,
        round(ST_Length(r.geom)) AS length_m,
        round((ST_Area(ST_Buffer(r.geom, 300)) / 1e6)::numeric, 2) AS corridor_km2,
@@ -279,6 +279,12 @@ FROM v;`,
        (SELECT count(*) FROM zones z WHERE ST_Intersects(z.geom, r.geom))  AS zones_crossed
 FROM route r;`,
         note: 'The road is **15 097 m** long; its 300 m corridor covers 9.34 km². To count orders near it, `ST_DWithin` (index-aware) beats testing against a buffer polygon.' },
+      { label: 'Overlay: road length per zone', sql: `SELECT z.name,
+       round(ST_Length(ST_Intersection(z.geom, r.geom))) AS metres_in_zone
+FROM zones z
+JOIN route r ON ST_Intersects(z.geom, r.geom)
+ORDER BY metres_in_zone DESC;`,
+        note: '`ST_Intersects` picks the zone–road pairs (through the index); `ST_Intersection` cuts the line at each zone border and returns the piece inside. The 9 pieces run from 2 753 m in Z26 to 140 m in Z25 and add up to the 15 097 m of the road.' },
       { label: 'ST_Union vs ST_Collect', sql: `-- Z15 and the six zones around it
 SELECT string_agg(name, ', ' ORDER BY name)  AS zones,
        sum(ST_NPoints(geom))               AS input_vertices,
@@ -325,8 +331,9 @@ SELECT count(*) FILTER (WHERE NOT ST_IsValid(geom)) AS invalid_zones FROM zones;
     title: 'A delivery-zone dashboard',
     context: 'A grocery delivery team shows orders per zone on a live web map. Zones are hand-drawn polygons; orders arrive as GPS points in longitude/latitude.',
     problem: 'Counts were wrong in two ways. Orders on a shared zone border were counted twice, because the query used `ST_Intersects`. A few hand-drawn zones were self-intersecting, and their `ST_Area` and contains tests silently gave nonsense.',
-    solution: 'Repair zones once with `ST_MakeValid` and add a check constraint so bad shapes are rejected. Count with `ST_Contains`, or assign each border order to exactly one zone. Serve the map as one GeoJSON FeatureCollection in 4326, simplified for the zoom level.',
-    sql: `UPDATE zones SET geom = ST_Multi(ST_MakeValid(geom)) WHERE NOT ST_IsValid(geom);
+    solution: 'Repair zones once with `ST_MakeValid` and add a check constraint so bad shapes are rejected. A repaired polygon can become a MultiPolygon (a bow-tie becomes two triangles), so the column type is widened in the same statement. Count with `ST_Contains`, or assign each border order to exactly one zone. Serve the map as one GeoJSON FeatureCollection in 4326, simplified for the zoom level.',
+    sql: `ALTER TABLE zones ALTER COLUMN geom TYPE geometry(MultiPolygon, 27700)
+  USING ST_Multi(ST_CollectionExtract(ST_MakeValid(geom), 3));
 ALTER TABLE zones ADD CONSTRAINT zones_valid CHECK (ST_IsValid(geom));
 
 SELECT json_build_object('type', 'FeatureCollection', 'features', json_agg(ST_AsGeoJSON(t.*)::json))
@@ -344,23 +351,24 @@ FROM (SELECT z.id, z.name, count(o.id) AS orders,
     { title: 'Invalid polygons in, nonsense out',
       symptom: 'A zone reports area 0, or a point clearly inside it is "not contained".',
       cause: 'PostGIS does not check validity on insert. Self-intersecting rings make area and predicates unreliable.',
-      fix: 'Repair once, then enforce.',
-      sql: `UPDATE zones SET geom = ST_MakeValid(geom) WHERE NOT ST_IsValid(geom);
+      fix: 'Repair once, then enforce. A repaired polygon can become a MultiPolygon, so the column type must allow it.',
+      sql: `ALTER TABLE zones ALTER COLUMN geom TYPE geometry(MultiPolygon, 27700)
+  USING ST_Multi(ST_CollectionExtract(ST_MakeValid(geom), 3));
 ALTER TABLE zones ADD CONSTRAINT zones_valid CHECK (ST_IsValid(geom));` },
     { title: 'Simplify breaking shapes',
       symptom: 'After `ST_Simplify` some polygons vanish, overlap their neighbours, or fail `ST_IsValid`.',
       cause: 'Douglas-Peucker removes vertices without checking topology. Small shapes collapse and neighbours stop sharing edges.',
       fix: 'Use `ST_SimplifyPreserveTopology` for validity, or `ST_CoverageSimplify` to keep shared edges between neighbours. Simplify in a metric SRID with a tolerance in metres.' },
     { title: 'Buffering to find what is near',
-      symptom: '`WHERE ST_Intersects(geom, ST_Buffer($1, 500))` is slow and its circle edges are polygons.',
+      symptom: '`WHERE ST_Intersects(geom, ST_Buffer($1, 500))` is slow, and the "circle" is really a 32-sided polygon, so points near the rim are misjudged.',
       cause: 'Building a buffer is costly, and its 32-segment circle is only an approximation.',
       fix: 'Use `ST_DWithin(geom, $1, 500)`. It is exact and index-aware.' },
   ],
   pointers: [
     'Point-in-polygon join: `JOIN … ON ST_Contains(zone, point)`. The index probe uses the zone box, then the exact test filters.',
     '`ST_Contains` excludes the boundary; `ST_Covers` and `ST_Intersects` include it.',
-    '`ST_Union` dissolves into one shape; `ST_Collect` only bundles. `ST_ClusterDBSCAN` returns NULL for noise; `ST_ClusterKMeans` makes exactly k clusters unless given `max_radius`.',
-    'GeoJSON output is longitude/latitude: `ST_AsGeoJSON(ST_Transform(geom, 4326), 6)`.',
+    '`ST_Union` dissolves into one shape; `ST_Collect` only bundles. `ST_ClusterDBSCAN` returns NULL for noise; `ST_ClusterKMeans` makes exactly k clusters unless given `max_radius`. Both are window functions: see [Window functions and frames](/m3/window-functions).',
+    'GeoJSON output is longitude/latitude: `ST_AsGeoJSON(ST_Transform(geom, 4326), 6)`. `json_agg` and `json_build_object` are covered in [Working with JSON](/f2/working-with-json).',
     'Check `ST_IsValid` on load and enforce it with a constraint. Start again from [Spatial indexes](/e4/spatial-indexes) when a query is slow.',
   ],
   sources: ['using_postgis_query.html', 'ST_Contains.html', 'ST_Buffer.html', 'ST_ClusterDBSCAN.html', 'ST_ClusterKMeans.html', 'ST_AsGeoJSON.html', 'ST_Simplify.html', 'using_postgis_dbmanagement.html'],

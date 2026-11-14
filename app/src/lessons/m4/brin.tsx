@@ -223,7 +223,7 @@ DROP INDEX CONCURRENTLY readings_ts_btree;`,
     'BRIN scans are always **bitmap** and always **lossy**: every page of a matching range is read and every row rechecked.',
     'Useful only when values follow **physical order** (`pg_stats.correlation` near ±1): append-only logs, time series, IoT.',
     'Opclass kinds: **minmax**, **minmax-multi** (outliers), **inclusion** (ranges, boxes, inet), **bloom** (equality).',
-    'New ranges stay unsummarized until VACUUM, `autosummarize = on` (default off) or `brin_summarize_new_values()`.',
+    'New ranges stay unsummarized until VACUUM, `autosummarize = on` (default off) or `brin_summarize_new_values()`. BRIN pairs well with [Declarative partitioning](/m7/partitioning) by time.',
   ],
   sources: ['brin.html', 'sql-createindex.html', 'indexes-types.html', 'functions-admin.html', 'pageinspect.html'],
 }

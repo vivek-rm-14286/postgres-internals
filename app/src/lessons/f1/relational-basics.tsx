@@ -44,8 +44,8 @@ const STEPS: Step<S>[] = [
     body: 'A **schema** is a folder for tables inside a database. New tables go into the schema named `public` unless you say otherwise.',
     state: { level: 'schema', cols: [], sql: 'SELECT current_schema();', result: { fields: ['current_schema'], rows: [{ key: 's', cells: ['public'] }], tag: tag(1) } } },
   { title: 'A table: columns and rows',
-    body: 'A **table** has named **columns**, each with a **type**, and any number of **rows**. One value sits where a row meets a column: a **cell**. `NULL` means "no value".',
-    state: { level: 'table', cols: [], rowHi: 3, colHi: 'price', sql: '-- the table has 5 columns and 9 rows\nTABLE products;', result: null } },
+    body: 'A **table** has named **columns**, each with a **type**, and any number of **rows**. One value sits where a row meets a column: a **cell**. `NULL` means the value is missing or unknown.',
+    state: { level: 'table', cols: [], rowHi: 3, colHi: 'price', sql: '-- products: 5 columns, 9 rows', result: null } },
   { title: 'SELECT * : every column, every row',
     body: '`SELECT` asks for data, `FROM` names the table, and `*` means "all columns". The rows come back in no promised order.',
     state: { level: 'table', cols: COLS.map((c) => c.k), sql: 'SELECT * FROM products;', result: { fields: COLS.map((c) => c.k), rows: all(COLS.map((c) => c.k)), tag: tag(9) } } },
@@ -66,7 +66,7 @@ const STEPS: Step<S>[] = [
       result: { fields: ['name', 'stock'], rows: all(['name', 'stock']), tag: tag(9) } } },
   { title: 'The round trip',
     body: 'Your **client** (psql, an app, this page) sends the SQL text to the **server**. The server checks it, plans it, runs it and streams back rows plus a tag such as `SELECT 9`.',
-    state: { level: 'database', cols: ['name', 'stock'], sql: 'SELECT p.name, p.stock\nFROM products AS p;', result: { fields: ['name', 'stock'], rows: all(['name', 'stock']).slice(0, 3), tag: tag(9) }, trip: true } },
+    state: { level: 'database', cols: ['name', 'stock'], sql: 'SELECT p.name, p.stock\nFROM products AS p;', result: { fields: ['name', 'stock'], rows: all(['name', 'stock']), tag: tag(9) }, trip: true } },
 ]
 
 /* ---- hierarchy ---------------------------------------------------------------------------------- */
@@ -88,7 +88,7 @@ function Hierarchy({ level }: { level: Level | null }) {
       <motion.div layout className="rounded-lg border p-2" animate={{ borderColor: on ? tone(L.t) : 'var(--border)', backgroundColor: on ? toneBg(L.t, 14) : 'rgba(0,0,0,0)' }}
         style={{ borderWidth: on ? 2 : 1 }} transition={{ duration: 0.3 }}>
         <p className="mb-1.5 flex flex-wrap items-baseline gap-x-2 text-[11px]">
-          <span className="font-semibold tracking-wide uppercase" style={{ color: tone(L.t) }}>{L.label}</span>
+          <span className="font-semibold tracking-wide uppercase" style={{ color: tone.text(L.t) }}>{L.label}</span>
           <span className="font-mono text-ink">{L.name}</span>
         </p>
         <div className="flex flex-wrap items-start gap-2">
@@ -267,7 +267,7 @@ SELECT column_name, data_type, is_nullable
 FROM information_schema.columns
 WHERE table_name = 'products'
 ORDER BY ordinal_position;`,
-        note: 'The database describes itself with ordinary tables you can query. `stock` is the only nullable column.' },
+        note: 'The database describes itself with ordinary tables you can query. `stock` is the only nullable column. `WHERE` keeps only the matching rows and `ORDER BY` sorts them; both are covered in [Filtering and sorting](/f1/filter-and-sort).' },
     ],
   },
   production: {
@@ -288,7 +288,7 @@ ORDER BY id;`,
     { title: 'Assuming rows come back in insert order',
       symptom: 'A list looks sorted in testing, then shows up in a different order in production after some updates.',
       cause: 'A table is an unordered set of rows. Without `ORDER BY`, PostgreSQL returns rows in whatever order is cheapest, which changes as data moves.',
-      fix: 'Add `ORDER BY` whenever order matters, for example `ORDER BY id`. The next lesson covers sorting.' },
+      fix: 'Add `ORDER BY` whenever order matters, for example `ORDER BY id`. [Filtering and sorting](/f1/filter-and-sort) covers sorting.' },
     { title: 'SELECT * in application code',
       symptom: 'An app slows down or breaks after someone adds a large or renamed column.',
       cause: '`*` expands to whatever columns exist right now, so the query silently changes when the table does, and it may fetch big columns you never use.',

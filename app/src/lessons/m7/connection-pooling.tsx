@@ -106,7 +106,7 @@ function PoolViz() {
                     <AnimatePresence>
                       {v.state.map((x) => (
                         <motion.span key={x} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                          className="rounded px-1.5 py-0.5 font-mono text-[10.5px]" style={{ background: toneBg('header', 20), color: tone('header') }}>{x}</motion.span>
+                          className="rounded px-1.5 py-0.5 font-mono text-[10.5px]" style={{ background: toneBg('header', 20), color: tone.text('header') }}>{x}</motion.span>
                       ))}
                     </AnimatePresence>
                     {v.state.length === 0 && <span className="text-[11px] text-muted">clean</span>}
@@ -118,7 +118,7 @@ function PoolViz() {
           <div className="min-h-[52px] rounded-lg border border-line bg-surface-2 px-3 py-2 font-mono text-xs">
             {s.log ? <>
               <p><b>{s.log.who}</b> › {s.log.sql}</p>
-              <p style={{ color: tone(s.log.t) }}>{s.log.res}</p>
+              <p style={{ color: tone.text(s.log.t) }}>{s.log.res}</p>
             </> : <p className="text-muted">no statement yet</p>}
           </div>
           <p className="text-xs text-muted"><Md>{'The pooler is a separate program in front of PostgreSQL. What it can break is PostgreSQL session state: settings, prepared statements, advisory locks and LISTEN belong to a backend, and the playground below lets you inspect each one.'}</Md></p>
@@ -274,7 +274,7 @@ ALTER ROLE app SET idle_in_transaction_session_timeout = '30s';`,
       sql: `ALTER ROLE app SET idle_in_transaction_session_timeout = '30s';` },
   ],
   pointers: [
-    'One connection = **one backend process** with private memory; `max_connections` (100) sizes shared memory and slots.',
+    'One connection = **one backend process** ([process model](/m1/process-model)) with private memory; `max_connections` (100) sizes shared memory and slots.',
     '**Session** mode: safe but no multiplexing. **Transaction** mode: multiplexes, breaks session state. **Statement** mode: autocommit only.',
     'Session state lives in the backend: **SET, PREPARE, session advisory locks, LISTEN, temp tables**; `DISCARD ALL` resets it.',
     'Transaction-safe forms: **`SET LOCAL`**, **`pg_advisory_xact_lock`**, schema-qualified names.',

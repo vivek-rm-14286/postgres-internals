@@ -238,13 +238,13 @@ RETURNING id, old.balance AS old_balance, new.balance AS new_balance,
 SELECT lp, t_xmin, t_infomask,
        (heap_tuple_infomask_flags(t_infomask, t_infomask2)).combined_flags AS combined, flags
 FROM hdr;`,
-        note: 'Dead versions are gone. The survivors (alice and carol) show `HEAP_XMIN_FROZEN` in `combined_flags`: XMIN_COMMITTED and XMIN_INVALID set together.' },
+        note: 'Dead versions are gone. Every surviving row (alice, plus carol if you ran the upsert preset) shows `HEAP_XMIN_FROZEN` in `combined_flags`: XMIN_COMMITTED and XMIN_INVALID set together.' },
     ],
   },
   production: {
     title: 'A full-table read that writes gigabytes',
     context: 'A data team bulk-loads 50 M rows into a reporting table every night with `COPY`, then runs a first `SELECT count(*)` report against it.',
-    problem: 'The first read after the load ran far longer than later identical reads, generated heavy write I/O and WAL on a server with checksums enabled, and the replica lagged behind. Nobody expected a SELECT to write.',
+    problem: 'The first read after the load ran far longer than later identical reads, generated heavy write I/O and WAL (data checksums are on by default since PostgreSQL 18), and the replica lagged behind. Nobody expected a SELECT to write.',
     solution: 'Every freshly loaded tuple has no hint bits, so the first reader of each row checks the commit log and sets `HEAP_XMIN_COMMITTED`, dirtying every page (and with checksums or `wal_log_hints`, logging full-page images). Run `VACUUM (FREEZE, ANALYZE)` straight after the load: it sets hints, freezes rows, fills the visibility map and gathers statistics in one controlled pass, before users arrive.',
     sql: `COPY report FROM '/data/report.csv' WITH (FORMAT csv);
 VACUUM (FREEZE, ANALYZE) report;
@@ -282,7 +282,7 @@ FROM heap_page_items(get_raw_page('acct', 0));` },
     '**Hint bits** `XMIN_COMMITTED`, `XMIN_INVALID`, `XMAX_COMMITTED`, `XMAX_INVALID` cache commit-log answers; readers set them, so a SELECT can write.',
     '`t_xmax` means "deleted" only without `XMAX_LOCK_ONLY`; row locks live in the tuple itself.',
     '`t_infomask2` = attribute count (11 bits) + `HOT_UPDATED`, `HEAP_ONLY_TUPLE`, `KEYS_UPDATED`.',
-    '**Frozen** = `XMIN_COMMITTED | XMIN_INVALID`: visible to all, safe from xid wraparound.',
+    '**Frozen** = `XMIN_COMMITTED | XMIN_INVALID`: visible to all, safe from xid wraparound. See [Snapshots and tuple visibility](/m5/snapshots-visibility) and [XID wraparound, freezing and MultiXacts](/m7/xid-wraparound).',
   ],
   sources: ['storage-page-layout.html', 'pageinspect.html', 'storage-hot.html', 'explicit-locking.html', 'routine-vacuuming.html', 'sql-copy.html'],
 }

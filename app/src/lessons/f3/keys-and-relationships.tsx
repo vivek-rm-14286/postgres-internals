@@ -112,8 +112,8 @@ function ErDiagram({ mode }: { mode: Mode }) {
   if (mode === '1n') {
     const a = e('authors'), b = e('books'), y1 = colY(a, 0), y2 = colY(b, 2)
     rel = <g>{link(`M${a.x + EW} ${y1} C ${a.x + EW + 70} ${y1}, ${b.x - 70} ${y2}, ${b.x} ${y2}`)}
-      <End x={a.x + EW} y={y1} dir={1} /><End x={b.x} y={y2} dir={-1} many optional />
-      {label(a.x + EW + 34, y1 - 9, 'one')}{label(b.x - 34, y2 + 18, 'many')}</g>
+      <End x={a.x + EW} y={y1} dir={1} optional /><End x={b.x} y={y2} dir={-1} many optional />
+      {label(a.x + EW + 40, y1 - 9, 'zero or one')}{label(b.x - 34, y2 + 18, 'many')}</g>
   } else if (mode === 'mn') {
     const a = e('books'), j = e('book_tags'), t = e('tags')
     rel = <g>{link(`M${a.x + EW} ${colY(a, 0)} L ${j.x} ${colY(j, 0)}`)}{link(`M${t.x} ${colY(t, 0)} C ${t.x - 6} ${colY(t, 0)}, ${j.x + EW + 6} ${colY(j, 1)}, ${j.x + EW} ${colY(j, 1)}`)}
@@ -125,7 +125,7 @@ function ErDiagram({ mode }: { mode: Mode }) {
       {label(a.x + EW + 34, y - 9, 'one')}{label(b.x - 40, y - 9, 'zero or one')}</g>
   } else {
     const a = e('employees'), y1 = colY(a, 2), y2 = colY(a, 0), x = a.x + EW
-    rel = <g>{link(`M${x} ${y1} C ${x + 120} ${y1 + 10}, ${x + 120} ${y2 - 10}, ${x} ${y2}`)}<End x={x} y={y1} dir={1} many optional /><End x={x} y={y2} dir={1} />
+    rel = <g>{link(`M${x} ${y1} C ${x + 120} ${y1 + 10}, ${x + 120} ${y2 - 10}, ${x} ${y2}`)}<End x={x} y={y1} dir={1} many optional /><End x={x} y={y2} dir={1} optional />
       <text x={x + 100} y={(y1 + y2) / 2 + 4} fontSize={10} fill="var(--c-pointer)" style={txt}>reports to</text></g>
   }
   return (
@@ -298,7 +298,7 @@ function RelationshipsViz() {
           <Btn onClick={() => { setDb(seed(mode)); setOut(null) }}>Reset rows</Btn>
         </div>
         {mode === '1n' && <p className="text-xs text-muted">Click an author row first to choose which one to delete.</p>}
-        {out && <p className="font-mono text-[12px] break-words" style={{ color: tone('accent') }}>{out.sql}</p>}
+        {out && <p className="font-mono text-[12px] break-words" style={{ color: tone.text('accent') }}>{out.sql}</p>}
         <OutcomeBox o={out?.o ?? null} k={out?.n ?? 0} />
       </div>
     </div>
@@ -313,7 +313,7 @@ export const lesson: Lesson = {
   order: 1,
   title: 'Keys and relationships',
   tldr: [
-    'A **primary key** gives every row a unique, never-NULL identity, and a **foreign key** is a column whose value must match the primary key of the table it references.',
+    'A **primary key** gives every row a unique, never-NULL identity, and a **foreign key** is a column whose value must match the primary key (or another `UNIQUE` column) of the table it references.',
     'Together they let you split data into focused tables and still connect them reliably, because PostgreSQL refuses any row that would point at nothing.',
   ],
   visualizer: {
@@ -420,13 +420,13 @@ EXPLAIN SELECT 1 FROM invoices WHERE customer_id = 42;
     { title: 'Using a value that changes as the primary key',
       symptom: 'A user changes their email and dozens of tables need updating, or the update fails on a foreign key.',
       cause: 'Natural keys such as emails, usernames and phone numbers change in real life. Every referencing row must change with them.',
-      fix: 'Use a **surrogate key** (`bigint GENERATED ALWAYS AS IDENTITY` or `uuidv7()`) as the primary key, and keep the natural value as a separate `UNIQUE` column.' },
+      fix: 'Use a **surrogate key** (`bigint GENERATED ALWAYS AS IDENTITY` or `uuidv7()`) as the primary key, and keep the natural value as a separate `UNIQUE` column. [UUIDv4 vs UUIDv7](/m2/uuid-v4-v7) compares the two kinds of UUID key.' },
   ],
   pointers: [
     'A **primary key** is UNIQUE plus NOT NULL, one per table, and it creates a unique index automatically.',
     'The table on the **many** side holds the **foreign key**. Many-to-many needs a **junction table** with two foreign keys and a composite primary key.',
     'One-to-one is a foreign key that is also **UNIQUE** (or the primary key). A self-reference points a column at its own table.',
-    '`ON DELETE` decides what happens to children: **NO ACTION** (default) or **RESTRICT** refuse, **CASCADE** deletes them, **SET NULL** detaches them. Index the foreign-key column yourself.',
+    '`ON DELETE` decides what happens to children: **NO ACTION** (default, checked at the end of the statement, can be deferred to commit) or **RESTRICT** (checked at once) refuse, **CASCADE** deletes them, **SET NULL** detaches them. Index the foreign-key column yourself.',
     '**Going deeper:** [Modelling data: normalization and constraints](/m1/normalization-constraints) shows how to decide which tables you need in the first place.',
   ],
   sources: ['ddl-constraints.html', 'ddl-identity-columns.html', 'tutorial-fk.html', 'functions-uuid.html', 'sql-createtable.html', 'catalog-pg-constraint.html'],

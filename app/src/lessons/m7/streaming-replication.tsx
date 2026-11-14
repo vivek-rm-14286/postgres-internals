@@ -74,6 +74,11 @@ function useSim(latency: number, mode: Mode, bgRate: number, maxDelay: number) {
           if (s.connected) s.packets.push({ id: s.nextId++, kind: 'ack', t0: s.now, t1: s.now + c.latency, lsn: s.sf, ack: [s.sw, s.sf, s.sr] })
         }
       }
+      // the standby query ended by itself: the startup process replays the flushed backlog without waiting for new WAL
+      if (!s.blocked && s.sr < s.sf && !s.events.length) {
+        s.sr = s.sf
+        if (s.connected) s.packets.push({ id: s.nextId++, kind: 'ack', t0: s.now, t1: s.now + c.latency, lsn: s.sf, ack: [s.sw, s.sf, s.sr] })
+      }
       // commits waiting for their level
       const reached = c.mode === 'local' ? s.insert : c.mode === 'remote_write' ? s.pw : c.mode === 'on' ? s.pf : s.pr
       for (const cm of s.commits) if (cm.done === undefined && reached >= cm.lsn) cm.done = s.now
@@ -140,7 +145,7 @@ function StreamingViz() {
   return (
     <div className="grid gap-3 [&>*]:min-w-0">
       <div className="flex flex-wrap items-center gap-2">
-        <Segmented label="synchronous_commit" value={mode} onChange={setMode} options={[['local', 'async (local)'], ['remote_write', 'remote_write'], ['on', 'on'], ['remote_apply', 'remote_apply']]} />
+        <Segmented label="synchronous_commit" value={mode} onChange={setMode} options={[['local', 'local'], ['remote_write', 'remote_write'], ['on', 'on'], ['remote_apply', 'remote_apply']]} />
         <Btn primary testid="viz-next" onClick={commit}>COMMIT a transaction</Btn>
         <Btn onClick={() => { s.connected = !s.connected }}>{s.connected ? 'Cut the network' : 'Reconnect'}</Btn>
         <Btn onClick={() => { s.blocked = !s.blocked; s.blockedSince = null }}>{s.blocked ? 'End standby query' : 'Long query on standby'}</Btn>
@@ -169,7 +174,7 @@ function StreamingViz() {
         <Panel title="pg_stat_replication (one row)">
           <FieldTable rows={[
             ['state', s.connected ? 'streaming' : '(no row: disconnected)'],
-            ['sync_state', mode === 'local' ? 'async' : 'sync'],
+            ['sync_state', 'sync', 'from synchronous_standby_names'],
             ['write_lag', fmtMs(s.lag[0])], ['flush_lag', fmtMs(s.lag[1])], ['replay_lag', fmtMs(s.lag[2])],
             ['queries canceled', String(s.canceled), 'standby conflicts'],
           ]} />
@@ -185,7 +190,7 @@ function StreamingViz() {
             </motion.span>
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted"><Md>{mode === 'local' ? 'Asynchronous: COMMIT returns after the local flush. A failover now can lose whatever has not reached the standby.' : mode === 'remote_write' ? '`remote_write`: COMMIT waits one round trip for the standby to *write* the WAL to its OS. Survives a standby PostgreSQL crash, not a standby OS crash.' : mode === 'on' ? '`on`: COMMIT waits for the standby to *flush* to disk: a round trip plus a standby fsync.' : '`remote_apply`: COMMIT waits until the standby has *replayed* it, so a read on the standby right after sees it. Pause replay and commits hang.'}</Md></p>
+        <p className="mt-2 text-xs text-muted"><Md>{mode === 'local' ? '`local`: this COMMIT returns after the primary\'s own flush even though the standby is synchronous. A failover now can lose whatever has not reached the standby.' : mode === 'remote_write' ? '`remote_write`: COMMIT waits one round trip for the standby to *write* the WAL to its OS. Survives a standby PostgreSQL crash, not a standby OS crash.' : mode === 'on' ? '`on`: COMMIT waits for the standby to *flush* to disk: a round trip plus a standby fsync.' : '`remote_apply`: COMMIT waits until the standby has *replayed* it, so a read on the standby right after sees it. Pause replay and commits hang.'}</Md></p>
       </Panel>
     </div>
   )
@@ -225,7 +230,11 @@ ORDER BY name;`,
 
 SELECT slot_name, slot_type, active, restart_lsn, wal_status FROM pg_replication_slots;`,
         note: 'The second argument reserves WAL immediately. A standby would use it with `primary_slot_name = \'standby_a\'`.' },
-      { label: 'Write WAL nobody consumes', sql: `INSERT INTO orders (total) SELECT (random() * 100)::numeric(10,2) FROM generate_series(1, 20000);
+      { label: 'Write WAL nobody consumes', sql: `-- make sure the slot exists (does nothing if you already created it)
+SELECT pg_create_physical_replication_slot('standby_a', true)
+WHERE NOT EXISTS (SELECT 1 FROM pg_replication_slots WHERE slot_name = 'standby_a');
+
+INSERT INTO orders (total) SELECT (random() * 100)::numeric(10,2) FROM generate_series(1, 20000);
 
 SELECT slot_name, active, restart_lsn,
        pg_size_pretty(pg_current_wal_lsn() - restart_lsn) AS retained_wal,
@@ -251,7 +260,11 @@ FROM r;`,
        pg_last_xact_replay_timestamp() AS last_replay_time,
        pg_current_wal_lsn()          AS current_lsn;`,
         note: 'On a primary the standby-side functions return NULL. On a standby, `now() - pg_last_xact_replay_timestamp()` is a common lag-in-time check.' },
-      { label: 'Drop the slot', sql: `SELECT pg_drop_replication_slot('standby_a');
+      { label: 'Drop the slot', sql: `-- make sure the slot exists (does nothing if you already created it)
+SELECT pg_create_physical_replication_slot('standby_a', true)
+WHERE NOT EXISTS (SELECT 1 FROM pg_replication_slots WHERE slot_name = 'standby_a');
+
+SELECT pg_drop_replication_slot('standby_a');
 SELECT count(*) AS slots_left FROM pg_replication_slots;`,
         note: 'Dropping an unused slot releases the retained WAL at the next checkpoint. Forgotten slots are the classic cause of a full `pg_wal`.' },
     ],
@@ -278,7 +291,7 @@ FROM pg_stat_replication;`,
     { title: 'An inactive slot fills pg_wal',
       symptom: 'Disk usage of `pg_wal` grows for days; eventually the primary hits a full disk and PANICs.',
       cause: 'A replication slot whose standby is gone keeps `restart_lsn` in place, so no WAL after it can be recycled. `max_slot_wal_keep_size` defaults to -1 (unlimited).',
-      fix: 'Alert on inactive slots and retained bytes, drop slots you no longer need, and set `max_slot_wal_keep_size` so a dead standby is invalidated instead of taking the primary down.',
+      fix: 'Alert on inactive slots and retained bytes, drop slots you no longer need, and set `max_slot_wal_keep_size` so a dead standby is invalidated instead of taking the primary down. In 18, `idle_replication_slot_timeout` (for example `\'2d\'`) invalidates a slot that nobody has used for that long, at the next checkpoint.',
       sql: `SELECT slot_name, active, pg_size_pretty(pg_current_wal_lsn() - restart_lsn) AS retained
 FROM pg_replication_slots ORDER BY pg_current_wal_lsn() - restart_lsn DESC;` },
     { title: 'Standby queries cancelled with "conflict with recovery"',
@@ -288,7 +301,7 @@ FROM pg_replication_slots ORDER BY pg_current_wal_lsn() - restart_lsn DESC;` },
     { title: 'Both nodes think they are primary',
       symptom: 'After a failover, the old primary comes back and accepts writes; the two histories diverge.',
       cause: 'PostgreSQL does not detect failures or fence nodes. Promotion of the standby does not stop the old primary.',
-      fix: 'Fence the old primary (STONITH) before promoting, and use a cluster manager. Rejoin the old primary as a standby with `pg_rewind` instead of a full re-clone.' },
+      fix: 'Fence the old primary (STONITH) before promoting, and use a cluster manager ([HA clusters](/e3/ha-clusters)). Rejoin the old primary as a standby with `pg_rewind` instead of a full re-clone.' },
   ],
   pointers: [
     '**walsender** (primary) streams WAL to the **walreceiver** (standby); the **startup process** replays it.',

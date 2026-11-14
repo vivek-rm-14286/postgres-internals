@@ -254,7 +254,7 @@ GROUP BY d ORDER BY d;
 
 SELECT date_trunc('day', happened_at, 'America/New_York') AS ny_day_start, count(*), sum(amount)
 FROM events GROUP BY 1 ORDER BY 1;`,
-        note: 'Each day is `[start, start + 1 day)`: every event lands in exactly one bucket. Grouped by New York days the counts shift, and the 2026-03-08 bucket starts at 05:00 UTC but the next at 04:00 UTC (a 23-hour day).' },
+        note: '`generate_series` makes one row per day and `LEFT JOIN` ([Joins, visualized](/m3/joins)) attaches that day\'s events, so a day with no events still shows 0. Each day is `[start, start + 1 day)`: every event lands in exactly one bucket. Grouped by New York days the counts shift, and the 2026-03-08 bucket starts at 05:00 UTC but the next at 04:00 UTC (a 23-hour day).' },
     ],
   },
   production: {
@@ -298,7 +298,7 @@ FROM events;` },
     '**timestamptz** stores an instant (in UTC) and displays it in the session **TimeZone**. **timestamp** is wall-clock digits only.',
     '`AT TIME ZONE` flips the type: timestamptz → timestamp (read a clock), timestamp → timestamptz (pin to a zone).',
     "`+ interval '1 day'` keeps the local time of day; `+ interval '24 hours'` adds elapsed time. They differ across DST.",
-    'Filter time with **half-open ranges** `>= start AND < end`, and pass the business zone to `date_trunc`.',
+    'Filter time with **half-open ranges** `>= start AND < end`, and pass the business zone to `date_trunc`. A `tstzrange` stores such a period as one value: [Ranges and other special types](/f2/ranges-and-special-types).',
     'Going deeper: the Internals lesson [Declarative partitioning and pruning](/m7/partitioning) uses the same half-open bounds to split tables by time.',
   ],
   sources: ['datatype-datetime.html', 'functions-datetime.html', 'functions-formatting.html', 'runtime-config-client.html', 'rangetypes.html'],

@@ -10,6 +10,7 @@ import type { ExtensionName } from './extensions'
 import type { Preset } from '../lesson/types'
 import { Md } from '../lesson/Md'
 import { useTheme } from '../app/theme'
+import { MOD_KEY } from './modkey'
 
 interface Props {
   setup: string
@@ -18,6 +19,8 @@ interface Props {
   extensions?: ExtensionName[]
 }
 
+/** Names the editable element for assistive technology (an aria-label on the wrapper is not read). */
+const EDITOR_LABEL = EditorView.contentAttributes.of({ 'aria-label': 'SQL editor' })
 type Status = 'idle' | 'booting' | 'ready' | 'running' | 'failed'
 
 export function Playground({ setup, presets, extensions = [], config = [] }: Props) {
@@ -85,8 +88,8 @@ export function Playground({ setup, presets, extensions = [], config = [] }: Pro
           <button onClick={reset} disabled={busy} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted hover:bg-surface hover:text-ink disabled:opacity-50" title="Throw away this database and rebuild it from the lesson schema">
             <RotateCcw className="size-3.5" /> Reset DB
           </button>
-          <button onClick={() => run()} disabled={busy} data-testid="run" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60">
-            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />} Run <kbd className="hidden opacity-70 sm:inline">⌘↵</kbd>
+          <button onClick={() => run()} disabled={busy} data-testid="run" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent hover:opacity-90 disabled:opacity-60">
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />} Run <kbd className="hidden opacity-80 sm:inline">{MOD_KEY}↵</kbd>
           </button>
         </div>
       </div>
@@ -107,7 +110,7 @@ export function Playground({ setup, presets, extensions = [], config = [] }: Pro
       )}
 
       <CodeMirror value={code} onChange={setCode} theme={dark ? 'dark' : 'light'} basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: false }}
-        extensions={[sqlLang({ dialect: PostgreSQL }), EditorView.lineWrapping, runKey]} minHeight="96px" maxHeight="320px" aria-label="SQL editor" />
+        extensions={[sqlLang({ dialect: PostgreSQL }), EditorView.lineWrapping, runKey, EDITOR_LABEL]} minHeight="96px" maxHeight="320px" />
 
       <div className="border-t border-line" aria-live="polite">
         {status === 'failed' && bootError && <ErrorBox message={`Could not start the database: ${bootError}`} />}
@@ -151,7 +154,7 @@ function Results({ out }: { out: RunOutput }) {
   const shown = out.results.filter((r) => r.fields.length > 0)
   const last = out.results[out.results.length - 1]
   return (
-    <div className="max-h-[480px] overflow-auto scrollbar-thin" data-testid="results">
+    <div className="max-h-[480px] overflow-auto scrollbar-thin" data-testid="results" tabIndex={0} role="region" aria-label="Query results">
       {out.notices.length > 0 && (
         <pre className="border-b border-line bg-code px-4 py-2.5 text-[12px] leading-relaxed whitespace-pre-wrap text-muted" data-testid="notices">{out.notices.join('\n')}</pre>
       )}

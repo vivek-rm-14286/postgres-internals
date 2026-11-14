@@ -22,7 +22,7 @@ Plus:
 
 - **Project docs** in [`docs/`](docs): session log, process, sources register, PGlite notes, lessons learned.
 
-- **Cookbook**: 91 graded SQL exercises (beginner → expert) on five realistic datasets. Press *Check* and your result is
+- **Cookbook**: 97 graded SQL exercises (beginner → expert) on five realistic datasets. Press *Check* and your result is
   compared with a reference solution on a fresh copy of the data.
 - **Reference**: searchable tables of every configuration parameter, system catalog and view, statistics view, wait event,
   lock mode, SQL command, data type, index method, extension, error code and glossary term.
@@ -55,6 +55,7 @@ npm install
 npm run dev            # http://localhost:5173
 npm run check:lessons  # template completeness + runs every playground query on real PGlite in Node
 npm run check:cookbook # every exercise: reference solution accepted, wrong answer rejected
+npm run check:standalone # every playground example on a fresh database, on its own
 npm run build          # type-check + static build into app/dist
 npm run smoke          # headless Chromium: every lesson + Cookbook checks (after build)
 ```

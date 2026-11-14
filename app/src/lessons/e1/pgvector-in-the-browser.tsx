@@ -195,11 +195,11 @@ function TabBox({ name, role, active }: { name: string; role: 'leader' | 'follow
     <motion.div layout className="rounded-lg border-2 p-2" animate={{ opacity: role === 'closed' || role === 'none' ? 0.35 : 1, scale: active ? 1.03 : 1 }}
       style={{ borderColor: tone(t), background: toneBg(t, 8) }}>
       <p className="text-xs font-semibold">{name}</p>
-      <p className="font-mono text-[11px]" style={{ color: tone(t) }}>{role === 'none' ? 'not open' : role === 'closed' ? 'closed' : role}</p>
+      <p className="font-mono text-[11px]" style={{ color: tone.text(t) }}>{role === 'none' ? 'not open' : role === 'closed' ? 'closed' : role}</p>
       <div className="mt-1.5 grid gap-1">
         <div className="rounded border border-line bg-surface px-1.5 py-0.5 text-[11px]">page (UI thread)</div>
         <div className="rounded border px-1.5 py-0.5 text-[11px]" style={{ borderColor: tone(t) }}>
-          worker {role === 'leader' ? <b style={{ color: tone('tuple') }}>+ PGlite</b> : role === 'follower' ? '(proxy only)' : ''}
+          worker {role === 'leader' ? <b style={{ color: tone.text('tuple') }}>+ PGlite</b> : role === 'follower' ? '(proxy only)' : ''}
         </div>
       </div>
     </motion.div>
@@ -216,7 +216,7 @@ function TabsViz() {
             <AnimatePresence mode="wait">
               <motion.div key={s.msg + String(s.election)} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="rounded-md border px-2 py-1 text-center font-mono text-[11px]"
-                style={{ borderColor: tone(s.msg === 'clash' ? 'dead' : s.election ? 'new' : 'pointer'), color: tone(s.msg === 'clash' ? 'dead' : s.election ? 'new' : 'pointer') }}>
+                style={{ borderColor: tone(s.msg === 'clash' ? 'dead' : s.election ? 'new' : 'pointer'), color: tone.text(s.msg === 'clash' ? 'dead' : s.election ? 'new' : 'pointer') }}>
                 {s.msg === 'clash' ? 'two servers, one dataDir' : s.election ? 'election' : s.msg === 'b' ? 'B → A: query, A → B: rows' : s.msg === 'a' ? 'A → own worker' : 'idle'}
               </motion.div>
             </AnimatePresence>
@@ -376,7 +376,7 @@ function PersistViz() {
       </Panel>
       {log.length > 0 && (
         <div className="grid gap-0.5 rounded-lg border border-line bg-code px-3 py-2 font-mono text-[11px]">
-          {log.map((l, k) => <div key={k} className="flex justify-between gap-2"><span style={{ color: tone(l.t) }}>{l.text}</span>{l.ms !== undefined && <span className="shrink-0 text-muted">{fmtMs(l.ms)}</span>}</div>)}
+          {log.map((l, k) => <div key={k} className="flex justify-between gap-2"><span style={{ color: tone.text(l.t) }}>{l.text}</span>{l.ms !== undefined && <span className="shrink-0 text-muted">{fmtMs(l.ms)}</span>}</div>)}
         </div>
       )}
       <Legend items={[['new', 'written by this open'], ['header', 'read back from storage'], ['tuple', 'open'], ['dead', 'deleted or failed']]} />
@@ -540,7 +540,7 @@ function ModelViz() {
             <FieldTable rows={[['model_quantized.onnx', fmtBytes(SZ.model), '384-d sentence embeddings'], ['ONNX Runtime .wasm', fmtBytes(SZ.ortWasm), 'compressed transfer'], ['tokenizer + config', fmtBytes(SZ.tokenizer), 'compressed transfer'], ['transformers.min.js', fmtBytes(SZ.tjsJs), 'compressed transfer']]} />
           </div>
           <div className="mt-2"><Btn primary onClick={load}>{`Load a real embedding model (${fmtBytes(MODEL_TOTAL)})`}</Btn></div>
-          {err && <p className="mt-2 text-xs" style={{ color: tone('dead') }}>{err}</p>}
+          {err && <p className="mt-2 text-xs" style={{ color: tone.text('dead') }}>{err}</p>}
         </Panel>
       ) : null}
       {(phase === 'loading' || phase === 'indexing') && (
@@ -570,7 +570,7 @@ function ModelViz() {
           <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void search(q) }}>
             <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search text"
               className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1 text-sm" />
-            <button type="submit" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">Search</button>
+            <button type="submit" className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent">Search</button>
           </form>
           <Panel title="ORDER BY embedding <#> $1 LIMIT 5">
             <div className="grid gap-1">
