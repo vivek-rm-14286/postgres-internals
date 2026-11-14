@@ -1,0 +1,401 @@
+[
+ {
+  "slug": "what-is-postgres",
+  "module": "m1",
+  "order": 1,
+  "title": "What PostgreSQL is: cluster, client/server, a query's round trip",
+  "file": "./m1/what-is-postgres.tsx"
+ },
+ {
+  "slug": "process-model",
+  "module": "m1",
+  "order": 2,
+  "title": "The postmaster and one process per connection",
+  "file": "./m1/process-model.tsx"
+ },
+ {
+  "slug": "shared-memory",
+  "module": "m1",
+  "order": 3,
+  "title": "Shared memory: buffers, WAL buffers and the commit log",
+  "file": "./m1/shared-memory.tsx"
+ },
+ {
+  "slug": "background-processes",
+  "module": "m1",
+  "order": 4,
+  "title": "The background crew",
+  "file": "./m1/background-processes.tsx"
+ },
+ {
+  "slug": "databases-schemas-roles",
+  "module": "m1",
+  "order": 5,
+  "title": "Databases, schemas, search_path and roles",
+  "file": "./m1/databases-schemas-roles.tsx"
+ },
+ {
+  "slug": "normalization-constraints",
+  "module": "m1",
+  "order": 6,
+  "title": "Modelling data: normalization and constraints",
+  "file": "./m1/normalization-constraints.tsx"
+ },
+ {
+  "slug": "primitive-types",
+  "module": "m2",
+  "order": 1,
+  "title": "Primitive types, alignment and padding",
+  "file": "./m2/primitive-types.tsx"
+ },
+ {
+  "slug": "arrays",
+  "module": "m2",
+  "order": 2,
+  "title": "Arrays",
+  "file": "./m2/arrays.tsx"
+ },
+ {
+  "slug": "json-jsonb",
+  "module": "m2",
+  "order": 3,
+  "title": "JSON vs JSONB",
+  "file": "./m2/json-jsonb.tsx"
+ },
+ {
+  "slug": "uuid-v4-v7",
+  "module": "m2",
+  "order": 4,
+  "title": "UUIDv4 vs UUIDv7",
+  "file": "./m2/uuid-v4-v7.tsx"
+ },
+ {
+  "slug": "slotted-page",
+  "module": "m2",
+  "order": 5,
+  "title": "The 8 KB slotted page",
+  "file": "./m2/slotted-page.tsx"
+ },
+ {
+  "slug": "tuple-header",
+  "module": "m2",
+  "order": 6,
+  "title": "The heap tuple header: xmin, xmax, ctid, infomask",
+  "file": "./m2/tuple-header.tsx"
+ },
+ {
+  "slug": "toast",
+  "module": "m2",
+  "order": 7,
+  "title": "TOAST: oversized attributes",
+  "file": "./m2/toast.tsx"
+ },
+ {
+  "slug": "fsm-vm-forks",
+  "module": "m2",
+  "order": 8,
+  "title": "Files, forks, the free space map and visibility map",
+  "file": "./m2/fsm-vm-forks.tsx"
+ },
+ {
+  "slug": "dml-lifecycle",
+  "module": "m3",
+  "order": 1,
+  "title": "INSERT, UPDATE, DELETE, MERGE: what really happens",
+  "file": "./m3/dml-lifecycle.tsx"
+ },
+ {
+  "slug": "joins",
+  "module": "m3",
+  "order": 2,
+  "title": "Joins, visualized",
+  "file": "./m3/joins.tsx"
+ },
+ {
+  "slug": "subqueries",
+  "module": "m3",
+  "order": 3,
+  "title": "Subqueries: scalar, IN, EXISTS, ANY/ALL",
+  "file": "./m3/subqueries.tsx"
+ },
+ {
+  "slug": "ctes",
+  "module": "m3",
+  "order": 4,
+  "title": "CTEs: inlined vs MATERIALIZED",
+  "file": "./m3/ctes.tsx"
+ },
+ {
+  "slug": "recursive-ctes",
+  "module": "m3",
+  "order": 5,
+  "title": "Recursive CTEs",
+  "file": "./m3/recursive-ctes.tsx"
+ },
+ {
+  "slug": "window-functions",
+  "module": "m3",
+  "order": 6,
+  "title": "Window functions and frames",
+  "file": "./m3/window-functions.tsx"
+ },
+ {
+  "slug": "lateral",
+  "module": "m3",
+  "order": 7,
+  "title": "LATERAL joins",
+  "file": "./m3/lateral.tsx"
+ },
+ {
+  "slug": "aggregates-grouping",
+  "module": "m3",
+  "order": 8,
+  "title": "Aggregates, FILTER and GROUPING SETS",
+  "file": "./m3/aggregates-grouping.tsx"
+ },
+ {
+  "slug": "query-pipeline",
+  "module": "m4",
+  "order": 1,
+  "title": "From SQL text to rows: parse, analyze, rewrite, plan, execute",
+  "file": "./m4/query-pipeline.tsx"
+ },
+ {
+  "slug": "cost-model",
+  "module": "m4",
+  "order": 2,
+  "title": "The cost model",
+  "file": "./m4/cost-model.tsx"
+ },
+ {
+  "slug": "statistics",
+  "module": "m4",
+  "order": 3,
+  "title": "Planner statistics",
+  "file": "./m4/statistics.tsx"
+ },
+ {
+  "slug": "btree",
+  "module": "m4",
+  "order": 4,
+  "title": "B-Tree internals: splits, high keys and right-links",
+  "file": "./m4/btree.tsx"
+ },
+ {
+  "slug": "hash-index",
+  "module": "m4",
+  "order": 5,
+  "title": "Hash indexes",
+  "file": "./m4/hash-index.tsx"
+ },
+ {
+  "slug": "gin",
+  "module": "m4",
+  "order": 6,
+  "title": "GIN: inverted indexes",
+  "file": "./m4/gin.tsx"
+ },
+ {
+  "slug": "gist-spgist",
+  "module": "m4",
+  "order": 7,
+  "title": "GiST and SP-GiST",
+  "file": "./m4/gist-spgist.tsx"
+ },
+ {
+  "slug": "brin",
+  "module": "m4",
+  "order": 8,
+  "title": "BRIN for huge append-only tables",
+  "file": "./m4/brin.tsx"
+ },
+ {
+  "slug": "index-design",
+  "module": "m4",
+  "order": 9,
+  "title": "Designing indexes: multicolumn, partial, expression, covering",
+  "file": "./m4/index-design.tsx"
+ },
+ {
+  "slug": "explain-analyze",
+  "module": "m4",
+  "order": 10,
+  "title": "Reading EXPLAIN (ANALYZE, BUFFERS)",
+  "file": "./m4/explain-analyze.tsx"
+ },
+ {
+  "slug": "acid-transactions",
+  "module": "m5",
+  "order": 1,
+  "title": "ACID and transactions",
+  "file": "./m5/acid-transactions.tsx"
+ },
+ {
+  "slug": "snapshots-visibility",
+  "module": "m5",
+  "order": 2,
+  "title": "Snapshots and tuple visibility",
+  "file": "./m5/snapshots-visibility.tsx"
+ },
+ {
+  "slug": "hot-fillfactor",
+  "module": "m5",
+  "order": 3,
+  "title": "HOT updates and fillfactor",
+  "file": "./m5/hot-fillfactor.tsx"
+ },
+ {
+  "slug": "isolation-levels",
+  "module": "m5",
+  "order": 4,
+  "title": "Isolation levels: RC, RR, Serializable (SSI)",
+  "file": "./m5/isolation-levels.tsx"
+ },
+ {
+  "slug": "table-locks",
+  "module": "m5",
+  "order": 5,
+  "title": "Heavyweight locks and the conflict matrix",
+  "file": "./m5/table-locks.tsx"
+ },
+ {
+  "slug": "row-locks-skip-locked",
+  "module": "m5",
+  "order": 6,
+  "title": "Row locks, SKIP LOCKED and advisory locks",
+  "file": "./m5/row-locks-skip-locked.tsx"
+ },
+ {
+  "slug": "lwlocks-deadlocks",
+  "module": "m5",
+  "order": 7,
+  "title": "LWLocks, spinlocks and deadlock detection",
+  "file": "./m5/lwlocks-deadlocks.tsx"
+ },
+ {
+  "slug": "views-matviews",
+  "module": "m6",
+  "order": 1,
+  "title": "Views and materialized views",
+  "file": "./m6/views-matviews.tsx"
+ },
+ {
+  "slug": "triggers",
+  "module": "m6",
+  "order": 2,
+  "title": "Triggers",
+  "file": "./m6/triggers.tsx"
+ },
+ {
+  "slug": "plpgsql",
+  "module": "m6",
+  "order": 3,
+  "title": "PL/pgSQL functions and procedures",
+  "file": "./m6/plpgsql.tsx"
+ },
+ {
+  "slug": "rule-system",
+  "module": "m6",
+  "order": 4,
+  "title": "The rule system",
+  "file": "./m6/rule-system.tsx"
+ },
+ {
+  "slug": "fdw",
+  "module": "m6",
+  "order": 5,
+  "title": "Foreign data wrappers",
+  "file": "./m6/fdw.tsx"
+ },
+ {
+  "slug": "extensions",
+  "module": "m6",
+  "order": 6,
+  "title": "Extensions everyone runs",
+  "file": "./m6/extensions.tsx"
+ },
+ {
+  "slug": "full-text-search",
+  "module": "m6",
+  "order": 7,
+  "title": "Full-text search",
+  "file": "./m6/full-text-search.tsx"
+ },
+ {
+  "slug": "row-level-security",
+  "module": "m6",
+  "order": 8,
+  "title": "Row-level security",
+  "file": "./m6/row-level-security.tsx"
+ },
+ {
+  "slug": "wal-lsn",
+  "module": "m7",
+  "order": 1,
+  "title": "Write-ahead logging and LSNs",
+  "file": "./m7/wal-lsn.tsx"
+ },
+ {
+  "slug": "checkpoints-fpw",
+  "module": "m7",
+  "order": 2,
+  "title": "Checkpoints and full page writes",
+  "file": "./m7/checkpoints-fpw.tsx"
+ },
+ {
+  "slug": "vacuum",
+  "module": "m7",
+  "order": 3,
+  "title": "VACUUM vs VACUUM FULL",
+  "file": "./m7/vacuum.tsx"
+ },
+ {
+  "slug": "autovacuum-tuning",
+  "module": "m7",
+  "order": 4,
+  "title": "Tuning autovacuum",
+  "file": "./m7/autovacuum-tuning.tsx"
+ },
+ {
+  "slug": "xid-wraparound",
+  "module": "m7",
+  "order": 5,
+  "title": "XID wraparound, freezing and MultiXacts",
+  "file": "./m7/xid-wraparound.tsx"
+ },
+ {
+  "slug": "streaming-replication",
+  "module": "m7",
+  "order": 6,
+  "title": "Physical streaming replication",
+  "file": "./m7/streaming-replication.tsx"
+ },
+ {
+  "slug": "logical-replication",
+  "module": "m7",
+  "order": 7,
+  "title": "Logical replication",
+  "file": "./m7/logical-replication.tsx"
+ },
+ {
+  "slug": "partitioning",
+  "module": "m7",
+  "order": 8,
+  "title": "Declarative partitioning and pruning",
+  "file": "./m7/partitioning.tsx"
+ },
+ {
+  "slug": "backup-pitr",
+  "module": "m7",
+  "order": 9,
+  "title": "Backups and point-in-time recovery",
+  "file": "./m7/backup-pitr.tsx"
+ },
+ {
+  "slug": "connection-pooling",
+  "module": "m7",
+  "order": 10,
+  "title": "Connection pooling",
+  "file": "./m7/connection-pooling.tsx"
+ }
+]

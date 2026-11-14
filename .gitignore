@@ -1,0 +1,9 @@
+node_modules/
+app/dist/
+app/scripts/.shot.mjs
+.DS_Store
+*.log
+# working notes kept local
+curriculum/research/
+curriculum/modules/
+curriculum/_*.md
