@@ -525,7 +525,7 @@ approximate_row_count); (2) **TimescaleDB Toolkit** extension (`CREATE EXTENSION
 Toolkit design = **two-step aggregation**: an aggregate builds a partial-state "sketch" (storable in a cagg), accessors extract
 values, `rollup()` merges sketches — which is what makes percentiles/stats correct across hierarchical caggs. Families (full
 list in §3.6): approximate count distinct (`hyperloglog`, `approx_count_distinct`), counters & gauges (`counter_agg` handles
-counter resets, `gauge_agg` experimental), downsampling (`lttb`, `asap_smooth`, `gp_lttb`), financial (`candlestick_agg`),
+counter resets, `gauge_agg` stable since 1.25.0), downsampling (`lttb`, `asap_smooth`, `gp_lttb`), financial (`candlestick_agg`),
 frequency (`freq_agg`, `count_min_sketch` experimental, `mcv_agg`), min/max N (`max_n`, `min_n`, `max_n_by`, `min_n_by`),
 percentiles (`percentile_agg`, `uddsketch`, `tdigest`), saturating math, state tracking (`state_agg`, `compact_state_agg`
 experimental, `heartbeat_agg`), statistics/regression (`stats_agg` 1-D and 2-D), time-weighted (`time_weight`), timevector and
@@ -658,7 +658,7 @@ schedule_interval='5 minutes', initial_start, timezone, max_chunks, max_batches,
 - Approx count distinct: `hyperloglog()`, `approx_count_distinct()`, accessors `distinct_count()`, `stderror()`, `rollup()`.
 - Counters: `counter_agg()`; accessors `corr, counter_zero_time, delta, extrapolated_delta, extrapolated_rate, first_time, first_val,
   idelta_left, idelta_right, intercept, interpolated_delta, interpolated_rate, irate_left, irate_right, last_time, last_val,
-  num_changes, num_elements, num_resets, rate, slope, time_delta`; `rollup`; mutator `with_bounds`. Gauges: `gauge_agg()` (exp) same
+  num_changes, num_elements, num_resets, rate, slope, time_delta`; `rollup`; mutator `with_bounds`. Gauges: `gauge_agg()` (stable since 1.25.0) same
   accessors minus resets, plus `gauge_zero_time`.
 - Downsampling: `asap_smooth()`, `lttb()`, `gp_lttb()` (exp).
 - Financial: `candlestick_agg()`, `candlestick()`, accessors `open, open_time, high, high_time, low, low_time, close, close_time,
@@ -1341,3 +1341,104 @@ SELECT * FROM timescaledb_information.job_stats;
 | columnstore / compression | arrays per segment/batch + min/max metadata; TOAST pglz; BRIN for cheap time indexing | no columnar executor, no codecs (delta-of-delta, Gorilla, AIC) |
 | SkipScan | (PG 18 has B-tree skip scan for multicolumn indexes — see research B/M files; DISTINCT ON over Merge Append shown) | TimescaleDB's SkipScan is for DISTINCT on rowstore and columnstore |
 | jobs / policies | procedures with `(job_id int, config jsonb)` + manual CALL | no scheduler in PGlite (pg_cron on Neon) |
+
+---
+
+## Hyperfunctions (Toolkit)
+
+Verified 2026-11-14 against the Toolkit repository and the Tiger Data docs. Sources:
+- R1 https://github.com/timescale/timescaledb-toolkit (README.md, NOTICE, LICENSE)
+- R2 https://github.com/timescale/timescaledb-toolkit/blob/main/CHANGELOG.md and https://api.github.com/repos/timescale/timescaledb-toolkit/releases
+- R3 https://github.com/timescale/timescaledb-toolkit/tree/main/docs (README.md tag notes, time_weighted_average.md, counter_agg.md, percentile_approximation.md, uddsketch.md, tdigest.md, stats_agg.md, two-step_aggregation.md)
+- R4 https://github.com/timescale/timescaledb-toolkit/blob/main/crates/udd-sketch/src/lib.rs (UddSketch algorithm)
+- R5 https://www.tigerdata.com/docs/llms-full.txt: sections "About TimescaleDB hyperfunctions", "Install, update, and uninstall TimescaleDB Toolkit", "TimescaleDB Toolkit API reference", and the per-function reference pages under /docs/reference/toolkit/…
+- R6 https://neon.com/docs/extensions/pg-extensions (no `timescaledb_toolkit` entry; only `timescaledb`)
+
+### Identity, version, licence, availability
+- Extension name **`timescaledb_toolkit`** (`CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit;`). Rust + pgrx 0.18.1. (R1)
+- Current release **1.27.0** (GitHub tag `1.27.0+p2`, published 2026-11-05): bug fixes only (statssummary equality operators, sparse
+  hyperloglog rollup, counter_agg reset counted for an ignored same-timestamp point, input validation). Previous: 1.26.0 (2026-09-01),
+  1.25.0 (2026-08-18, **gauge_agg stabilized** #859), 1.24.0 (2026-07-27, last release with PG15), 1.23.0 (2026-06-02). (R2)
+- PostgreSQL support: README lists build targets PG 15–18, but 1.24.0 notes "expect 1.25.0 not to be installable in PostgreSQL 15", so
+  1.25+ = **PG 16, 17, 18**. PG18 support added in 1.22.0 (2025-10-24). (R1, R2)
+- Since **1.23.0** the control file is `trusted = true`: a role with CREATE on the database can create it without superuser. (R2, R5)
+- Licence: **Timescale License (TSL)**, now called the Tiger Data License (NOTICE: "licensed under the Timescale License";
+  LICENSE points to `timescaledb/tsl/LICENSE-TIMESCALE`). Docs tag: "Toolkit functions are available under TimescaleDB Community
+  Edition". (R1, R5)
+- Availability: pre-installed on **Tiger Cloud** ("Tiger Cloud includes all hyperfunctions by default"); in the
+  `timescale/timescaledb-ha` Docker image and the Kubernetes deployment; packages `timescaledb-toolkit-postgresql-18` (apt), yum, brew;
+  or from source. **Not on Neon** (Neon ships `timescaledb` Apache-only; no Toolkit in its extension list). (R1, R5, R6)
+- Toolkit works on plain PostgreSQL tables too: "designed to work with TimescaleDB and plain PostgreSQL data". (R1)
+- Update: `ALTER EXTENSION timescaledb_toolkit UPDATE;` (R5)
+
+### Stability model
+- Stable / Deprecated / **Experimental**. Experimental APIs live only in schema **`toolkit_experimental`**; "extension-update will drop
+  database objects that depend on experimental features", called out as important for managed services that automate upgrades. (R3 tag notes)
+- Real breaking examples (R2): 1.12.0 introduced `toolkit_experimental.candlestick_agg` replacing `toolkit_experimental.ohlc` ("will be
+  removed in the next release"); 1.14.0 stabilized candlestick, **renamed `state_agg` → `compact_state_agg` and `timeline_agg` →
+  `state_agg`**, swapped the first two arguments of `duration_in`/`interpolated_duration_in`/`state_periods`, removed the `next` parameter
+  from interpolated state functions.
+- Still experimental (R5 tables): `compact_state_agg`, `freq_agg`, `count_min_sketch`/`approx_count`, `gp_lttb`, `time_bucket_range`,
+  timevector pipeline elements (`sort`, `unnest`, `map`, …). `lttb`, `asap_smooth`, `hyperloglog` are stable in R5 although R3's
+  docs/README still tags them experimental (stale). `gauge_agg`: only the docs overview table still marks it experimental; its own reference page says "Since 1.25.0", the changelog says stabilized in 1.25.0, and the source puts it in the public schema →
+  changelog wins for ≥ 1.25.0.
+
+### Two-step aggregation
+- Aggregate → intermediate summary type (TimeWeightSummary, Candlestick, UddSketch, TDigest, CounterSummary, StatsSummary1D/2D,
+  HeartbeatAgg) → accessor computes the final value. `rollup(summary)` merges summaries; this is what makes them storable in continuous
+  aggregates and re-aggregable into larger buckets. Several accessors can read one summary. (R5 counters overview)
+
+### time_weight
+- `time_weight(method TEXT, ts TIMESTAMPTZ, value DOUBLE PRECISION) RETURNS TimeWeightSummary`; method `'linear'` or `'LOCF'`, any case.
+- Accessors: `average`, `integral(tws [, unit default 'second'])`, `interpolated_average(tws, start, duration [, prev] [, next])`,
+  `interpolated_integral`, `first_time`, `first_val`, `last_time`, `last_val`; `rollup`.
+- `average` = integral / elapsed time between first and last point; **one point → NULL** (unlike `avg`). Doc example: 10,20,10,20,15 at
+  1-minute spacing → LOCF average 15 (the last point has no weight).
+- `interpolated_average`: prev/next summaries (from `LAG`/`LEAD`) interpolate the value at the bucket bounds; next NULL with LOCF →
+  last value carried to `start + duration`.
+- Not parallel-safe (order-dependent; marked parallel unsafe in 1.23.0; 1.26.0 removed combine/serialize/deserialize). `rollup` of
+  overlapping summaries errors; summaries from different series must not be combined. (R3, R2)
+
+### candlestick_agg / candlestick
+- `candlestick_agg(ts, price, volume) RETURNS Candlestick` from ticks; `candlestick(ts, open, high, low, close, volume)` from
+  pre-aggregated bars. Accessors `open, open_time, high, high_time, low, low_time, close, close_time, volume, vwap`; `rollup`. Since 1.14.0.
+- `vwap` = Σ(price·volume)/Σvolume; for bars built by `candlestick()` uses the typical price (high+low+close)/3. NULL volume in any row →
+  `volume()`/`vwap()` NULL. Ties on the latest timestamp: which close wins depends on input order. (R5)
+
+### Percentiles
+- `percentile_agg(value)` = `uddsketch(200, 0.001, value)`; `uddsketch(size, max_error, value)`; `tdigest(size, value)`.
+- Accessors: `approx_percentile(p, sketch)`, `approx_percentile_rank(value, sketch)`, `approx_percentile_array` (uddsketch, stable 1.16),
+  `error` (uddsketch), `mean`, `num_vals`, `total` (1.21), `min_val`/`max_val` (tdigest); `rollup`.
+- UddSketch (R4): γ = (1+α)/(1−α); bucket key = ⌈log_γ x⌉; estimate of bucket i = γ^(i−1)·(1+α); quantile walks buckets until the
+  `floor(n·q)+1`-th value. Over `size` buckets → compaction: γ ← γ², α ← 2α/(1+α²) (error roughly doubles). Merging adds bucket counts, so
+  rollup is exact with respect to the sketch: order-independent. TDigest estimates depend on input order and batching.
+- rollup inputs must share `size` and `max_error`; "a mismatch is not always detected". (R5)
+- Exact `percentile_cont` needs the whole sorted set and has no partial form, so it cannot be combined across buckets. (R3)
+
+### counter_agg
+- `counter_agg(ts, value [, bounds TSTZRANGE]) RETURNS CounterSummary`. Any decrease is a **reset**: true value after a decrease =
+  previous value + current value. Summary keeps first, second, penultimate and last points, sum of values at resets, num changes/resets,
+  regression state, optional bounds. (R3)
+- `delta` = last − first after accounting for resets; `rate` = delta / observed time; `extrapolated_delta`/`extrapolated_rate(summary,
+  'prometheus')` need bounds (`counter_agg(..., bounds)` or `with_bounds`), extrapolate to the bounds like Prometheus `rate`;
+  `interpolated_delta/interpolated_rate(summary, start, duration, prev, next)` (stable 1.14); `num_resets`, `num_changes`,
+  `idelta_left/right`, `irate_left/right`, `slope`, `intercept`, `corr`, `counter_zero_time`, `time_delta`; `rollup`. (R5)
+- Summing per-bucket `delta`s misses the increase between buckets; `rollup` (or `interpolated_delta`) restores it.
+
+### stats_agg, heartbeat_agg, others
+- `stats_agg(value)` → StatsSummary1D (`average, sum, num_vals, stddev, variance, skewness, kurtosis`, `rolling`, `rollup`); BIGINT
+  overload since 1.23.0 (±2^53). `stats_agg(y, x)` → StatsSummary2D (regression: `slope, intercept, corr, covariance,
+  determination_coeff, x_intercept`, …).
+- `heartbeat_agg(heartbeat, agg_start, agg_duration, heartbeat_liveness)` → `uptime, downtime, live_ranges, dead_ranges, live_at,
+  num_gaps, interpolated_uptime, …`; stabilized 1.15; equality operators 1.24 (needed by cagg refresh).
+- Also stable: `state_agg`, `hyperloglog`/`approx_count_distinct`, `min_n/max_n(_by)`, `mcv_agg`, `asap_smooth`, `lttb`, `gauge_agg` (1.25).
+
+### Native PostgreSQL 18 equivalents (verified in PGlite 0.5.16 / PG 18.6; lesson e2/hyperfunctions)
+- Irregular series 20,22,21,35,34,22,23,24 at 08:00/15/25/32/33/34/50/58: `avg` 25.125; LOCF integral 1272 value·min, LOCF average
+  **21.931**; linear **23.043** (via `lead()`). 30-min buckets: average 20.8 / 23.269; interpolated 20.833 / 23.167.
+- OHLC per minute via `(array_agg(price ORDER BY ts))[1]`, min, max, sum; VWAP 99.8767 and 101.2786; 2-minute rollup open 100, high
+  102.3, low 99.2, close 101.8, volume 85, VWAP 100.5694 (vs plain avg price 100.8625).
+- 620 latencies over 3 hours (400 / 20 incident / 200): hourly p95 58, 838.65, 78; **avg of hourly p95 324.88 vs true p95 77.05**;
+  log-bucket sketch (α = 0.05) merged by summing counts: p95 77.663, p99 574.815 (true p99 560.93).
+- Counter 100,160,230,15,40,110,30,70: last − first = −30, max − min = 215, reset-aware delta **310**, 2 resets, rate 0.0891/s;
+  per-30-min deltas 145 + 140 = 285 (the 25 across the boundary is lost).

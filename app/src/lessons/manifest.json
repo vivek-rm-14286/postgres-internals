@@ -616,6 +616,13 @@
   "file": "./e1/pgvector-production.tsx"
  },
  {
+  "slug": "pgvector-in-the-browser",
+  "module": "e1",
+  "order": 7,
+  "title": "pgvector in the browser",
+  "file": "./e1/pgvector-in-the-browser.tsx"
+ },
+ {
   "slug": "time-series-basics",
   "module": "e2",
   "order": 1,
@@ -656,6 +663,13 @@
   "order": 6,
   "title": "Retention, tiering and jobs",
   "file": "./e2/retention-jobs.tsx"
+ },
+ {
+  "slug": "hyperfunctions",
+  "module": "e2",
+  "order": 7,
+  "title": "Hyperfunctions: time-weighted averages, candlesticks, percentiles and counters",
+  "file": "./e2/hyperfunctions.tsx"
  },
  {
   "slug": "why-distribute",

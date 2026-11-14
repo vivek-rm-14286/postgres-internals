@@ -59,6 +59,7 @@ Three tracks plus a Cookbook. Facts follow PostgreSQL 18 (and, for the ecosystem
 | 4 | ivfflat | IVFFlat indexes | k-means lists, `lists` sizing, `ivfflat.probes`, build after data load, recall vs speed, HNSW vs IVFFlat trade-offs |
 | 5 | filtering-and-hybrid | Filtering and hybrid search | post-filtering and lost recall, iterative index scans (`hnsw.iterative_scan`, `max_scan_tuples`), partial indexes and partitioning per tenant, hybrid search with full-text + Reciprocal Rank Fusion |
 | 6 | pgvector-production | pgvector in production | quantization (halfvec, binary + re-ranking), sizing memory and disk, `maintenance_work_mem` and parallel builds, monitoring recall, RAG schema design, when to use a dedicated vector database |
+| 7 | pgvector-in-the-browser | pgvector in the browser | PGlite (PostgreSQL in WebAssembly) with the vector extension: loading, bundle size, main thread vs Web Worker (`PGliteWorker`), persistence with IndexedDB (`idb://`) and OPFS, client-side embeddings with Transformers.js in a Web Worker, an end-to-end local semantic search, limits (single connection, memory, model size), privacy benefits |
 
 ## E2 — Time-Series with TimescaleDB  (`e2`, track: ecosystem)
 | # | slug | title | scope |
@@ -69,6 +70,7 @@ Three tracks plus a Cookbook. Facts follow PostgreSQL 18 (and, for the ecosystem
 | 4 | continuous-aggregates | Continuous aggregates | materialized vs real-time aggregates, refresh policies and windows, invalidation, hierarchical aggregates; compared with materialized views |
 | 5 | compression-columnstore | Compression and the columnstore | row → columnar chunks (Hypercore), `segmentby` / `orderby`, compression policies, typical ratios, querying and modifying compressed data |
 | 6 | retention-jobs | Retention, tiering and jobs | `drop_chunks` and retention policies, the jobs framework (`add_job`, `timescaledb_information.jobs`), tiered storage, multi-node (removed) and current scale-out options, production sizing |
+| 7 | hyperfunctions | Hyperfunctions: time-weighted averages, candlesticks, percentiles and counters | the TimescaleDB Toolkit (`timescaledb_toolkit`, licence, availability): `time_weight` + `average`/`interpolated_average`, `candlestick_agg` / OHLC accessors, `percentile_agg`/`uddsketch`/`tdigest` + `approx_percentile` and why approximate sketches can be combined across buckets, `counter_agg` with resets + `delta`/`rate`, `stats_agg`, two-step aggregation and rollups inside continuous aggregates; each with a runnable native PostgreSQL 18 equivalent |
 
 ## E3 — Distributed PostgreSQL  (`e3`, track: ecosystem)
 | # | slug | title | scope |

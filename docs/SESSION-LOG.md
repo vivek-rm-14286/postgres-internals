@@ -113,6 +113,26 @@ and distributed PostgreSQL from 20 given links. Work in phases, with worker and 
 - **Session record.** Everything from this session committed: research notes, briefs, module plans, agent resume
   plans, official docs text, crawler and audit tools, and `docs/`. Third-party page copies are kept locally only.
 
+## Round 4: TimescaleDB and pgvector checklists
+
+- **Coverage audit** against a TimescaleDB checklist (hypertables, Hypercore, hyperfunctions, lifecycle) and a pgvector
+  checklist (types, operators, ANN indexes, filtering, hybrid search, quantization, running in the browser). Two gaps:
+  the Toolkit hyperfunctions, and in-browser pgvector.
+- **Added two lessons, 106 in total.**
+  - E2 "Hyperfunctions": `time_weight`, `candlestick_agg`, `percentile_agg`/`uddsketch` with `rollup`, `counter_agg`.
+    The Toolkit is 1.27.0 (TSL, PG 16–18, trusted since 1.23, not available on Neon). It is simulated, with native SQL
+    equivalents.
+  - E1 "pgvector in the browser": PGlite sizes measured at about 5.4 MB compressed, so a popular "under 3 MB gzipped"
+    claim is out of date. Also covers `idb://` and `opfs-ahp://` persistence (a live demo, on click only),
+    `PGliteWorker` leader election, and an opt-in Transformers.js model (`Xenova/all-MiniLM-L6-v2`, about 29 MB first
+    load, cached afterwards).
+- **Fact-checks.**
+  - Hyperfunctions, 10 fixes: wording about a counter delta "turning negative"; the percentile error bound; the 1.14
+    renames. The flagged linear-mode values were recomputed from the Toolkit source and were correct.
+  - In-browser lesson, 7 fixes: `initdb.wasm` was missing from the download total; timing labels. Safety checks passed:
+    no storage, worker or model download without a click.
+- **Noted.** The site's only external request on page load is Google Fonts.
+
 ## Decisions worth remembering
 
 - **Primary sources win.** Blogs and tutorials supply teaching angles. Their errors become "common misconception" pitfalls.

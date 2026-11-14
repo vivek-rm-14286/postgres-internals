@@ -6847,6 +6847,81 @@
       "Maintenance: `REINDEX INDEX CONCURRENTLY` then `VACUUM` after large deletes; stay on 0.8.4+.",
       "Stay in PostgreSQL while vectors share rows, filters, transactions and backups with the rest of your data; consider a dedicated engine only when one node can no longer hold the index in memory and sharding is not an option."
      ]
+    },
+    {
+     "order": 7,
+     "slug": "pgvector-in-the-browser",
+     "title": "pgvector in the browser",
+     "tldr": "**PGlite** is PostgreSQL compiled to WebAssembly: with the `vector` extension it runs pgvector, HNSW indexes included, inside a browser tab, and it stores its files in IndexedDB or OPFS. Paired with an embedding model running in a Web Worker, it gives semantic search that works offline and never sends the user's text or vectors to a server.",
+     "visualizer": {
+      "title": "The browser stack, byte by byte",
+      "interaction": "Step through one search from first download to result, then flip to **Return visit**. **Two tabs** shows how PGliteWorker shares one database. The two live views write to IndexedDB and load a real model, only when you click."
+     },
+     "playground": {
+      "extensions": [
+       "vector"
+      ],
+      "presets": [
+       {
+        "label": "What is running here",
+        "lookFor": "PostgreSQL 18.6 on **wasm32-unknown-emscripten**, pgvector 0.8.7, and exactly one `standalone backend`: no postmaster, no other connections, no parallel workers. This is the database running in this tab."
+       },
+       {
+        "label": "384-d unit vectors",
+        "lookFor": "Each embedding is **1544 bytes** (4 × 384 + 8) and has length exactly 1, like `normalize: true` output. A thousand of them take 1.6 MB."
+       },
+       {
+        "label": "<#> and <=> agree",
+        "lookFor": "For unit vectors `<=>` is `1 + <#>`: the difference column is under 0.000001 (float32 rounding) and all 8 top-10 lists match. So use `<#>` with `vector_ip_ops`: it skips the norm computation."
+       },
+       {
+        "label": "Exact search is already fast",
+        "lookFor": "Without an index the plan is a **Seq Scan** plus a top-N heapsort over 1 000 rows, in a couple of milliseconds. Many on-device datasets are this small: measure before adding an index."
+       },
+       {
+        "label": "HNSW on 384 dimensions",
+        "lookFor": "Note the build time in the status bar: one backend, no parallel workers. The index is about **2008 kB**, larger than the 1600 kB heap. On 1 000 rows the planner still prefers the seq scan, so the transaction switches it off to show the **Index Scan … Order By: (embedding <#> …)**."
+       },
+       {
+        "label": "Wrong operator, no index",
+        "lookFor": "Same ranking, but `<=>` belongs to `vector_cosine_ops`, not `vector_ip_ops`: the plan falls back to a sort over a disabled seq scan. The query operator must match the index operator class."
+       },
+       {
+        "label": "What gets persisted",
+        "lookFor": "With `idb://` every one of these files lives in IndexedDB: the system catalogs and template databases of a fresh cluster come first, then your tables and indexes. That is why the first open of a new name is several times slower than a reopen."
+       }
+      ]
+     },
+     "production": {
+      "title": "A private, offline notes search",
+      "problem": "A server-side vector database means sending every note and query to the backend, a network round trip per search, and no search offline. A naive in-browser version froze typing while the model ran and lost the index on every reload.",
+      "outcome": "The first visit downloads about 5 MB of compressed database files and, once, about 29 MB of model and runtime. Every later visit starts from the browser caches with no network. Embedding a query takes on the order of 10 ms on a laptop CPU and the search a few milliseconds, and no note text leaves the device."
+     },
+     "pitfalls": [
+      {
+       "title": "Everything on the main thread",
+       "fix": "Run PGlite in a Web Worker with `PGliteWorker` (`@electric-sql/pglite/worker`) and the embedding model in its own worker. Pass vectors as transferable `Float32Array`s."
+      },
+      {
+       "title": "Two tabs, two databases",
+       "fix": "Use `PGliteWorker`. Tabs with the same `id` elect one leader that runs PGlite; the others forward their queries to it. Handle `onLeaderChange` to re-run live queries after a failover."
+      },
+      {
+       "title": "OPFS that works only in some browsers",
+       "fix": "Use `idb://` unless you control the browser. If you use `opfs-ahp://`, run it inside a worker and fall back to `idb://` on Safari."
+      },
+      {
+       "title": "Changing the model without re-embedding",
+       "fix": "Store the model name with each vector, filter on it, and re-embed old rows in the background when the model changes."
+      }
+     ],
+     "keyPointers": [
+      "PGlite 0.5.16: `pglite.wasm` 3.24 MB + `pglite.data` 1.85 MB + `initdb.wasm` 0.13 MB gzipped, about 5.2 MB before JS; `vector.tar.gz` adds 51 kB.",
+      "`dataDir`: `memory://` (default), `idb://name` (every browser), `opfs-ahp://name` (worker only, not Safari). A fresh cluster is about 40 MB of files.",
+      "One connection per database: share it across tabs with `PGliteWorker`, which elects a leader per `id`.",
+      "Transformers.js: `pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')` with `pooling: 'mean', normalize: true` gives 384-d unit vectors; about 29 MB to download once, then the Cache API.",
+      "Unit vectors: `<=>` = 1 + `<#>`, so rank with `<#>` and `vector_ip_ops`. Index basics are in [HNSW](/e1/hnsw); operators in [distance and exact search](/e1/distance-and-exact-search)."
+     ]
     }
    ]
   },
@@ -7276,6 +7351,79 @@
       "Keep raw retention **longer than** any continuous aggregate's `start_offset`, and retain the aggregate separately.",
       "Multi-node was removed in 2.14. Tiering to object storage is Tiger Cloud only; for sharding PostgreSQL see [Citus](/e3/sharding-citus).",
       "`drop_chunks` is **Apache 2 edition**; retention policies, `add_job` and the scheduler are **Community edition**."
+     ]
+    },
+    {
+     "order": 7,
+     "slug": "hyperfunctions",
+     "title": "Hyperfunctions: time-weighted averages, candlesticks, percentiles and counters",
+     "tldr": "**Hyperfunctions** from the TimescaleDB Toolkit extension (`timescaledb_toolkit`) are aggregates for time-series questions that plain `avg`, `percentile_cont` and `max - min` get wrong or cannot combine across buckets: time-weighted averages, OHLC candles, approximate percentiles and counters with resets. Each one builds a small **summary** that accessors read and `rollup()` merges, so a continuous aggregate can store it per bucket and still give correct answers for any larger time range.",
+     "visualizer": {
+      "title": "Four hyperfunctions, step by step",
+      "interaction": "Pick a hyperfunction and step through it. Switch **LOCF / linear** for time-weighted averages, watch ticks become candles, merge hourly sketches, and correct a counter that resets. Each summary is a model computed in the page; the Toolkit itself does not run here."
+     },
+     "playground": {
+      "extensions": [],
+      "presets": [
+       {
+        "label": "avg() vs a time-weighted average",
+        "lookFor": "`avg()` says **25.125** because the 2-minute spike holds 2 of 8 samples. Weighting by duration gives **21.931** (LOCF, a step curve) or **23.043** (linear, straight lines between samples). The last reading has no duration, as in `time_weight`."
+       },
+       {
+        "label": "Buckets: average vs interpolated",
+        "lookFor": "Per bucket: **20.8 / 23.269** using only points inside each bucket, and **20.833 / 23.167** once the edges are filled from the neighbouring bucket (21 from 08:25 to 08:30 in the first, 21 from 08:30 to 08:32 and 24 from 08:58 to 09:00 in the second)."
+       },
+       {
+        "label": "Roll up time-weight summaries",
+        "lookFor": "Averaging the bucket averages gives **22.035**. Merging the summaries, including the 21 × 7 minutes between 08:25 and 08:32, gives **21.931**: the same as the whole-hour query in the first preset."
+       },
+       {
+        "label": "OHLC candles and their rollup",
+        "lookFor": "Two candles: VWAP **99.8767** and **101.2786**. Merged: open 100, high 102.3, low 99.2, close 101.8, volume 85, VWAP **100.5694**. The average of the two VWAPs (100.5777) is wrong because the minutes traded different volumes."
+       },
+       {
+        "label": "Exact percentiles do not combine",
+        "lookFor": "Hourly p95: **58**, **838.65** and **78** ms. Their average is **324.88 ms**, but the true p95 is **77.05 ms**: the incident hour served 20 of 620 requests. The only exact fix is to keep and re-sort all **620** values."
+       },
+       {
+        "label": "A mergeable log-bucket sketch",
+        "lookFor": "12, 15 and 12 bucket counts replace 400, 20 and 200 values. Merged by summing counts, the sketch says p95 ≈ **77.663** ms (exact 77.05) and p99 ≈ **574.815** (exact 560.93), each within 5% of a real value."
+       },
+       {
+        "label": "Counter resets with lag() and CASE",
+        "lookFor": "Raw arithmetic gives **−30** or **215**. Reset-aware: **310** requests, **2** resets, **0.0891** per second. Bucketed deltas are 145 + 140 = 285: the 25 between 09:25 and 09:30 need the neighbouring bucket, which is what `rollup()` keeps."
+       }
+      ]
+     },
+     "production": {
+      "title": "Latency and traffic dashboards that stay correct at every zoom level",
+      "problem": "The hourly continuous aggregate stored `percentile_cont(0.95)` and `max(total) - min(total)`. Daily and weekly panels averaged the hourly p95s and summed the hourly deltas. After a short incident the daily p95 was several times too high, and every deploy, which restarts the counters, made that hour's traffic wrong.",
+      "outcome": "On the playground's three hours of traffic, the old method reports a p95 of 324.88 ms against a true 77.05 ms. A merged sketch with a 5% error bound gives 77.66 ms. Each hourly sketch is bounded at 200 buckets however many requests it summarizes, and the counter delta stays correct across restarts."
+     },
+     "pitfalls": [
+      {
+       "title": "Averaging irregular samples",
+       "fix": "Weight by duration: `time_weight` with `LOCF` for report-on-change devices, `linear` for sampled signals. Use `interpolated_average` with `LAG`/`LEAD` for exact bucket edges. Natively, compute interval areas with `lead()`."
+      },
+      {
+       "title": "Averaging percentiles across buckets",
+       "fix": "Store `percentile_agg` (or `uddsketch`/`tdigest`) per bucket and query `approx_percentile(p, rollup(sketch))`. All sketches you roll up must share `size` and `max_error`, and a mismatch is not always detected."
+      },
+      {
+       "title": "Ignoring counter resets",
+       "fix": "Use `counter_agg`: `delta`, `rate` and `num_resets` account for resets. Combine buckets with `delta(rollup(cs))`, or `interpolated_delta(cs, bucket, interval, LAG(cs), LEAD(cs))` per bucket. For Prometheus-style rates, set bounds and call `extrapolated_rate(cs, 'prometheus')`."
+      },
+      {
+       "title": "Experimental functions change between versions",
+       "fix": "Keep stable functions in caggs and views. Before an upgrade, list the dependent objects and save their definitions."
+      }
+     ],
+     "keyPointers": [
+      "**Two-step aggregation**: an aggregate builds a summary, accessors (`average`, `vwap`, `approx_percentile`, `delta`) read it, and `rollup()` merges summaries. Store summaries in [continuous aggregates](/e2/continuous-aggregates).",
+      "`time_weight('LOCF' | 'linear', ts, v)`: the area under the curve divided by elapsed time. One point gives NULL; `interpolated_average` fills bucket edges from neighbours.",
+      "`candlestick_agg(ts, price, volume)`: open/close by time, high/low, volume and VWAP = Σ(price·volume) / Σvolume, all mergeable.",
+      "UddSketch buckets values at ⌈log_γ x⌉, so merging adds counts and keeps a relative error bound (0.001 for `percentile_agg`, which grows if 200 buckets overflow). Never average percentiles. `counter_agg` treats any drop as a reset to zero.",
+      "`timescaledb_toolkit` 1.27.0 supports PostgreSQL 16–18 under the Timescale License. It comes with Tiger Cloud and the `timescaledb-ha` image; self-hosted servers install it from packages (apt, yum, brew) or from source. Neon does not offer it."
      ]
     }
    ]
