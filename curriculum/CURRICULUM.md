@@ -91,6 +91,15 @@ Three tracks plus a Cookbook. Facts follow PostgreSQL 18 (and, for the ecosystem
 | 3 | nearest-neighbour | Nearest-neighbour search | KNN with `ORDER BY geom <-> point LIMIT k`, `<->` vs `<#>`, geography KNN, nearest-per-row with `LATERAL`, combining `ST_DWithin` radius with ordering, distance units per type |
 | 4 | spatial-queries | Everyday spatial queries | point-in-polygon joins, intersections and overlays, buffers, area and length, `ST_Union`/`ST_Collect`, clustering (`ST_ClusterDBSCAN`, `ST_ClusterKMeans`), simplification for maps, GeoJSON output for web maps, validity (`ST_IsValid`, `ST_MakeValid`) |
 
+## E5 — Distributed Database Theory  (`e5`, track: ecosystem; theory is simulated, PostgreSQL equivalents run live)
+| # | slug | title | scope |
+|---|------|-------|-------|
+| 1 | architectures | Architectures and classification | client-server, peer-to-peer, shared-memory / shared-disk / shared-nothing, federated and multidatabase systems (foreign data wrappers as a real federated example), homogeneous vs heterogeneous, NoSQL families (key-value, document, column-family, graph) vs distributed SQL, the transparencies (location, fragmentation, replication, failure) |
+| 2 | fragmentation-replication | Fragmentation, allocation and replication | horizontal, vertical and hybrid (mixed) fragmentation, correctness rules (completeness, reconstruction, disjointness), derived horizontal fragmentation, allocation, full vs partial replication, synchronous vs asynchronous, active-active vs active-passive, snapshot replication, consistent hashing and virtual nodes vs fixed hash ranges |
+| 3 | commit-and-consensus | Distributed transactions and consensus | 2PC and its blocking window, 3PC and why it is rarely used, Paxos (prepare/promise, accept/accepted) vs Raft, distributed locking and leases with fencing tokens, timestamp ordering (basic TO, Thomas write rule), optimistic concurrency, global deadlock detection (wait-for graphs across nodes) |
+| 4 | distributed-query-processing | Distributed query processing | query decomposition, data localization (reducing a global query onto fragments), fragment pruning, semi-join reduction and when it pays, network-cost-based optimization, join strategies (co-located, broadcast, repartition), pushdown of filters and aggregates |
+| 5 | operating-distributed | Operating distributed databases | failure detection (heartbeats, timeouts, phi-accrual), partitions and split brain, recovery and catch-up, elastic scaling and rebalancing, routing, node-to-node TLS and authentication, data residency and geo-partitioning |
+
 ## I1 — Foundations & Process Architecture  (`m1`, track: internals)
 | # | slug | title | scope |
 |---|------|-------|-------|

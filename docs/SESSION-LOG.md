@@ -133,6 +133,24 @@ and distributed PostgreSQL from 20 given links. Work in phases, with worker and 
     no storage, worker or model download without a click.
 - **Noted.** The site's only external request on page load is Google Fonts.
 
+## Round 5: distributed-database theory
+
+- **Coverage audit** against a distributed-systems checklist. PostgreSQL-specific distribution was already covered
+  (E3), but most textbook theory was missing: P2P, shared-nothing, federated systems, vertical and hybrid fragmentation
+  and their correctness rules, transparencies, 3PC, Paxos, timestamp ordering, global deadlock detection, query
+  localization and semi-joins, consistent hashing, node-to-node TLS and data residency.
+- **Added E5 "Distributed Database Theory", 5 lessons, 111 in total.** Architectures and classification; fragmentation,
+  allocation and replication; distributed transactions and consensus; distributed query processing; operating
+  distributed databases. Each has step-through simulators (2PC/3PC failures, Paxos duels, a consistent-hash ring,
+  a phi-accrual detector, split brain, a pg_hba evaluator) paired with runnable PostgreSQL equivalents (partitions as
+  fragments, pruning as localization, `PREPARE TRANSACTION`, advisory locks with fencing tokens, recursive wait-for
+  graph cycle detection, measured semi-join bytes). Research notes: `curriculum/research/Z-distributed-theory.md`,
+  verified against the original papers (Lamport, Raft, Skeen, Skeen & Stonebraker, Karger, Dynamo, Hayashibara,
+  Bernstein-Hadzilacos-Goodman) and vendor docs.
+- **Fact-check, 17 fixes.** Three presets that only worked after an earlier preset; an unreachable 3PC state; "3PC
+  never blocks" (it does not block on crashes, but a partition breaks it); `postgres_fdw` pointed at a MySQL server;
+  a split-brain heal that kept a stale term; a rebalance share recomputed as 36.8%.
+
 ## Decisions worth remembering
 
 - **Primary sources win.** Blogs and tutorials supply teaching angles. Their errors become "common misconception" pitfalls.

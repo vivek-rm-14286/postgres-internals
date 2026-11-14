@@ -740,5 +740,40 @@
   "order": 4,
   "title": "Everyday spatial queries",
   "file": "./e4/spatial-queries.tsx"
+ },
+ {
+  "slug": "architectures",
+  "module": "e5",
+  "order": 1,
+  "title": "Architectures and classification",
+  "file": "./e5/architectures.tsx"
+ },
+ {
+  "slug": "fragmentation-replication",
+  "module": "e5",
+  "order": 2,
+  "title": "Fragmentation, allocation and replication",
+  "file": "./e5/fragmentation-replication.tsx"
+ },
+ {
+  "slug": "commit-and-consensus",
+  "module": "e5",
+  "order": 3,
+  "title": "Distributed transactions and consensus",
+  "file": "./e5/commit-and-consensus.tsx"
+ },
+ {
+  "slug": "distributed-query-processing",
+  "module": "e5",
+  "order": 4,
+  "title": "Distributed query processing",
+  "file": "./e5/distributed-query-processing.tsx"
+ },
+ {
+  "slug": "operating-distributed",
+  "module": "e5",
+  "order": 5,
+  "title": "Operating distributed databases",
+  "file": "./e5/operating-distributed.tsx"
  }
 ]

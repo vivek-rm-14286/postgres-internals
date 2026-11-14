@@ -6,7 +6,7 @@ import type { ExtensionName } from '../playground/extensions'
  *   1 TL;DR  2 Visualizer  3 Playground  4 Production example  5 Pitfalls  6 Key pointers
  * Strings support inline markup: **bold**, `code`, *emphasis*.
  */
-export type ModuleId = 'f1' | 'f2' | 'f3' | 'f4' | 'm1' | 'm2' | 'm3' | 'm4' | 'm5' | 'm6' | 'm7' | 'e1' | 'e2' | 'e3' | 'e4'
+export type ModuleId = 'f1' | 'f2' | 'f3' | 'f4' | 'm1' | 'm2' | 'm3' | 'm4' | 'm5' | 'm6' | 'm7' | 'e1' | 'e2' | 'e3' | 'e4' | 'e5'
 
 export interface Preset {
   label: string

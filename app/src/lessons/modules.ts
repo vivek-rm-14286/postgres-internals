@@ -41,6 +41,7 @@ export const MODULES: ModuleInfo[] = [
   { id: 'e2', track: 'ecosystem', code: 'E2', n: 13, title: 'Time-Series with TimescaleDB', short: 'TimescaleDB', blurb: 'Hypertables and chunks, time_bucket and gap filling, continuous aggregates, columnar compression and retention.' },
   { id: 'e3', track: 'ecosystem', code: 'E3', n: 14, title: 'Distributed PostgreSQL', short: 'Distributed', blurb: 'Why and how to distribute: sharding with Citus, distributed query execution and transactions, distributed SQL, multi-master and HA clusters.' },
   { id: 'e4', track: 'ecosystem', code: 'E4', n: 15, title: 'Spatial Data with PostGIS', short: 'PostGIS', blurb: 'Geometry and geography, coordinate systems, spatial indexes, nearest-neighbour search and the spatial queries maps are built on.' },
+  { id: 'e5', track: 'ecosystem', code: 'E5', n: 16, title: 'Distributed Database Theory', short: 'Distributed theory', blurb: 'The theory under every distributed database: architectures, fragmentation and replication, commit and consensus protocols, distributed query processing and operating a cluster.' },
 ]
 
 export const moduleById = (id: ModuleId) => MODULES.find((m) => m.id === id)!

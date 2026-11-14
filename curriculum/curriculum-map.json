@@ -8164,6 +8164,366 @@
      ]
     }
    ]
+  },
+  {
+   "id": "e5",
+   "track": "ecosystem",
+   "code": "E5",
+   "title": "Distributed Database Theory",
+   "summary": "The theory under every distributed database: architectures, fragmentation and replication, commit and consensus protocols, distributed query processing and operating a cluster.",
+   "lessons": [
+    {
+     "order": 1,
+     "slug": "architectures",
+     "title": "Architectures and classification",
+     "tldr": "A **distributed database** is a set of logically related databases spread over a network, and its architecture is defined by what the nodes share: memory, disks, or nothing at all. The classification predicts where a system will hit its limit, and the **transparencies** it provides decide how much of the distribution your application has to know about.",
+     "visualizer": {
+      "title": "What nodes share, what applications see",
+      "interaction": "Switch architectures and add nodes to see what must stay coordinated. Then climb the transparency ladder, and compare one record across data-model families."
+     },
+     "playground": {
+      "extensions": [],
+      "presets": [
+       {
+        "label": "Federation: wrapper, server, mapping, table",
+        "lookFor": "The wrapper names the code that talks to a source, the server says where the source is, the user mapping says who to log in as, and the foreign table is the export schema seen locally. `handler` is `-` because this wrapper has no code behind it yet."
+       },
+       {
+        "label": "A wrapper without a handler",
+        "lookFor": "A foreign table is only metadata. Reading it needs a **handler**: the C functions that plan and fetch remote rows. `postgres_fdw` and `file_fdw` ship one; this catalog-only wrapper does not, so the scan errors out."
+       },
+       {
+        "label": "Fragmentation transparency with a view",
+        "lookFor": "The query names only `orders`. The plan shows the system replacing it by both fragments (an Append over `eu.orders` and `us.orders`): that substitution is exactly what fragmentation transparency hides."
+       },
+       {
+        "label": "Localization: a predicate that rules out a fragment",
+        "lookFor": "Each fragment carries a CHECK constraint on `region`. The planner proves the US fragment cannot contain `region = 'EU'` rows and drops that branch: the plan is a single scan, and the US site is never asked. This is **data localization** at its simplest."
+       },
+       {
+        "label": "Replication transparency",
+        "lookFor": "The same query returns the same answer from either copy. Routing a read to a replica, without the query changing, is what replication transparency means."
+       },
+       {
+        "label": "Data model families inside PostgreSQL",
+        "lookFor": "Four shapes of the same data. Each family optimises one access path: lookup by key, read one aggregate, slice one partition in order, follow edges. A distributed system picks its **partition key** from that shape."
+       }
+      ]
+     },
+     "production": {
+      "title": "Choosing an architecture for a growing order system",
+      "problem": "The team proposed three different \"distributed\" projects at once: a bigger server, a shared-storage cluster and a sharded cluster, plus direct connections from the app to the acquired billing databases. Nobody could say which problem each one solved.",
+      "outcome": "Each workload got the architecture its bottleneck called for. Order writes scale by adding nodes, reporting reads the acquired systems without owning them, and the application code did not change shape."
+     },
+     "pitfalls": [
+      {
+       "title": "Expecting a federation to behave like one database",
+       "fix": "Treat foreign tables as read models. Check with `EXPLAIN VERBOSE` which clauses become remote SQL, and never rely on atomic commits across sources."
+      },
+      {
+       "title": "Shared-disk is not shared-nothing",
+       "fix": "For write scaling, split the data so each node owns a part (shared-nothing). Keep shared storage for availability and read scaling."
+      },
+      {
+       "title": "Picking a family by the first query",
+       "fix": "List the access paths and transaction boundaries first. If joins and multi-row transactions matter, choose a relational or distributed SQL system and pick the partition key from the most common transaction."
+      }
+     ],
+     "keyPointers": [
+      "Architecture = what nodes share: **shared-memory** (memory + disks), **shared-disk** (disks), **shared-nothing** (only the network). Federated systems join **autonomous** databases through export schemas.",
+      "Classify any system along **distribution**, **heterogeneity** and **autonomy**. A federation is high on all three, a distributed SQL cluster is tightly integrated and homogeneous.",
+      "Transparencies, weakest to strongest: **location** (no site names), **replication** (no copy names), **fragmentation** (only global names), then **failure** transparency through atomic commit and failover.",
+      "NoSQL families trade query flexibility for a fast access path: key-value, document, wide-column, graph. Distributed SQL keeps SQL and ACID on shared-nothing; see [why distribute](/e3/why-distribute) and [foreign data wrappers](/m6/fdw)."
+     ]
+    },
+    {
+     "order": 2,
+     "slug": "fragmentation-replication",
+     "title": "Fragmentation, allocation and replication",
+     "tldr": "**Fragmentation** splits a relation into pieces by rows, by columns or both, **allocation** decides which site stores each piece, and **replication** keeps more than one copy of a piece. Three rules (completeness, reconstruction, disjointness) keep a fragmented relation equal to the original, and the placement scheme decides how much data moves when nodes come and go.",
+     "visualizer": {
+      "title": "Fragment, place and copy",
+      "interaction": "Pick a fragmentation scheme and switch fragments off to break the rules. Then add nodes to a hash ring and compare keys moved, and step through four replication modes."
+     },
+     "playground": {
+      "extensions": [],
+      "presets": [
+       {
+        "label": "Horizontal fragments and completeness",
+        "lookFor": "Each partition is a horizontal fragment defined by a predicate on `region`. With no fragment for LATAM the insert fails; the DEFAULT partition is the \"none of the above\" minterm that makes the set complete."
+       },
+       {
+        "label": "Check disjointness and reconstruction",
+        "lookFor": "The first query returns no rows and both reconstruction counts are 0: the fragments are disjoint and their union is exactly the relation. The gold table duplicates 428 customers that already live in a region fragment."
+       },
+       {
+        "label": "Vertical fragmentation, with and without the key",
+        "lookFor": "Both fragments repeat the primary key, so the join rebuilds every row (`lost_rows` = 0). Drop the key and 3,000 rows become 3,000 × 3,000 = 9,000,000 candidate pairs (9,006,001 if the first preset added a 3,001st customer). The last query shows how much narrower each fragment's rows are than the whole row."
+       },
+       {
+        "label": "Derived fragmentation follows the foreign key",
+        "lookFor": "Orders are placed by their owner's fragment, so every EU order has its customer in the EU fragment (0 orphans). Customer 1 is in US, so an order tagged EU violates the foreign key: integrity is what makes derived fragmentation correct."
+       },
+       {
+        "label": "A hash ring in SQL vs hash mod N",
+        "lookFor": "The hash function and token formula match the visualizer exactly, so the counts agree: with 16 vnodes the ring moves 3,006 keys, modulo moves 7,986, and the minimum is 2,000. The per-node counts show the remaining imbalance."
+       },
+       {
+        "label": "Snapshot and partial replication",
+        "lookFor": "The snapshot lags by exactly the 1,000 added to 10 EU balances until the refresh. The publication defines a partial, column-filtered replica: subscribers receive only EU rows and four columns."
+       }
+      ]
+     },
+     "production": {
+      "title": "Rebalancing a cache tier without a cold start",
+      "problem": "A trial run in staging showed that switching to `% 12` moves about two thirds of all keys (a key stays only when `h mod 8 = h mod 12`). Those keys miss on their new node at once, and the database behind the cache took the full miss rate.",
+      "outcome": "Each step moves a known number of ranges, so the miss rate during the change is bounded and predictable. The same map later absorbed a node failure by reassigning only that node's ranges."
+     },
+     "pitfalls": [
+      {
+       "title": "Overlapping fragments with no owner",
+       "fix": "Derive fragments from minterms of one predicate set, or treat the extra copy as a replica with a defined refresh path (a materialized view, a publication), never as a second source of truth."
+      },
+      {
+       "title": "Vertical split without the key",
+       "fix": "Repeat the full primary key in each vertical fragment and declare it as the key there too."
+      },
+      {
+       "title": "Modulo placement on a growing cluster",
+       "fix": "Place keys with a ring and virtual nodes, or with many fixed ranges mapped to nodes, so growth moves the minimum."
+      },
+      {
+       "title": "Asynchronous replicas treated as backups of every commit",
+       "fix": "Use synchronous replication for data that must survive a failover, and measure the lag you accept elsewhere."
+      }
+     ],
+     "keyPointers": [
+      "Correctness rules: **completeness** (every item in some fragment), **reconstruction** (union for horizontal, join on the key for vertical), **disjointness** (stored once; vertical fragments repeat only the key).",
+      "**Derived horizontal fragmentation** places member rows with their owner: orders_i = orders ⋉ customers_i. The foreign key keeps it complete and disjoint, and makes joins on the key local.",
+      "Allocation is partitioned, partially replicated or fully replicated. Replication is **synchronous** (no acknowledged loss, slower commits) or **asynchronous** (fast, loses the lag on failover); active-active adds write conflicts.",
+      "**Consistent hashing** moves about 1/(N+1) of keys when a node joins; modulo moves about N/(N+1). **Virtual nodes** even out the load; **fixed ranges** decouple partitioning from placement, as Citus shards do in [sharding with Citus](/e3/sharding-citus).",
+      "In PostgreSQL, fragments are [partitions](/m7/partitioning), and replicas come from [streaming](/m7/streaming-replication) or [logical replication](/m7/logical-replication)."
+     ]
+    },
+    {
+     "order": 3,
+     "slug": "commit-and-consensus",
+     "title": "Distributed transactions and consensus",
+     "tldr": "Nodes that must agree, on a commit decision, a lock holder or the order of writes, use **atomic commit** (2PC, 3PC), **consensus** (Paxos, Raft), **timestamp or optimistic concurrency control**, and **global deadlock detection**. Each one buys correctness with a different weakness: 2PC blocks, 3PC breaks under partitions, consensus needs a majority, and leases need fencing tokens.",
+     "visualizer": {
+      "title": "Agreement under failure",
+      "interaction": "Crash the coordinator or split the network in 2PC and 3PC. Duel two Paxos proposers, run schedules through three concurrency controls, union two wait-for graphs, and pause a lock holder."
+     },
+     "playground": {
+      "extensions": [],
+      "presets": [
+       {
+        "label": "2PC: the uncertain participant",
+        "lookFor": "Between PREPARE and the decision, each prepared transaction keeps its locks although no session owns it any more (`pid` is NULL in `pg_locks`), and NOWAIT reports the locked row instead of waiting. A participant alone cannot tell commit from abort: that is the window in which 2PC blocks."
+       },
+       {
+        "label": "3PC termination rule as a query",
+        "lookFor": "3PC does not block on crashes: an uncertain group may abort because commit always passes through pre-commit first. The last row is the trap: if P1 sat in pre-commit on the other side of a partition, it would commit while this group aborts. 2PC blocks instead."
+       },
+       {
+        "label": "Paxos with five acceptors",
+        "lookFor": "A reached only 2 of 5 acceptors, so nothing was chosen. B's prepare(2) collects 5 promises, and the reply reports `(1, x)`: B must propose \"x\", not its own \"y\". After `accept(2, 'x')` the view shows x chosen by 5 acceptors."
+       },
+       {
+        "label": "Duelling proposers",
+        "lookFor": "Every prepare wins all 5 promises, and every accept that follows arrives after a higher prepare, so it is accepted by 0 acceptors. Nothing is ever chosen. Safety holds; progress needs a single leader."
+       },
+       {
+        "label": "Lock service and fencing tokens",
+        "lookFor": "The token is a monotonic number issued with each grant. The resource keeps the highest token it has seen, so the paused holder's late write with 33 is refused and client 2's data stays."
+       },
+       {
+        "label": "Timestamp ordering with the Thomas write rule",
+        "lookFor": "A late write that only conflicts with a newer write can be skipped under the Thomas rule. A late write after a newer read (`w2(y)` after `r3(y)`) and a late read (`r1(x)`) must still abort."
+       },
+       {
+        "label": "A global wait-for graph",
+        "lookFor": "Neither worker has a cycle on its own. The union contains D1 → D2 → D1, and the youngest member, D2, is the victim. D3 waits too but is not on the cycle, so it simply waits for D1."
+       }
+      ]
+     },
+     "production": {
+      "title": "Stuck shards after a coordinator crash",
+      "problem": "A coordinator node was killed during a deploy while 40 transfers sat between PREPARE and COMMIT PREPARED. On the workers those rows stayed locked, and every order for those SKUs waited. Some engineers wanted \"three-phase commit\" to stop this from happening.",
+      "outcome": "After a crash, in-doubt transfers resolve as soon as the coordinator is back, and callers see a timeout error within 2 s instead of hanging. The blocking window shrank to the coordinator's restart time."
+     },
+     "pitfalls": [
+      {
+       "title": "Reaching for three-phase commit",
+       "fix": "Keep 2PC and make the coordinator highly available instead: log the decision durably, replicate it with consensus, and run recovery on start-up."
+      },
+      {
+       "title": "Treating a lease as a lock",
+       "fix": "Issue a monotonically increasing fencing token with every grant and have the resource reject writes with a token lower than the highest it has seen."
+      },
+      {
+       "title": "Local deadlock detection in a cluster",
+       "fix": "Run a global detector that unions wait edges (Citus does, after `distributed_deadlock_detection_factor` × `deadlock_timeout`), and set `lock_timeout` as a backstop."
+      },
+      {
+       "title": "Livelock from duelling proposers",
+       "fix": "Elect one distinguished proposer with randomized timeouts, as Raft does, and let others forward to it. Prefer a proven implementation (etcd, a Raft library) over writing one."
+      }
+     ],
+     "keyPointers": [
+      "**2PC** blocks when the coordinator dies after the votes: an uncertain participant can neither commit nor abort. **3PC** adds a committable pre-commit state, which removes blocking for crashes but breaks atomicity under partitions.",
+      "**Paxos**: prepare(n) → promises plus the highest accepted proposal; accept(n, v) where v is that proposal's value if any. A majority makes a value chosen; a single leader makes progress. **Raft** builds the same guarantee around terms and one leader.",
+      "**Basic TO** aborts any operation that arrives after a conflicting one with a larger timestamp; the **Thomas write rule** skips obsolete writes instead. **Optimistic** schedulers validate at commit.",
+      "A distributed deadlock is a cycle in the **union** of local wait-for graphs; detectors typically cancel the youngest transaction on it and must avoid phantom cycles. Leases need **fencing tokens**.",
+      "PostgreSQL pieces: [two-phase commit and HLC](/e3/distributed-transactions), [Raft in distributed SQL](/e3/distributed-sql-multimaster), [local deadlocks](/m5/lwlocks-deadlocks), [row locks and SKIP LOCKED](/m5/row-locks-skip-locked)."
+     ]
+    },
+    {
+     "order": 4,
+     "slug": "distributed-query-processing",
+     "title": "Distributed query processing",
+     "tldr": "A distributed query is **decomposed** into relational algebra, **localized** onto the fragments that hold the data, reduced by removing fragments that cannot match, and then optimized for the bytes it sends over the network. The network is the dominant cost, so pruning, pushdown, semijoins and co-located joins exist to move fewer rows between sites.",
+     "visualizer": {
+      "title": "From a global query to a cheap distributed plan",
+      "interaction": "Step through decomposition, localization and reduction while the shipped-row count falls. Then tune a semijoin until it pays, and compare co-located, broadcast and repartition joins."
+     },
+     "playground": {
+      "extensions": [],
+      "presets": [
+       {
+        "label": "Localization: partition pruning",
+        "lookFor": "With pruning the plan touches only `orders_eu`: the planner proved the other fragments contradict `region = 'EU'`. With pruning off, every fragment is scanned and filtered. That is the reduction step of localization."
+       },
+       {
+        "label": "Pruning at run time",
+        "lookFor": "A generic plan cannot know the region at planning time, so it keeps all three fragments and prunes when the executor starts: `Subplans Removed: 2`. Distributed routers do the same with parameters."
+       },
+       {
+        "label": "Join reduction: co-located fragment pairs",
+        "lookFor": "First the planner appends all fragments and joins once. With partitionwise join it joins `customers_eu` with `orders_eu`, and so on: the join is distributed over the union and only matching pairs remain, the plan shape of a co-located distributed join."
+       },
+       {
+        "label": "Aggregate pushdown",
+        "lookFor": "Grouping by the partition key aggregates each fragment completely on its own. Grouping by another column needs **Partial** aggregates per fragment and a **Finalize** step on top: the two-phase aggregation that distributed engines push to their workers."
+       },
+       {
+        "label": "Does a semijoin pay?",
+        "lookFor": "Plug the numbers into size(π_A S) + size(R ⋉ S) < size(R): 1,712 + 69,621 bytes against 487,997, so the semijoin ships about 15% of the bytes. The plan shows the same operator inside one node: a **Hash Semi Join**."
+       },
+       {
+        "label": "A bit-array filter instead of the keys",
+        "lookFor": "With 428 keys in only 64 bits every bit is set, so all 12,000 orders pass and 10,288 are false positives. With 65,536 bits (8 kB) 1,768 pass: the 1,712 true matches plus 56 false positives. The filter over-approximates: it never drops a real match."
+       },
+       {
+        "label": "Broadcast vs repartition, in bytes",
+        "lookFor": "Broadcasting the small table costs small × (N − 1). If the big table is already split on the join key, repartitioning only the small one is cheaper; repartitioning both is the expensive fallback. Co-location moves nothing."
+       }
+      ]
+     },
+     "production": {
+      "title": "A dashboard query that shipped a whole table",
+      "problem": "A dashboard joining orders to regions took 40 s. EXPLAIN showed every worker streaming all its order rows to the coordinator, because the join partner was not available on the workers.",
+      "outcome": "Each worker now returns one partial row per region instead of every order. The bytes crossing the network fall from the size of a week of orders to a few rows per shard, and the dashboard renders in under a second."
+     },
+     "pitfalls": [
+      {
+       "title": "A filter the planner cannot use for pruning",
+       "fix": "Compare the partition key itself with a constant or a parameter, and check the plan for the pruned fragment list."
+      },
+      {
+       "title": "Semijoins when almost everything matches",
+       "fix": "Estimate the match fraction first. Use a bit-array (Bloom) filter when the key list itself is large."
+      },
+      {
+       "title": "Joining on a non-distribution column",
+       "fix": "Distribute related tables on the same key and include it in the join, or make the small side a replicated reference table."
+      },
+      {
+       "title": "Aggregate pushdown with high-cardinality groups",
+       "fix": "Group by the distribution key so each node finishes its groups locally, or pre-aggregate on a coarser key."
+      }
+     ],
+     "keyPointers": [
+      "**Decomposition** (normalize, analyze, eliminate redundancy, rewrite) produces an algebra tree on global relations, without using distribution information.",
+      "**Localization** replaces each relation by the union (horizontal) or join (vertical) of its fragments, then **reduces**: fragments contradicting a selection go, and joins shrink to matching fragment pairs. In PostgreSQL this is [partition pruning](/m7/partitioning) and partitionwise join.",
+      "A **semijoin** pays iff size(π_A S) + size(R ⋉ S) < size(R). A bit-array filter shrinks the key list at the cost of false positives.",
+      "Join strategies by bytes moved: **co-located** 0, **broadcast** small × (N − 1), **repartition** (big + small) × (N − 1) / N. Push filters and partial aggregates to the data. See [distributed queries in Citus](/e3/distributed-queries)."
+     ]
+    },
+    {
+     "order": 5,
+     "slug": "operating-distributed",
+     "title": "Operating distributed databases",
+     "tldr": "Running a distributed database means detecting failures without false alarms, surviving network partitions without two leaders, catching nodes up, routing and rebalancing data, securing node-to-node traffic, and keeping data in the regions where it may live. Each of these is a place where a cluster can lose acknowledged data or availability, so each has a mechanism: accrual failure detectors, majority quorums with terms, log-position catch-up, routing tables, mutual TLS and geo-partitioning.",
+     "visualizer": {
+      "title": "Keeping a cluster healthy",
+      "interaction": "Tune heartbeat jitter and compare phi with a fixed timeout. Split five nodes with and without a quorum, reorder pg_hba.conf lines, and move an EU user's replicas between regions."
+     },
+     "playground": {
+      "extensions": [],
+      "presets": [
+       {
+        "label": "Heartbeat statistics and phi",
+        "lookFor": "A silence near the mean gives a low φ. Each extra standard deviation of silence pushes φ up steeply, and φ is a direct probability: φ = 8 means a 10⁻⁸ chance that a heartbeat is still coming."
+       },
+       {
+        "label": "Fixed timeout vs phi on real history",
+        "lookFor": "Every gap here was followed by a heartbeat, so every alarm is false. The 300 ms hiccup trips both fixed timeouts; φ = 8 trips too, because the hiccup is far outside normal jitter. After the crash, φ = 8 fires after 192 ms of silence, a point set by the measured mean and spread: double the jitter and it moves out with it, while a fixed timeout stays where it was."
+       },
+       {
+        "label": "Terms fence a stale leader",
+        "lookFor": "The term is the cluster's fencing token. Once term 2 exists, writes stamped with term 1 are refused, so a leader that was cut off cannot add history after the split. Only the 3-node side may elect a leader at all."
+       },
+       {
+        "label": "Catch-up is measured in log bytes",
+        "lookFor": "A rejoining node does not need a full copy, only the log after the last position it applied. The distance is a byte count (`pg_wal_lsn_diff`); if the primary has already recycled that WAL, the node must be rebuilt from a fresh copy."
+       },
+       {
+        "label": "Routing table and rebalancing",
+        "lookFor": "The router maps hash ranges to nodes, so rebalancing is a metadata change plus copying the moved shards. Moving 3 of 8 shards moves the keys in those shards and nothing else: node-3 receives 3,310 of the 9,000 accounts (36.8%), close to the 3/8 of the hash space it took over."
+       },
+       {
+        "label": "TLS and authentication settings",
+        "lookFor": "`pg_hba_file_rules` lists the rules in the order they are tried. A cluster replaces `host` lines for its peers with `hostssl` lines that demand `cert` (or `clientcert=verify-full`), raises `ssl_min_protocol_version` if TLS 1.2 is not enough, and uses `scram-sha-256` for passwords."
+       },
+       {
+        "label": "Geo-partitioning and a residency check",
+        "lookFor": "Every row sits in the partition for its home region, so no EU row is stored outside the EU site (0 violations). An EU query names the region and is routed to one partition only."
+       }
+      ]
+     },
+     "production": {
+      "title": "False failovers from a fixed timeout",
+      "problem": "Twice a week a spike crossed the timeout, the node in the slow region was declared dead, a leader election ran, and clients saw a burst of errors although no machine had failed.",
+      "outcome": "Spikes on the backup link no longer convicted healthy nodes, while a real crash is still detected within a couple of seconds. Every peer connection now requires TLS and a client certificate."
+     },
+     "pitfalls": [
+      {
+       "title": "Even-sized clusters and two-way splits",
+       "fix": "Run an odd number of voters (3, 5) across failure domains, or add a witness/arbiter in a third location. Never disable the quorum check to \"stay available\"."
+      },
+      {
+       "title": "Timeouts tuned on a quiet day",
+       "fix": "Use an accrual detector (phi) over measured inter-arrival times, and set the threshold for the false-suspicion rate you accept."
+      },
+      {
+       "title": "Plain-text peer connections inside the \"private\" network",
+       "fix": "Use `hostssl` lines with `cert` authentication for peers, `sslmode=verify-full` on the client side, and a `hostnossl … reject` line before any broader rule."
+      },
+      {
+       "title": "Residency by convention",
+       "fix": "Partition by a region column and pin each partition's replicas and backups to its region (a YugabyteDB tablespace, CockroachDB `REGIONAL BY ROW`), then check placement with a query."
+      }
+     ],
+     "keyPointers": [
+      "Failure detectors trade speed for false alarms. **φ = −log10(P(next heartbeat still coming))** adapts to the measured jitter; Cassandra convicts at φ = 8 by default.",
+      "A partition looks like a crash from both sides. A **majority quorum** plus **terms** as fencing tokens keeps one leader; without them you get split brain and lost acknowledged writes. See [HA clusters](/e3/ha-clusters).",
+      "A returning node replays the log from its last applied position; if that log is gone it must be rebuilt. Routing tables map hash ranges to nodes, so rebalancing moves whole ranges ([sharding](/e3/sharding-citus)).",
+      "Node-to-node security: `hostssl` + `cert` (or `clientcert=verify-full`), `sslmode=verify-full`, `ssl_min_protocol_version` (default TLSv1.2), `scram-sha-256` for passwords.",
+      "Data residency is a placement rule: list-partition by region and pin each partition's replicas to that region; replicate only small reference data everywhere."
+     ]
+    }
+   ]
   }
  ]
 }

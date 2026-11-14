@@ -9,14 +9,14 @@ WebAssembly). There is no backend; every query stays in the reader's tab. It wor
 
 ## What's inside
 
-106 lessons in three tracks, each in the same six beats: **TL;DR → interactive visualizer → live playground → production
+111 lessons in three tracks, each in the same six beats: **TL;DR → interactive visualizer → live playground → production
 example → pitfalls → key pointers**.
 
 | Track | Modules |
 |---|---|
 | **Fundamentals** | F1 Getting started with SQL · F2 Working with data (text, numbers, dates, conditionals, casts, JSON, ranges and special types) · F3 Designing a database · F4 Querying & DML (joins, subqueries, CTEs, windows, LATERAL, grouping) · F5 Practical SQL patterns (pagination, upserts, pivots, gaps & islands, hierarchies, search, queues, performance) |
 | **Internals** | I1 Processes & memory · I2 Storage & page layout · I3 Planner & indexes · I4 MVCC & locking · I5 Programmability & extensions · I6 WAL, vacuum, replication & HA |
-| **Ecosystem** | E1 Vector search with pgvector (runs live, including running it fully in the browser) · E2 Time-series with TimescaleDB (including Toolkit hyperfunctions) · E3 Distributed PostgreSQL (Citus, distributed SQL, multi-master, HA clusters) · E4 Spatial data with PostGIS (runs live) |
+| **Ecosystem** | E1 Vector search with pgvector (runs live, including running it fully in the browser) · E2 Time-series with TimescaleDB (including Toolkit hyperfunctions) · E3 Distributed PostgreSQL (Citus, distributed SQL, multi-master, HA clusters) · E4 Spatial data with PostGIS (runs live) · E5 Distributed database theory (architectures, fragmentation and replication, 2PC/3PC, Paxos, timestamp ordering, distributed query processing, operations) |
 
 Plus:
 
