@@ -1,0 +1,12 @@
+{
+  "name": "pg-internals-mcp",
+  "version": "1.0.0",
+  "description": "Set up the pg-internals MCP server (PostgreSQL 18 internals lessons, reference tables and a live PostgreSQL 18 sandbox) in your AI coding tools.",
+  "type": "module",
+  "bin": { "pg-internals-mcp": "mcp/cli.mjs" },
+  "files": ["mcp/cli.mjs", "mcp/lib", "mcp/server.mjs", "mcp/worker.mjs", "mcp/split.mjs", "mcp/data", "mcp/package.json", "mcp/package-lock.json"],
+  "dependencies": { "jsonc-parser": "^3.3.1", "yaml": "^2.9.1" },
+  "engines": { "node": ">=20.11" },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/vivek-rm-14286/postgres-internals.git" }
+}

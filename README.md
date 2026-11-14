@@ -30,6 +30,19 @@ event, lock mode, SQL command, data type, index method, extension, error code an
 (`npm run curriculum-map`): module, then lesson, with the TL;DR, visualizer, playground presets, production example,
 pitfalls and key pointers.
 
+## For AI agents: MCP server
+
+[`mcp/`](mcp) exposes the lessons, the reference tables and a live PostgreSQL 18 sandbox as MCP tools (`search`, `read`,
+`get_lesson`, `lookup_reference`, `run_sql`, …), so any MCP-capable agent can look things up and verify behaviour on a real
+Postgres. Set it up in every AI tool on your machine with one command:
+
+```bash
+npx -y github:vivek-rm-14286/postgres-internals
+```
+
+It detects Claude Code, Claude Desktop, Cursor, VS Code (Copilot), Copilot CLI, OpenCode, pi, Codex, Gemini CLI,
+Windsurf, Zed, Cline, Kiro and Goose, and lets you pick. `… uninstall` removes it again. Details: [`mcp/README.md`](mcp/README.md).
+
 ## Develop
 
 ```bash

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "pg-internals": {
+      "command": "node",
+      "args": ["mcp/server.mjs"]
+    }
+  }
+}
