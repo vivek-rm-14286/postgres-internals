@@ -1,15 +1,17 @@
 # pg-internals MCP server
 
 PostgreSQL 18 for AI agents: the 111 lessons (Fundamentals, Internals, Ecosystem) and 97 graded exercises from
-[Postgres, Visualized](https://vivek-rm-14286.github.io/postgres-internals/), complete reference tables,
+[Postgres, Visualized](https://vivek-rm-14286.github.io/postgres-internals/), a **Production guide** of rules for
+production and scalable services, complete reference tables,
 distilled docs notes, and a **live PostgreSQL 18 sandbox** (PGlite, in-memory) to verify behaviour instead of guessing.
 
 ## Tools
 
 | Tool | What it does |
 |---|---|
-| `search` | Ranked search over lessons, graded exercises, reference rows and docs notes. Returns ids. |
-| `read` | Full text of a search hit: a lesson, an exercise (task, schema, reference solution, dataset setup), a reference row or a note. |
+| `production_guidelines` | The Production guide. No arguments: the checklist, one line per rule by category. With a `category` (queries, schema, indexes, transactions, migrations, connections, vacuum, observability, reliability, security, scaling), a `query` or an `impact`: the matching rules in full (why, the SQL to avoid, the SQL to use, exceptions, lessons). The server's instructions tell agents to call it before writing or reviewing production SQL, schema, migrations or settings. |
+| `search` | Ranked search over production guidelines, lessons, graded exercises, reference rows and docs notes. Returns ids. |
+| `read` | Full text of a search hit: a guideline (`guide:<id>`), a lesson, an exercise (task, schema, reference solution, dataset setup), a reference row or a note. |
 | `list_lessons` / `get_lesson` | The curriculum, and one lesson as markdown: TL;DR, mechanism, runnable SQL with "look for" notes, a production scenario, pitfalls (symptom / why / fix), key pointers. |
 | `lookup_reference` | Filter the reference tables: 410 GUCs, 64 catalogs, 37 system views, 43 stats views, 280 wait events, 12 lock modes, 183 SQL commands, 100 data types, 6 index AMs, 51 extensions, 35 programs, 232 admin functions, 263 SQLSTATEs, limits, glossary, acronyms. |
 | `run_sql` | Run SQL on a named sandbox session. Statements run one by one like psql. Returns tables, EXPLAIN plans, NOTICE/INFO output and SQLSTATE errors. 33 extensions available (plus PostGIS 3.6 with `with_postgis: true`), including `pageinspect`, `pg_visibility`, `pg_walinspect`, `pg_stat_statements`, `pg_trgm` and `vector`. |

@@ -24,6 +24,10 @@ Plus:
 
 - **Cookbook**: 97 graded SQL exercises (beginner → expert) on five realistic datasets. Press *Check* and your result is
   compared with a reference solution on a fresh copy of the data.
+- **Production guide**: recommendations for production and scalable services, grouped by area (queries, schema, indexes,
+  transactions, schema changes, connections, vacuum, observability, reliability, security, scaling). Each rule gives the
+  reason, the pattern to avoid, the pattern to use, and the lesson that shows the mechanism. Also served to AI agents by
+  the MCP server (`production_guidelines`).
 - **Reference**: searchable tables of every configuration parameter, system catalog and view, statistics view, wait event,
   lock mode, SQL command, data type, index method, extension, error code and glossary term.
 
@@ -60,7 +64,7 @@ npm run build          # type-check + static build into app/dist
 npm run smoke          # headless Chromium: every lesson + Cookbook checks (after build)
 ```
 
-Add a Cookbook exercise in `app/src/cookbook/data/<dataset>.ts`. Add a lesson by creating `app/src/lessons/<module>/<slug>.tsx` (module ids in `app/src/lessons/modules.ts`) that exports `lesson: Lesson`
+Add a Cookbook exercise in `app/src/cookbook/data/<dataset>.ts`. Add a Production guide rule in `app/src/guide/data.ts`. Add a lesson by creating `app/src/lessons/<module>/<slug>.tsx` (module ids in `app/src/lessons/modules.ts`) that exports `lesson: Lesson`
 (contract in [`app/src/lesson/types.ts`](app/src/lesson/types.ts)). It is registered automatically.
 
 ## Deploy to GitHub Pages

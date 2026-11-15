@@ -173,6 +173,25 @@ and distributed PostgreSQL from 20 given links. Work in phases, with worker and 
 - **Interruptions.** A usage limit stopped seven agents mid-run; all resumed with their work intact. Two reviewers'
   edits were refused because their original task was review-only; fresh agents applied those findings.
 
+## Round 7: text-validation constraints and the Production guide
+
+- **Constraints lesson.** A reader's example (named CHECKs for email length and format, name not blank and length)
+  showed that text validation was not covered. Added an example and a pitfall: `trim()` strips only spaces, so a name
+  of tabs passes a "not blank" check; the email pattern only checks shape; a CHECK cannot see duplicates.
+- **Production guide.** Production advice existed in every lesson (production example, pitfalls) but nowhere in one
+  place. Added a section of 93 rules in 11 areas (queries, schema, indexes, transactions, schema changes, connections,
+  vacuum, observability, reliability, security, scaling). Each rule: the instruction, why, the pattern to avoid, the
+  pattern to use, exceptions and the lessons that show the mechanism (`app/src/guide/`). On the site it is `/guide`,
+  filterable and in site search.
+- **For agents.** MCP server 1.3.0: `production_guidelines` returns the checklist or full rules by category, keyword
+  or impact; rules are in `search` and `read` (`guide:<id>`); the server instructions tell agents to apply the rules
+  before writing production SQL, schema, migrations or settings.
+- **Verification.** The author ran the SQL on a real PostgreSQL 18 and left out advice it could not verify (memory
+  per connection, pool-size formulas). An independent reviewer then ran 77 `prefer` blocks and made 22 corrections:
+  an avoid/prefer pair that did not teach its rule, a restore recipe that skipped the restore, Patroni fencing
+  described wrongly, a pg_hba reject line that covered IPv4 only, "never blocks" for a change that takes brief
+  locks, and 9 links to lessons that did not cover the rule. It added 3 rules.
+
 ## Decisions worth remembering
 
 - **Primary sources win.** Blogs and tutorials supply teaching angles. Their errors become "common misconception" pitfalls.

@@ -66,6 +66,16 @@ for (const l of lessons) {
   })
 }
 // Cookbook: one exercise per dataset × level, end to end in the browser (solution → Check → "Correct")
+if (!filter || filter === 'guide') {
+  await check('/guide', async (p) => {
+    await p.getByText('Recommendations for production and scalable services').waitFor({ timeout: 10000 })
+    if ((await p.locator('article[id^="rule-"]').count()) < 50) throw new Error('fewer than 50 rules rendered')
+    await p.fill('[data-testid=guide-filter]', 'pagination')
+    await p.waitForTimeout(300)
+    const n = await p.locator('article[id^="rule-"]').count()
+    if (n < 1 || n > 20) throw new Error(`filter "pagination" shows ${n} rules`)
+  })
+}
 if (!filter || filter === 'cookbook') {
   await check('/cookbook', async (p) => { await p.getByText('Practise SQL, beginner to expert').waitFor({ timeout: 10000 }) })
   const seen = new Set()

@@ -9,6 +9,7 @@ import { Layout } from './app/Layout'
 import { Home } from './app/Home'
 import { lessonBySlug, loadLesson, type LessonMeta } from './lessons'
 const Cookbook = lazy(() => import('./cookbook/Cookbook').then((m) => ({ default: m.Cookbook })))
+const Guide = lazy(() => import('./guide/Guide').then((m) => ({ default: m.Guide })))
 const Reference = lazy(() => import('./reference/Reference').then((m) => ({ default: m.Reference })))
 
 const lessonComponents = new Map<string, ComponentType>()
@@ -44,6 +45,7 @@ container.__root.render(
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/cookbook/*" element={<Suspense fallback={<p className="px-8 pt-10 text-sm text-muted">Loading cookbook…</p>}><Cookbook /></Suspense>} />
+            <Route path="/guide" element={<Suspense fallback={<p className="px-8 pt-10 text-sm text-muted">Loading the production guide…</p>}><Guide /></Suspense>} />
             <Route path="/reference/*" element={<Suspense fallback={<p className="px-8 pt-10 text-sm text-muted">Loading reference…</p>}><Reference /></Suspense>} />
             <Route path="/:module/:slug" element={<LessonRoute />} />
             <Route path="*" element={<Navigate to="/" replace />} />

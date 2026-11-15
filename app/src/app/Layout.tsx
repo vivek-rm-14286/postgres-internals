@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { BookMarked, Check, ChevronDown, FlaskConical, Menu, Monitor, Moon, Search, Sun, X } from 'lucide-react'
+import { BookMarked, Check, ChevronDown, FlaskConical, Menu, Monitor, Moon, Search, ShieldCheck, Sun, X } from 'lucide-react'
 import { LESSONS, TRACKS, modulesIn, lessonsIn, lessonPath } from '../lessons'
 import { useProgress } from './progress'
 import { setThemeMode, useTheme } from './theme'
@@ -56,6 +56,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <Search className="size-4" aria-hidden /> <span className="sr-only sm:not-sr-only">Search</span> <kbd className="hidden font-mono text-[11px] md:inline">{MOD_KEY}K</kbd>
           </button>
           <Link to="/cookbook" className="hidden items-center gap-1.5 text-sm text-muted hover:text-ink sm:flex"><FlaskConical className="size-4" /> Cookbook</Link>
+          <Link to="/guide" className="hidden items-center gap-1.5 text-sm text-muted hover:text-ink lg:flex"><ShieldCheck className="size-4" /> Production guide</Link>
           <Link to="/reference" className="hidden items-center gap-1.5 text-sm text-muted hover:text-ink sm:flex"><BookMarked className="size-4" /> Reference</Link>
           <div className="hidden items-center gap-2 md:flex" title={`${pct}% of lessons complete`}>
             <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-2"><div className="h-full bg-ok transition-all" style={{ width: `${pct}%` }} /></div>
@@ -89,6 +90,7 @@ function Sidebar() {
       <div className="mb-3 grid grid-cols-2 gap-2">
         <Link to="/cookbook" className="flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-2 text-[13px] font-semibold hover:border-accent"><FlaskConical className="size-4 text-accent" /> Cookbook</Link>
         <Link to="/reference" className="flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-2 text-[13px] font-semibold hover:border-accent"><BookMarked className="size-4 text-accent" /> Reference</Link>
+        <Link to="/guide" className="col-span-2 flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-2 text-[13px] font-semibold hover:border-accent"><ShieldCheck className="size-4 text-accent" /> Production guide</Link>
       </div>
       {TRACKS.map((t) => (
         <div key={t.id} className="mb-3">

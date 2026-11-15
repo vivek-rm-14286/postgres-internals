@@ -24,7 +24,7 @@ const fail = (l, msg) => { failures++; console.log(`  ✗ ${l.module}/${l.slug}:
 const slugs = new Set()
 const { EXERCISES } = await server.ssrLoadModule('/src/cookbook/registry.ts')
 const refData = (await import('../src/reference/data.json', { with: { type: 'json' } })).default
-const validTargets = new Set([...LESSONS.map((x) => `/${x.module}/${x.slug}`), '/cookbook', '/reference', ...EXERCISES.map((e) => `/cookbook/${e.id}`), ...refData.map((t) => `/reference/${t.id}`)])
+const validTargets = new Set([...LESSONS.map((x) => `/${x.module}/${x.slug}`), '/cookbook', '/reference', '/guide', ...EXERCISES.map((e) => `/cookbook/${e.id}`), ...refData.map((t) => `/reference/${t.id}`)])
 
 for (const l of LESSONS) {
   if (filter && !l.slug.includes(filter) && l.module !== filter) continue
@@ -60,6 +60,29 @@ for (const l of LESSONS) {
   }
   await db.close()
   console.log(`  ✓ ${l.module}/${l.slug} (${l.playground.presets.length} presets, ${Date.now() - t0} ms)`)
+}
+
+// ---- Production guide: every rule complete, ids unique, every link resolves
+if (!filter) {
+  const { GUIDE_RULES, GUIDE_CATEGORIES } = await server.ssrLoadModule('/src/guide/data.ts')
+  const gfail = (r, msg) => { failures++; console.log(`  ✗ guide/${r.id ?? '?'}: ${msg}`) }
+  const cats = new Set(GUIDE_CATEGORIES.map((c) => c.id))
+  const impacts = new Set(['correctness', 'performance', 'availability', 'security', 'operability'])
+  const ids = new Set()
+  for (const r of GUIDE_RULES) {
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(r.id ?? '') || ids.has(r.id)) gfail(r, 'id missing, not kebab-case, or duplicated'); ids.add(r.id)
+    if (!cats.has(r.category)) gfail(r, `unknown category ${r.category}`)
+    if (!impacts.has(r.impact)) gfail(r, `unknown impact ${r.impact}`)
+    if (!r.rule?.trim() || /\.$/.test(r.rule.trim()) || !r.why?.trim()) gfail(r, 'rule (no trailing period) and why are required')
+    if (!r.avoid?.trim() && !r.prefer?.trim()) gfail(r, 'needs avoid or prefer')
+    if (!r.learn?.length) gfail(r, 'needs at least one learn link')
+    for (const p of r.learn ?? []) if (!validTargets.has(p)) gfail(r, `broken learn link ${p}`)
+    const text = JSON.stringify(r)
+    for (const m of text.matchAll(/\]\((\/[^)\s]*)\)/g)) if (!validTargets.has(m[1])) gfail(r, `broken internal link ${m[1]}`)
+    if (/lorem ipsum|coming soon|\bTODO\b|\bTBD\b|PGlite|the docs\b|documented|according to/i.test(text)) gfail(r, 'placeholder or provenance wording')
+  }
+  for (const c of GUIDE_CATEGORIES) if (!GUIDE_RULES.some((r) => r.category === c.id)) { failures++; console.log(`  ✗ guide: category ${c.id} has no rules`) }
+  console.log(`  ✓ production guide (${GUIDE_RULES.length} rules in ${GUIDE_CATEGORIES.length} categories)`)
 }
 
 await server.close()

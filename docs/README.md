@@ -27,4 +27,5 @@
 | `sources/third-party-copies/` | Local-only copies of third-party pages (git-ignored) |
 | `tools/crawl/` | Headless-Chromium crawlers |
 | `tools/pdf-audit/` | PDF text extraction and the Reference cross-check |
+| `app/src/guide/` | The Production guide: rules for production and scalable services (also exported to the MCP server) |
 | `app/scripts/` | check-lessons, check-cookbook, smoke, mobile-audit, screenshot, manifest, MCP export |

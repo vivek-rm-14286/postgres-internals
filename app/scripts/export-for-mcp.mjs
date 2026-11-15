@@ -1,6 +1,7 @@
 // Exports the site's content as JSON for the pg-internals MCP server (../mcp/data/).
 //   lessons.json    every lesson's text fields + playground (setup, presets) — no React components
 //   reference.json  the Reference tables
+//   guide.json      the Production guide: categories and rules (rule, why, avoid, prefer, unless, learn)
 //   notes.json      searchable knowledge chunks: per-module lesson plans + distilled PostgreSQL 18 docs notes
 // usage: node scripts/export-for-mcp.mjs
 import fs from 'node:fs'
@@ -15,6 +16,7 @@ const server = await createServer({ server: { middlewareMode: true }, appType: '
 const { ALL_LESSONS } = await server.ssrLoadModule('/src/lessons/all.ts')
 const { MODULES, TRACKS } = await server.ssrLoadModule('/src/lessons/modules.ts')
 const { DATASETS, EXERCISES } = await server.ssrLoadModule('/src/cookbook/registry.ts')
+const { GUIDE_CATEGORIES, GUIDE_RULES } = await server.ssrLoadModule('/src/guide/data.ts')
 await server.close()
 
 const lessons = ALL_LESSONS.map((l) => ({
@@ -26,6 +28,7 @@ const lessons = ALL_LESSONS.map((l) => ({
 fs.writeFileSync(path.join(out, 'lessons.json'), JSON.stringify({ tracks: TRACKS, modules: MODULES, lessons }))
 fs.writeFileSync(path.join(out, 'cookbook.json'), JSON.stringify({ datasets: DATASETS, exercises: EXERCISES }))
 fs.copyFileSync(path.join(root, 'app/src/reference/data.json'), path.join(out, 'reference.json'))
+fs.writeFileSync(path.join(out, 'guide.json'), JSON.stringify({ categories: GUIDE_CATEGORIES, rules: GUIDE_RULES }))
 
 // Knowledge chunks, split on ### headings. Working sections (ledgers, lesson-building ideas, integration logs) are dropped.
 const DROP = /^##\s+(coverage ledger|sources read|lesson ideas|lesson & visualizer ideas|tutorial integration|reusable sample schemas|discrepancies)/i
@@ -56,4 +59,4 @@ for (const f of fs.readdirSync(path.join(root, 'curriculum/research')).filter((f
 fs.writeFileSync(path.join(out, 'notes.json'), JSON.stringify(notes))
 
 const kb = (f) => Math.round(fs.statSync(path.join(out, f)).size / 1024) + ' kB'
-console.log(`exercises: ${EXERCISES.length}, lessons: ${lessons.length} (${kb('lessons.json')}), reference tables: ${JSON.parse(fs.readFileSync(path.join(out, 'reference.json'))).length} (${kb('reference.json')}), note chunks: ${notes.length} (${kb('notes.json')})`)
+console.log(`guide rules: ${GUIDE_RULES.length}, exercises: ${EXERCISES.length}, lessons: ${lessons.length} (${kb('lessons.json')}), reference tables: ${JSON.parse(fs.readFileSync(path.join(out, 'reference.json'))).length} (${kb('reference.json')}), note chunks: ${notes.length} (${kb('notes.json')})`)

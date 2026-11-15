@@ -28,6 +28,7 @@ export function Home() {
               {done.size ? 'Continue' : 'Start learning'} <ArrowRight className="size-4" />
             </Link>
             <Link to="/cookbook" className="inline-flex items-center gap-2 rounded-lg border border-line px-5 py-2.5 font-semibold hover:border-accent"><FlaskConical className="size-4" /> Practise in the Cookbook</Link>
+            <Link to="/guide" className="inline-flex items-center gap-2 rounded-lg border border-line px-5 py-2.5 font-semibold hover:border-accent">Production guide</Link>
             <Link to="/reference" className="inline-flex items-center gap-2 rounded-lg border border-line px-5 py-2.5 font-semibold hover:border-accent">Browse the reference</Link>
           </div>
         )}

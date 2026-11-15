@@ -14,6 +14,7 @@ const { tracks: TRACKS = [], modules: MODULES, lessons: LESSONS } = load('lesson
 const { datasets: DATASETS = [], exercises: EXERCISES = [] } = fs.existsSync(path.join(DIR, 'data', 'cookbook.json')) ? load('cookbook.json') : {}
 const REFERENCE = load('reference.json')
 const NOTES = load('notes.json')
+const { categories: GUIDE_CATEGORIES = [], rules: GUIDE_RULES = [] } = fs.existsSync(path.join(DIR, 'data', 'guide.json')) ? load('guide.json') : {}
 const SITE = 'https://vivek-rm-14286.github.io/postgres-internals/'
 
 /* ------------------------------------------------------------------ rendering */
@@ -35,6 +36,23 @@ function lessonMarkdown(l) {
   ].join('\n\n')
 }
 
+const sitePath = (p) => `${SITE}#${p}`
+const guideCategory = (id) => GUIDE_CATEGORIES.find((c) => c.id === id)?.title ?? id
+/** One Production guide rule as markdown: the rule, why, the pattern to avoid and the one to use, exceptions, lessons. */
+function ruleMarkdown(r, heading = '###') {
+  return [
+    `${heading} ${r.rule}`,
+    `id: guide:${r.id} · ${guideCategory(r.category)} · protects: ${r.impact}`,
+    `**Why.** ${r.why}`,
+    r.avoid ? `**Avoid**\n\`\`\`sql\n${r.avoid.trim()}\n\`\`\`` : '',
+    r.prefer ? `**Prefer**\n\`\`\`sql\n${r.prefer.trim()}\n\`\`\`` : '',
+    r.unless ? `**Unless.** ${r.unless}` : '',
+    `Lessons: ${r.learn.map((p) => { const l = LESSONS.find((x) => `/${x.module}/${x.slug}` === p); return l ? `${l.title} (get_lesson ${l.slug})` : sitePath(p) }).join('; ')}`,
+  ].filter(Boolean).join('\n\n')
+}
+const ruleText = (r) => [r.rule, r.why, r.avoid ?? '', r.prefer ?? '', r.unless ?? '', guideCategory(r.category), r.id.replace(/-/g, ' '),
+  ...r.learn.map((p) => LESSONS.find((x) => `/${x.module}/${x.slug}` === p)?.title ?? '')].join('\n')
+
 const lessonText = (l) => [l.title, l.tldr.join(' '), l.visualizer.title, l.visualizer.caption,
   ...l.playground.presets.flatMap((p) => [p.label, p.note ?? '', p.sql]), l.production.title, l.production.problem, l.production.solution,
   ...l.pitfalls.flatMap((p) => [p.title, p.symptom, p.cause, p.fix]), ...l.pointers].join('\n')
@@ -43,6 +61,7 @@ const lessonText = (l) => [l.title, l.tldr.join(' '), l.visualizer.title, l.visu
 
 const tokenize = (s) => s.toLowerCase().match(/[a-z0-9_]+(?:\.[a-z0-9_]+)*/g) ?? []
 const docs = []
+for (const r of GUIDE_RULES) docs.push({ id: `guide:${r.id}`, kind: 'guideline', title: `${r.rule} (production guideline, ${guideCategory(r.category)})`, text: ruleText(r), boost: 1.6 })
 for (const l of LESSONS) docs.push({ id: `lesson:${l.slug}`, kind: 'lesson', title: `${l.title} (lesson ${l.module}/${l.slug})`, text: lessonText(l), boost: 1.4 })
 for (const t of REFERENCE) t.rows.forEach((r, i) => docs.push({ id: `ref:${t.id}:${i}`, kind: 'reference', title: `${r[0]} — ${t.title}`, text: `${t.title}\n` + t.columns.map((c, j) => `${c}: ${r[j] ?? ''}`).join('\n'), boost: 1.2 }))
 for (const e of EXERCISES) docs.push({ id: `exercise:${e.id}`, kind: 'exercise', title: `${e.title.replace(/[*`]/g, '')} (${e.level} exercise, ${e.dataset})`, text: [e.title, e.topic, e.task, e.hint ?? '', e.explanation].join('\n'), boost: 1.1 })
@@ -93,6 +112,7 @@ function snippet(text, query, len = 280) {
 
 function readDoc(id) {
   if (id.startsWith('lesson:')) { const l = LESSONS.find((x) => x.slug === id.slice(7)); return l && lessonMarkdown(l) }
+  if (id.startsWith('guide:')) { const r = GUIDE_RULES.find((x) => x.id === id.slice(6)); return r && ruleMarkdown(r, '#') }
   if (id.startsWith('ref:')) {
     const [, tid, i] = id.split(':'); const t = REFERENCE.find((x) => x.id === tid); const r = t?.rows[+i]
     return r && `# ${r[0]} (${t.title})\n\n` + t.columns.map((c, j) => `- **${c}**: ${r[j] ?? ''}`).join('\n')
@@ -179,14 +199,17 @@ function formatResult(r, maxRows, maxCell = 200) {
 /* ------------------------------------------------------------------ MCP server */
 
 const server = new McpServer(
-  { name: 'pg-internals', version: '1.2.0' },
+  { name: 'pg-internals', version: '1.3.0' },
   {
     instructions:
       `PostgreSQL 18 from fundamentals to internals: ${LESSONS.length} lessons in three tracks (Fundamentals: SQL from first query to production patterns; ` +
       'Internals: storage, MVCC, locking, planner, indexes, WAL, replication, vacuum; Ecosystem: pgvector, TimescaleDB, distributed PostgreSQL), ' +
       `${EXERCISES.length} graded SQL exercises with reference solutions, complete reference ` +
       'tables (every GUC, catalog, view, wait event, lock mode, SQLSTATE, SQL command, data type), distilled docs notes, and a live ' +
-      'PostgreSQL 18 sandbox. Use `search` first, then `read` or `get_lesson`. Use `run_sql` to verify behaviour (EXPLAIN, pageinspect, ' +
+      `PostgreSQL 18 sandbox, plus a Production guide of ${GUIDE_RULES.length} rules for production and scalable services (queries, schema, indexes, ` +
+      'transactions, schema changes, connections, vacuum, observability, reliability, security, scaling). Before you write or review SQL, a schema, ' +
+      'a migration or database configuration meant for production, call `production_guidelines` for the relevant categories and apply the rules; ' +
+      'cite the rule id when you rely on one. Use `search` first for everything else, then `read` or `get_lesson`. Use `run_sql` to verify behaviour (EXPLAIN, pageinspect, ' +
       'pg_locks, xmin/xmax) instead of guessing. The sandbox is a single-backend in-memory PGlite: no replication, no second connection.',
   },
 )
@@ -199,7 +222,7 @@ server.registerTool('search', {
   description: 'Ranked full-text search over lessons, graded SQL exercises (beginner → expert, with reference solutions), reference tables (GUCs, catalogs, views, wait events, lock modes, SQLSTATEs, SQL commands, data types, functions, glossary) and distilled PostgreSQL 18 docs notes. Returns ids for `read`.',
   inputSchema: {
     query: z.string().min(1).describe('Keywords, e.g. "HOT update fillfactor", "autovacuum_vacuum_scale_factor", "40P01", "SIRead"'),
-    kind: z.enum(['all', 'lesson', 'exercise', 'reference', 'docs', 'lesson-plan']).default('all').describe('Restrict to one source kind'),
+    kind: z.enum(['all', 'guideline', 'lesson', 'exercise', 'reference', 'docs', 'lesson-plan']).default('all').describe('Restrict to one source kind'),
     limit: z.number().int().min(1).max(30).default(8),
   },
   annotations: ro,
@@ -211,10 +234,35 @@ server.registerTool('search', {
 
 server.registerTool('read', {
   title: 'Read a search result in full',
-  description: 'Return the full text of a `search` hit by its id (lesson:…, exercise:…, ref:…, note:…).',
+  description: 'Return the full text of a `search` hit by its id (guide:…, lesson:…, exercise:…, ref:…, note:…).',
   inputSchema: { id: z.string().describe('An id returned by search') },
   annotations: ro,
 }, async ({ id }) => text(readDoc(id) ?? `Unknown id "${id}".`))
+
+server.registerTool('production_guidelines', {
+  title: 'Production guidelines for PostgreSQL',
+  description:
+    `Recommendations for production and scalable services (${GUIDE_RULES.length} rules). Each rule: what to do, why (the failure it prevents), the pattern to avoid, ` +
+    'the pattern to use, exceptions, and the lessons that explain the mechanism. Call this before writing or reviewing queries, schema, indexes, migrations, ' +
+    'connection or server settings for a real service. With no arguments it returns the checklist: every rule as one line, grouped by category. ' +
+    `Pass a category (${GUIDE_CATEGORIES.map((c) => `${c.id}: ${c.title}`).join('; ')}) and/or a query to get matching rules in full.`,
+  inputSchema: {
+    category: z.enum(GUIDE_CATEGORIES.length ? GUIDE_CATEGORIES.map((c) => c.id) : ['none']).optional().describe('Return the rules of one category in full'),
+    query: z.string().optional().describe('Keywords; every word must appear in the rule, e.g. "pagination", "lock_timeout", "foreign key index"'),
+    impact: z.enum(['correctness', 'performance', 'availability', 'security', 'operability']).optional().describe('Only rules that mainly protect this'),
+    format: z.enum(['full', 'checklist']).optional().describe('full = rule, why, avoid/prefer SQL, exceptions; checklist = one line per rule. Default: full when category or query is given, otherwise checklist'),
+  },
+  annotations: ro,
+}, async ({ category, query, impact, format }) => {
+  const words = (query ?? '').toLowerCase().split(/\s+/).filter(Boolean)
+  const rules = GUIDE_RULES.filter((r) => (!category || r.category === category) && (!impact || r.impact === impact) && words.every((w) => ruleText(r).toLowerCase().includes(w)))
+  if (!rules.length) return text('No production guideline matches. Call production_guidelines with no arguments for the full checklist, or use search.')
+  const full = (format ?? (category || words.length ? 'full' : 'checklist')) === 'full'
+  const groups = GUIDE_CATEGORIES.map((c) => ({ c, rs: rules.filter((r) => r.category === c.id) })).filter((g) => g.rs.length)
+  const body = groups.map(({ c, rs }) => `## ${c.title} (${c.id})\n${c.blurb}\n\n` + (full ? rs.map((r) => ruleMarkdown(r)).join('\n\n---\n\n') : rs.map((r) => `- ${r.rule} [${r.impact}] (guide:${r.id})`).join('\n'))).join('\n\n')
+  return text(`# PostgreSQL production guidelines: ${rules.length} of ${GUIDE_RULES.length} rules\n` +
+    (full ? '' : 'One line per rule. For the reasoning and SQL of a rule, call `read` with its id, or call this tool with a category or query.\n') + `Site: ${sitePath('/guide')}\n\n` + body)
+})
 
 server.registerTool('list_lessons', {
   title: 'List lessons',
