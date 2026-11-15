@@ -44,7 +44,7 @@ export interface Lesson {
     extensions?: ExtensionName[]
     /**
      * Server settings applied at startup (postgresql.conf lines), e.g. ['max_prepared_transactions = 10'].
-     * Never use them to create a state where a statement waits on a lock: lock waits cannot time out in the browser.
+     * Never use them to create a state where a statement waits on a lock: lock waits never time out there (the reader would have to press Stop).
      */
     config?: string[]
     /** Runs once before the reader's first query (schema + seed data). */

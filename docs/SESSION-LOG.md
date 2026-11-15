@@ -168,8 +168,8 @@ and distributed PostgreSQL from 20 given links. Work in phases, with worker and 
   no third-party requests; contrast fixes (dark-mode buttons were 2.4:1, green and amber text in light mode);
   skip link, focus on navigation, labelled editors, keyboard-scrollable tables, inert closed drawer; the Cookbook
   shows your result beside the expected one; the Reference filter takes several words and lives in the URL.
-- **Deferred.** A query that never ends freezes the tab: the in-browser database cannot be interrupted
-  (`statement_timeout` does not fire). The fix is to run it in a Web Worker.
+- **Deferred (done in round 8).** A query that never ends froze the tab: the in-browser database cannot be
+  interrupted (`statement_timeout` does not fire). The fix was to run it in a Web Worker.
 - **Interruptions.** A usage limit stopped seven agents mid-run; all resumed with their work intact. Two reviewers'
   edits were refused because their original task was review-only; fresh agents applied those findings.
 
@@ -191,6 +191,19 @@ and distributed PostgreSQL from 20 given links. Work in phases, with worker and 
   an avoid/prefer pair that did not teach its rule, a restore recipe that skipped the restore, Patroni fencing
   described wrongly, a pg_hba reject line that covered IPv4 only, "never blocks" for a change that takes brief
   locks, and 9 links to lessons that did not cover the rule. It added 3 rules.
+
+## Round 8: stoppable queries
+
+- **Problem.** A query that never ends (a recursive CTE with no stop condition) froze the tab: the database ran on
+  the page's main thread, and neither `statement_timeout` nor any timer can interrupt it.
+- **Change.** The playground and Cookbook database now runs in a Web Worker. The engine is split into
+  `engine-core.ts` (boot and run, thread-agnostic), `engine.worker.ts` (hosts it) and `engine.ts` (the page-side
+  proxy with the same API, plus `stop()` and a 60 s limit). Stopping terminates the worker; the run reports that the
+  database was restarted from the original schema. The page shows a Stop button while a query runs. The Cookbook
+  checker passes an abort signal to the copy that runs the reader's SQL. In Node the engine still runs in-process,
+  so the content checks are unchanged.
+- **Verified in a browser.** Normal runs; an endless query with the page still responsive, stopped, then a fresh
+  database; an endless Cookbook answer stopped during Check, then the reference solution accepted.
 
 ## Decisions worth remembering
 

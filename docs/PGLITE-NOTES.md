@@ -26,10 +26,12 @@ Measured with `@electric-sql/pglite` 0.5.16 (PostgreSQL 18.6, wasm32) in Node an
 ## Does not work (simulate it instead)
 
 - **One backend only.** There are no concurrent sessions, so lock waits, deadlocks and SSI conflicts must be simulated.
-- **A lock wait can never time out.** `lock_timeout` does not fire, and the tab freezes. Probe locked rows only with
-  `NOWAIT` or `SKIP LOCKED`, and always resolve prepared transactions within the same preset.
-- **A running statement cannot be interrupted.** `statement_timeout` does not fire either, and on the main thread no
-  timer runs while a query does. An endless recursive query freezes the tab; only a Web Worker could be terminated.
+- **A lock wait can never time out.** `lock_timeout` does not fire, so a statement that waits on a lock waits for ever.
+  Probe locked rows only with `NOWAIT` or `SKIP LOCKED`, and always resolve prepared transactions within the same preset.
+- **A running statement cannot be interrupted from inside.** `statement_timeout` does not fire either. The site
+  therefore runs each database in a Web Worker (`app/src/playground/engine.worker.ts`): the page stays responsive, and
+  a Stop button or a 60 s limit ends a runaway query by terminating the worker. The database then restarts from the
+  lesson schema, so changes since the last reset are lost. In Node (the content checks) the database runs in-process.
 - **No parallel query** (`max_parallel_workers = 0`), **no JIT**, **no lz4** (TOAST and WAL compression use pglz only),
   `io_method = sync`.
 - **No streaming or logical replication.** `CREATE SUBSCRIPTION` fails (no libpqwalreceiver) and `test_decoding` is not

@@ -4,7 +4,7 @@ import { sql as sqlLang, PostgreSQL } from '@codemirror/lang-sql'
 import { EditorView, keymap } from '@codemirror/view'
 import { Prec } from '@codemirror/state'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Database, Loader2, Play, RotateCcw, TriangleAlert } from 'lucide-react'
+import { Database, Loader2, Play, RotateCcw, Square, TriangleAlert } from 'lucide-react'
 import { Engine, formatCell, type RunOutput } from './engine'
 import type { ExtensionName } from './extensions'
 import type { Preset } from '../lesson/types'
@@ -64,7 +64,10 @@ export function Playground({ setup, presets, extensions = [], config = [] }: Pro
     setStatus(engine.ready ? 'running' : 'booting')
     try {
       const r = await engine.run(q)
-      setOut(r); setRunCount((n) => n + 1); setStatus('ready')
+      setOut(r); setRunCount((n) => n + 1)
+      // A stopped run took the database down with it: start a fresh one from the lesson schema right away.
+      if (r.stopped) { setStatus('booting'); await engine.boot() }
+      setStatus('ready')
     } catch (e) { setBootError((e as Error).message); setStatus('failed') }
   }, [code, engine])
 
@@ -88,9 +91,16 @@ export function Playground({ setup, presets, extensions = [], config = [] }: Pro
           <button onClick={reset} disabled={busy} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted hover:bg-surface hover:text-ink disabled:opacity-50" title="Throw away this database and rebuild it from the lesson schema">
             <RotateCcw className="size-3.5" /> Reset DB
           </button>
-          <button onClick={() => run()} disabled={busy} data-testid="run" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent hover:opacity-90 disabled:opacity-60">
-            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />} Run <kbd className="hidden opacity-80 sm:inline">{MOD_KEY}↵</kbd>
-          </button>
+          {status === 'running' && engine.stoppable ? (
+            <button onClick={() => engine.stop('Stopped.')} data-testid="stop" title="Stop this query. The database restarts from the lesson schema."
+              className="inline-flex items-center gap-1.5 rounded-md border border-dead/50 bg-dead/10 px-3 py-1.5 text-xs font-semibold text-dead hover:bg-dead/20">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden /> <Square className="size-3 fill-current" aria-hidden /> Stop
+            </button>
+          ) : (
+            <button onClick={() => run()} disabled={busy} data-testid="run" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent hover:opacity-90 disabled:opacity-60">
+              {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />} Run <kbd className="hidden opacity-80 sm:inline">{MOD_KEY}↵</kbd>
+            </button>
+          )}
         </div>
       </div>
 

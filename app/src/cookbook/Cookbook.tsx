@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Route, Routes, useParams } from 'react-router-dom'
 import CodeMirror from '@uiw/react-codemirror'
 import { sql as sqlLang, PostgreSQL } from '@codemirror/lang-sql'
 import { EditorView, keymap } from '@codemirror/view'
 import { Prec } from '@codemirror/state'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Check, CircleCheck, CircleX, Eye, FlaskConical, Lightbulb, Loader2, Play, Table2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CircleCheck, CircleX, Eye, FlaskConical, Lightbulb, Loader2, Play, Square, Table2 } from 'lucide-react'
 import { DATASETS, EXERCISES, datasetById, exerciseById } from './registry'
 import { LEVELS, type Level } from './types'
 import { checkAnswer, type Verdict } from './compare'
@@ -110,11 +110,15 @@ function ExerciseView() {
     setBusy('run'); setVerdict(null)
     try { setOut(await engine.run(code)) } finally { setBusy(null) }
   }, [engine, code])
+  const abort = useRef<AbortController | null>(null)
   const check = useCallback(async () => {
     if (!ex || !ds || !code.trim()) return
     setBusy('check')
-    try { const v = await checkAnswer(ex, ds, code); setVerdict(v); if (v.ok) setDone(solvedKey(ex.id), true) } finally { setBusy(null) }
+    abort.current = new AbortController()
+    try { const v = await checkAnswer(ex, ds, code, abort.current.signal); setVerdict(v); if (v.ok) setDone(solvedKey(ex.id), true) } finally { setBusy(null); abort.current = null }
   }, [ex, ds, code])
+  // Stop a query that is taking too long: Run stops its database, Check stops the copy running the reader's SQL.
+  const stop = () => { if (busy === 'run') engine?.stop('Stopped.'); else abort.current?.abort() }
   const runKey = useMemo(() => Prec.highest(keymap.of([{ key: 'Mod-Enter', run: () => { void run(); return true } }])), [run])
 
   if (!ex || !ds) return <div className="px-8 pt-10"><p>Unknown exercise. <Link className="text-accent" to="/cookbook">Back to the Cookbook</Link></p></div>
@@ -152,6 +156,12 @@ function ExerciseView() {
           <button onClick={check} disabled={!!busy} data-testid="check" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent disabled:opacity-60">
             {busy === 'check' ? <Loader2 className="size-3.5 animate-spin" /> : <CircleCheck className="size-3.5" />} Check answer
           </button>
+          {busy && engine?.stoppable && (
+            <button onClick={stop} data-testid="stop" title="Stop this query. The database restarts from the dataset."
+              className="inline-flex items-center gap-1.5 rounded-md border border-dead/50 bg-dead/10 px-3 py-1.5 text-xs font-semibold text-dead hover:bg-dead/20">
+              <Square className="size-3 fill-current" aria-hidden /> Stop
+            </button>
+          )}
           <span className="ml-auto flex gap-1.5">
             {ex.hint && <button onClick={() => setHint((h) => !h)} className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted hover:text-ink"><Lightbulb className="size-3.5" /> Hint</button>}
             <button onClick={() => setSol((s) => !s)} data-testid="show-solution" className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-muted hover:text-ink"><Eye className="size-3.5" /> Solution</button>

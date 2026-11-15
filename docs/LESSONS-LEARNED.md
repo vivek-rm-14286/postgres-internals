@@ -19,6 +19,8 @@
 - **JSX whitespace.** A line break after a bold element (`<b>Ecosystem</b>⏎(pgvector…`) drops the space. Add `{' '}`.
 - **Check contrast in both themes.** White text on the dark-mode accent was 2.4:1, and data colours that work as fills
   were too faint as small text. Fills and text now use separate shades (`tone()` vs `tone.text()`, `--c-*` vs `--t-*`).
+- **Run the database in a worker.** WebAssembly on the main thread blocks everything, including the timer that was
+  meant to stop it. In a Web Worker the page stays responsive and `terminate()` is a reliable kill switch.
 - **Semantic colour tokens** as CSS variables, redefined for dark mode, made every visualizer theme-correct. Check that
   hues stay distinct: tuple vs accent and pointer vs ok started out identical.
 
